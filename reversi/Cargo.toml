@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "reversi_core",
+    "reversi_gui",
+    "reversi_ai",
+]
