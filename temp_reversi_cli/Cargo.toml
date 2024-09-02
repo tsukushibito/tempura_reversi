@@ -1,0 +1,8 @@
+[package]
+name = "temp_reversi_cli"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+temp_reversi_core = { path = "../temp_reversi_core" }
+temp_reversi_ai = { path = "../temp_reversi_ai" }

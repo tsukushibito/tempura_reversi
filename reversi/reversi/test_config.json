@@ -1,0 +1,20 @@
+{
+  "base_path": "data",
+  "training": {
+    "train_data_file": "train.bin",
+    "valid_data_file": "valid.bin",
+    "epochs": 100,
+    "batch_size": 32,
+    "early_stopping": {
+      "patience": 10,
+      "min_delta": 0.001
+    },
+    "models_file": "models.bin"
+  },
+  "gen_data": {
+    "num_games_for_train": 1000,
+    "num_games_for_valid": 300,
+    "train_file": "train.bin",
+    "valid_file": "valid.bin"
+  }
+}
