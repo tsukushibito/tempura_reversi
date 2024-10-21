@@ -53,9 +53,9 @@ fn get_shift_and_mask(dir: Direction) -> (i32, u64) {
 
 fn shift_bits(bits: u64, shift: i32) -> u64 {
     if shift > 0 {
-        (bits << shift)
+        bits << shift
     } else {
-        (bits >> (-shift))
+        bits >> (-shift)
     }
 }
 
