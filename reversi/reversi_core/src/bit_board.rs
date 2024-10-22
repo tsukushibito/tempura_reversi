@@ -1,6 +1,6 @@
 use crate::board::{Board, Color, Direction, Position, BOARD_SIZE};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct BitBoard {
     black: u64,
     white: u64,
@@ -78,45 +78,6 @@ fn get_flips_bits(move_bit: u64, player_bits: u64, opponent_bits: u64) -> u64 {
     flips
 }
 
-impl BitBoard {
-    pub fn new() -> Self {
-        let mut board = BitBoard { black: 0, white: 0 };
-        board.set_disc(&Position::D4, Color::White);
-        board.set_disc(&Position::E5, Color::White);
-        board.set_disc(&Position::E4, Color::Black);
-        board.set_disc(&Position::D5, Color::Black);
-
-        board
-    }
-
-    pub fn get_disc(&self, pos: &Position) -> Option<Color> {
-        let index = pos.y * BOARD_SIZE as i32 + pos.x;
-        let bit = 1u64 << index;
-        if self.black & bit != 0 {
-            Some(Color::Black)
-        } else if self.white & bit != 0 {
-            Some(Color::White)
-        } else {
-            None
-        }
-    }
-
-    pub fn set_disc(&mut self, pos: &Position, color: Color) {
-        let index = pos.y * BOARD_SIZE as i32 + pos.x;
-        let bit = 1u64 << index;
-        match color {
-            Color::Black => {
-                self.black |= bit;
-                self.white &= !bit;
-            }
-            Color::White => {
-                self.white |= bit;
-                self.black &= !bit;
-            }
-        }
-    }
-}
-
 impl Board for BitBoard {
     fn discs(&self) -> Vec<Vec<Option<Color>>> {
         let mut discs: Vec<Vec<Option<Color>>> = Vec::new();
@@ -130,6 +91,37 @@ impl Board for BitBoard {
         }
 
         discs
+    }
+
+    fn get_disc(&self, pos: &Position) -> Option<Color> {
+        let index = pos.y * BOARD_SIZE as i32 + pos.x;
+        let bit = 1u64 << index;
+        if self.black & bit != 0 {
+            Some(Color::Black)
+        } else if self.white & bit != 0 {
+            Some(Color::White)
+        } else {
+            None
+        }
+    }
+
+    fn set_disc(&mut self, pos: &Position, color: Option<Color>) {
+        let index = pos.y * BOARD_SIZE as i32 + pos.x;
+        let bit = 1u64 << index;
+        match color {
+            Some(Color::Black) => {
+                self.black |= bit;
+                self.white &= !bit;
+            }
+            Some(Color::White) => {
+                self.white |= bit;
+                self.black &= !bit;
+            }
+            None => {
+                self.black &= !bit;
+                self.white &= !bit;
+            }
+        }
     }
 
     fn count_of(&self, color: Option<Color>) -> usize {
@@ -185,9 +177,9 @@ impl Board for BitBoard {
 
     fn display(&self) {
         println!("  A B C D E F G H");
-        for y in 0..8 {
+        for y in 0..BOARD_SIZE as i32 {
             print!("{}", y + 1);
-            for x in 0..8 {
+            for x in 0..BOARD_SIZE as i32 {
                 print!(" ");
                 match self.get_disc(&Position { x, y }) {
                     Some(Color::Black) => print!("B"), // 黒の駒
@@ -206,7 +198,7 @@ mod tests {
 
     #[test]
     fn test_get_valid_moves() {
-        let board = BitBoard::new();
+        let board: BitBoard = Board::new();
         let valid_moves = board.get_valid_moves(Color::Black);
         let expected_moves = vec![Position::D3, Position::C4, Position::F5, Position::E6];
         assert_eq!(valid_moves, expected_moves);

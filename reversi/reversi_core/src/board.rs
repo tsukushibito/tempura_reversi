@@ -110,8 +110,20 @@ impl Direction {
     ];
 }
 
-pub trait Board: Clone {
+pub trait Board: Clone + Default {
+    fn new() -> Self {
+        let mut board = Self::default();
+        board.set_disc(&Position::D4, Some(Color::White));
+        board.set_disc(&Position::E5, Some(Color::White));
+        board.set_disc(&Position::D5, Some(Color::Black));
+        board.set_disc(&Position::E4, Some(Color::Black));
+
+        board
+    }
+
     fn discs(&self) -> Vec<Vec<Option<Color>>>;
+    fn get_disc(&self, pos: &Position) -> Option<Color>;
+    fn set_disc(&mut self, pos: &Position, color: Option<Color>);
 
     fn count_of(&self, color: Option<Color>) -> usize;
 
