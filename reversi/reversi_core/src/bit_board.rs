@@ -1,6 +1,4 @@
-use crate::board::{Board, Color, Direction, Move, Position};
-
-const BOARD_SIZE: usize = 8;
+use crate::board::{Board, Color, Direction, Position, BOARD_SIZE};
 
 #[derive(Debug, Clone)]
 pub struct BitBoard {

@@ -1,3 +1,5 @@
+pub const BOARD_SIZE: usize = 8;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Position {
     pub x: i32,
