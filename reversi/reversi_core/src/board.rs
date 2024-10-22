@@ -125,7 +125,7 @@ pub trait Board: Clone {
         self.count_of(None)
     }
 
-    fn make_move(&mut self, move_: &Move) -> bool;
+    fn make_move(&mut self, color: Color, pos: &Position) -> bool;
 
     fn get_valid_moves(&self, color: Color) -> Vec<Position>;
 

@@ -144,16 +144,11 @@ impl Board for BitBoard {
         }
     }
 
-    fn make_move(&mut self, mov: &Move) -> bool {
-        if mov.position.is_none() {
-            return false;
-        }
-
-        let pos = mov.position.unwrap();
+    fn make_move(&mut self, color: Color, pos: &Position) -> bool {
         let idx = pos.x + pos.y * BOARD_SIZE as i32;
         let move_bit = 1u64 << idx;
 
-        let (player_bits, opponent_bits) = match mov.color {
+        let (player_bits, opponent_bits) = match color {
             Color::Black => (&mut self.black, &mut self.white),
             Color::White => (&mut self.white, &mut self.black),
         };
@@ -223,11 +218,7 @@ mod tests {
     fn test_make_move() {
         let mut board = BitBoard::new();
 
-        let mov = Move {
-            color: Color::Black,
-            position: Some(Position::D3),
-        };
-        let r = board.make_move(&mov);
+        let r = board.make_move(Color::Black, &Position::D3);
         assert!(r);
         board.display();
         let expected_black = 0x0000000818080000u64;
