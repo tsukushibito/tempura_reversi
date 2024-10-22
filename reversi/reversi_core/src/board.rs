@@ -83,6 +83,31 @@ pub struct Move {
     pub color: Color,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum Direction {
+    East,      // 東
+    West,      // 西
+    South,     // 南
+    North,     // 北
+    SouthEast, // 南東
+    NorthWest, // 北西
+    SouthWest, // 南西
+    NorthEast, // 北東
+}
+
+impl Direction {
+    pub const DIRECTIONS: [Direction; 8] = [
+        Direction::East,
+        Direction::West,
+        Direction::South,
+        Direction::North,
+        Direction::SouthEast,
+        Direction::NorthWest,
+        Direction::SouthWest,
+        Direction::NorthEast,
+    ];
+}
+
 pub trait Board: Clone {
     fn discs(&self) -> Vec<Vec<Option<Color>>>;
 

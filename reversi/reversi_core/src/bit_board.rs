@@ -1,29 +1,4 @@
-use crate::board::{Board, Color, Move, Position};
-
-#[derive(Debug, Clone, Copy)]
-enum Direction {
-    East,      // 東
-    West,      // 西
-    South,     // 南
-    North,     // 北
-    SouthEast, // 南東
-    NorthWest, // 北西
-    SouthWest, // 南西
-    NorthEast, // 北東
-}
-
-impl Direction {
-    const DIRECTIONS: [Direction; 8] = [
-        Direction::East,
-        Direction::West,
-        Direction::South,
-        Direction::North,
-        Direction::SouthEast,
-        Direction::NorthWest,
-        Direction::SouthWest,
-        Direction::NorthEast,
-    ];
-}
+use crate::board::{Board, Color, Direction, Move, Position};
 
 const BOARD_SIZE: usize = 8;
 
