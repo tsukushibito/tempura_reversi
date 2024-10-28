@@ -1,14 +1,20 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
+pub mod minmax;
+
+use reversi_core::{board::Board, Color, Move};
+
+struct GameState<B: Board> {
+    board: B,
+    player: Color,
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+impl<B: Board> GameState<B> {
+    fn new(board: B, player: Color) -> Self {
+        GameState { board, player }
     }
+}
+
+struct SearchResult {
+    best_move: Option<Move>,
+    path: Vec<Move>,
+    nodes_searched: usize,
 }

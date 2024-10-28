@@ -1,8 +1,19 @@
-use crate::board::{Board, Color, Direction, Position, BOARD_SIZE};
+use crate::{
+    board::{Board, BOARD_SIZE},
+    Color, Direction, Move, Position,
+};
 
 const EMPTY: u8 = 0;
 const BLACK: u8 = 1;
 const WHITE: u8 = 2;
+
+fn get_color_value(color: Option<Color>) -> u8 {
+    match color {
+        None => EMPTY,
+        Some(Color::Black) => BLACK,
+        Some(Color::White) => WHITE,
+    }
+}
 
 fn get_direction_vector(dir: Direction) -> (i32, i32) {
     match dir {
@@ -28,10 +39,7 @@ impl ArrayBoard {
             return false;
         }
 
-        let opponent = match color {
-            Color::Black => WHITE,
-            Color::White => BLACK,
-        };
+        let opponent = get_color_value(Some(color.opposite()));
 
         for dir in Direction::DIRECTIONS {
             let (dx, dy) = get_direction_vector(dir);
@@ -128,10 +136,8 @@ impl Board for ArrayBoard {
             return false;
         }
 
-        let (player, opponent) = match color {
-            Color::Black => (BLACK, WHITE),
-            Color::White => (WHITE, BLACK),
-        };
+        let player = get_color_value(Some(color));
+        let opponent = get_color_value(Some(color.opposite()));
 
         let mut to_flip = Vec::new();
 
@@ -232,12 +238,12 @@ mod tests {
     fn test_get_valid_moves() {
         let board = ArrayBoard::new();
 
-        let valid_moves = board.get_valid_moves(Color::Black);
-        println!("valid_moves: {:?}", valid_moves);
-        assert!(valid_moves.contains(&Position::C4));
-        assert!(valid_moves.contains(&Position::D3));
-        assert!(valid_moves.contains(&Position::E6));
-        assert!(valid_moves.contains(&Position::F5));
+        let valid_move_pos = board.get_valid_moves(Color::Black);
+        println!("valid_moves: {:?}", valid_move_pos);
+        assert!(valid_move_pos.contains(&Position::C4));
+        assert!(valid_move_pos.contains(&Position::D3));
+        assert!(valid_move_pos.contains(&Position::E6));
+        assert!(valid_move_pos.contains(&Position::F5));
     }
 
     #[test]

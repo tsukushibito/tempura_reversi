@@ -1,4 +1,7 @@
-use crate::board::{Board, Color, Direction, Position, BOARD_SIZE};
+use crate::{
+    board::{Board, BOARD_SIZE},
+    Color, Direction, Move, Position,
+};
 
 #[derive(Debug, Clone, Default)]
 pub struct BitBoard {
@@ -163,16 +166,16 @@ impl Board for BitBoard {
             Color::White => (self.white, self.black),
         };
         let mut bits = get_valid_moves_bits(player_bits, opponent_bits);
-        let mut positions = Vec::new();
+        let mut moves = Vec::new();
         while bits != 0 {
             let lsb = bits & (!bits + 1); // 最下位の1ビットを取得
             let index = lsb.trailing_zeros() as usize;
             let x = (index % 8) as i32;
             let y = (index / 8) as i32;
-            positions.push(Position { x, y });
+            moves.push(Position { x, y });
             bits &= bits - 1; // 最下位の1ビットをクリア
         }
-        positions
+        moves
     }
 
     fn display(&self) {
@@ -199,9 +202,9 @@ mod tests {
     #[test]
     fn test_get_valid_moves() {
         let board: BitBoard = Board::new();
-        let valid_moves = board.get_valid_moves(Color::Black);
-        let expected_moves = vec![Position::D3, Position::C4, Position::F5, Position::E6];
-        assert_eq!(valid_moves, expected_moves);
+        let valid_move_pos = board.get_valid_moves(Color::Black);
+        let expected_pos = vec![Position::D3, Position::C4, Position::F5, Position::E6];
+        assert_eq!(valid_move_pos, expected_pos);
     }
 
     #[test]
