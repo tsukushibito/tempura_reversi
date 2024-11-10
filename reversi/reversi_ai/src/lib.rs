@@ -1,4 +1,4 @@
-pub mod minmax;
+pub mod negamax;
 
 use reversi_core::{board::Board, Color, Move};
 
@@ -17,4 +17,5 @@ struct SearchResult {
     best_move: Option<Move>,
     path: Vec<Move>,
     nodes_searched: usize,
+    score: i32,
 }
