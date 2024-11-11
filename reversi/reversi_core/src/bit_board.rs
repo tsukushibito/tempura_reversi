@@ -1,6 +1,6 @@
 use crate::{
     board::{Board, BOARD_SIZE},
-    Color, Direction, Move, Position,
+    Color, Direction, Position,
 };
 
 #[derive(Debug, Clone, Default)]

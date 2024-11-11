@@ -1,4 +1,4 @@
-use crate::{Color, Move, Position};
+use crate::{Color, Position};
 
 pub const BOARD_SIZE: usize = 8;
 

@@ -1,6 +1,6 @@
 use crate::{
     board::{Board, BOARD_SIZE},
-    Color, Direction, Move, Position,
+    Color, Direction, Position,
 };
 
 const EMPTY: u8 = 0;
@@ -39,7 +39,7 @@ impl ArrayBoard {
             return false;
         }
 
-        let opponent = get_color_value(Some(color.opposite()));
+        let opponent = get_color_value(Some(color.opponent()));
 
         for dir in Direction::DIRECTIONS {
             let (dx, dy) = get_direction_vector(dir);
@@ -137,7 +137,7 @@ impl Board for ArrayBoard {
         }
 
         let player = get_color_value(Some(color));
-        let opponent = get_color_value(Some(color.opposite()));
+        let opponent = get_color_value(Some(color.opponent()));
 
         let mut to_flip = Vec::new();
 
@@ -203,6 +203,7 @@ impl Board for ArrayBoard {
         }
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
