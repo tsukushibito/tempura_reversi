@@ -3,7 +3,7 @@ use crate::{
     Color, Direction, Position,
 };
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Hash, PartialEq, Eq)]
 pub struct BitBoard {
     black: u64,
     white: u64,

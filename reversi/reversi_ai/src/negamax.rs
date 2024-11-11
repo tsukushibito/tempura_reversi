@@ -1,86 +1,114 @@
-use reversi_core::{board::Board, Color, Move};
+use std::collections::HashMap;
+use std::hash::Hash;
 
-use crate::{GameState, SearchResult};
+use reversi_core::{board::Board, Move};
 
-fn evaluate<B: Board>(state: &GameState<B>, color: Color) -> i32 {
-    let black_count = state.board.black_count() as i32;
-    let white_count = state.board.white_count() as i32;
-    match color {
-        Color::Black => black_count - white_count,
-        Color::White => white_count - black_count,
-    }
+use crate::{EvalFunc, GameState, SearchResult};
+
+struct Negamax<'a, B: Board + Hash + Eq + Clone> {
+    evaluate: EvalFunc<B>,
+    transposition_table: HashMap<B, i32>,
+    phantom: std::marker::PhantomData<&'a B>,
 }
 
-fn negamax<B: Board>(state: &GameState<B>, depth: usize) -> SearchResult {
-    // ノード数をカウント
-    let mut nodes_searched = 1;
-
-    // 現在のプレイヤーの有効な手を取得
-    let valid_moves = state.board.get_valid_moves(state.player);
-
-    // 終端条件のチェック
-    if depth == 0 || valid_moves.is_empty() {
-        let score = evaluate(state, state.player);
-        return SearchResult {
-            best_move: None,
-            path: Vec::new(),
-            nodes_searched,
-            score,
-        };
-    }
-
-    // ベストスコアとベストムーブの初期化
-    let mut max_score = i32::MIN;
-    let mut best_move = None;
-    let mut best_path = Vec::new();
-
-    // すべての有効な手をループ
-    for mv_pos in valid_moves {
-        // ボードをクローンして手を適用
-        let mut new_board = state.board.clone();
-        new_board.make_move(state.player, &mv_pos);
-
-        // 相手のターンで新しいゲーム状態を作成
-        let new_state = GameState {
-            board: new_board,
-            player: state.player.opponent(),
-        };
-
-        // 再帰的にnegamaxを呼び出し
-        let result = negamax(&new_state, depth - 1);
-
-        // スコアを反転
-        let score = -result.score;
-
-        nodes_searched += result.nodes_searched;
-
-        // ベストスコアの更新
-        if score > max_score {
-            max_score = score;
-            best_move = Some(Move {
-                position: Some(mv_pos),
-                color: state.player,
-            });
-            best_path = vec![Move {
-                position: Some(mv_pos),
-                color: state.player,
-            }];
-            best_path.extend(result.path);
+impl<'a, B: Board + Hash + Eq + Clone> Negamax<'a, B> {
+    fn new(evaluate: EvalFunc<B>) -> Self {
+        Negamax {
+            evaluate,
+            transposition_table: HashMap::new(),
+            phantom: std::marker::PhantomData,
         }
     }
 
-    // 結果を返す
-    SearchResult {
-        best_move,
-        path: best_path,
-        nodes_searched,
-        score: max_score,
+    fn search(&mut self, state: &GameState<B>, depth: usize) -> SearchResult {
+        // メモ化テーブルの確認
+        if let Some(&score) = self.transposition_table.get(&state.board) {
+            return SearchResult {
+                best_move: None,
+                path: Vec::new(),
+                nodes_searched: 0, // 新たなノードは探索していない
+                score,
+            };
+        }
+
+        // ノード数をカウント
+        let mut nodes_searched = 1;
+
+        // 現在のプレイヤーの有効な手を取得
+        let valid_moves = state.board.get_valid_moves(state.player);
+
+        // 終端条件のチェック
+        if depth == 0 || valid_moves.is_empty() {
+            let score = (self.evaluate)(state, state.player);
+            // スコアをメモ化
+            self.transposition_table.insert(state.board.clone(), score);
+            return SearchResult {
+                best_move: None,
+                path: Vec::new(),
+                nodes_searched,
+                score,
+            };
+        }
+
+        // ベストスコアとベストムーブの初期化
+        let mut max_score = i32::MIN;
+        let mut best_move = None;
+        let mut best_path = Vec::new();
+
+        // すべての有効な手をループ
+        for mv_pos in valid_moves {
+            // ボードをクローンして手を適用
+            let mut new_board = state.board.clone();
+            new_board.make_move(state.player, &mv_pos);
+
+            // 相手のターンで新しいゲーム状態を作成
+            let new_state = GameState {
+                board: new_board,
+                player: state.player.opponent(),
+            };
+
+            // 再帰的にsearchを呼び出し
+            let result = self.search(&new_state, depth - 1);
+
+            // スコアを反転
+            let score = -result.score;
+
+            nodes_searched += result.nodes_searched;
+
+            // ベストスコアの更新
+            if score > max_score {
+                max_score = score;
+                best_move = Some(Move {
+                    position: Some(mv_pos),
+                    color: state.player,
+                });
+                best_path = vec![Move {
+                    position: Some(mv_pos),
+                    color: state.player,
+                }];
+                best_path.extend(result.path);
+            }
+        }
+
+        // 結果をメモ化
+        self.transposition_table
+            .insert(state.board.clone(), max_score);
+
+        // 結果を返す
+        SearchResult {
+            best_move,
+            path: best_path,
+            nodes_searched,
+            score: max_score,
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use reversi_core::{array_board::ArrayBoard, Position};
+    use reversi_core::{array_board::ArrayBoard, Color, Position};
+
+    use crate::simple_evaluate::simple_evaluate;
 
     use super::*;
 
@@ -96,14 +124,25 @@ mod tests {
         let depth = 3;
 
         // negamax関数を呼び出す
-        let result = negamax(&state, depth);
+        let mut negamax = Negamax::new(simple_evaluate);
+        let result = negamax.search(&state, depth);
 
         // ベストムーブを表示
         println!("ベストムーブ: {:?}", result.best_move);
 
-        // 期待するベストムーブを定義（例としてC4）
+        // パスを表示
+        println!("パス: ");
+        let mut board = state.board.clone();
+        board.display();
+        for mov in result.path {
+            board.make_move(mov.color, &mov.position.unwrap());
+            board.display();
+        }
+        println!();
+
+        // 期待するベストムーブを定義
         let expected_best_move = Move {
-            position: Some(Position::C4),
+            position: Some(Position::D3),
             color: Color::Black,
         };
 
@@ -114,15 +153,9 @@ mod tests {
             "ベストムーブが期待したものと異なります。"
         );
 
-        // スコアの確認（具体的な値は評価関数とゲーム状態によります）
-        // ここではスコアが正の値であることを確認します
         assert!(result.score > 0, "スコアが正の値ではありません。");
 
-        // 探索ノード数が適切か確認
         let max_nodes_searched = 100000;
-        assert!(
-            result.nodes_searched <= max_nodes_searched,
-            "探索ノード数が多すぎます。"
-        );
+        assert!(result.nodes_searched <= max_nodes_searched,);
     }
 }

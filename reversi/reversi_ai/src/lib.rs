@@ -1,8 +1,9 @@
 pub mod negamax;
+pub mod simple_evaluate;
 
 use reversi_core::{board::Board, Color, Move};
 
-struct GameState<B: Board> {
+pub struct GameState<B: Board> {
     board: B,
     player: Color,
 }
@@ -13,9 +14,11 @@ impl<B: Board> GameState<B> {
     }
 }
 
-struct SearchResult {
+pub struct SearchResult {
     best_move: Option<Move>,
     path: Vec<Move>,
     nodes_searched: usize,
     score: i32,
 }
+
+pub type EvalFunc<B> = fn(&GameState<B>, Color) -> i32;

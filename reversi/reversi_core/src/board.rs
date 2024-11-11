@@ -1,8 +1,9 @@
 use crate::{Color, Position};
+use std::hash::Hash;
 
 pub const BOARD_SIZE: usize = 8;
 
-pub trait Board: Clone + Default {
+pub trait Board: Clone + Default + Hash + PartialEq + Eq {
     fn new() -> Self {
         let mut board = Self::default();
         board.set_disc(&Position::D4, Some(Color::White));

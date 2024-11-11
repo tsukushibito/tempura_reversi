@@ -28,7 +28,7 @@ fn get_direction_vector(dir: Direction) -> (i32, i32) {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct ArrayBoard {
     pub discs: [u8; BOARD_SIZE * BOARD_SIZE],
 }
