@@ -1,7 +1,5 @@
-pub mod mobility_evaluate;
-pub mod negamax;
-pub mod positional_evaluate;
-pub mod simple_evaluate;
+pub mod evaluate;
+pub mod search;
 
 use reversi_core::{board::Board, Color, Move};
 

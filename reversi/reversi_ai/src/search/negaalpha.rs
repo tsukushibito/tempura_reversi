@@ -1,26 +1,35 @@
 use std::collections::HashMap;
 use std::hash::Hash;
 
+use reversi_core::Color;
 use reversi_core::{board::Board, Move};
 
-use crate::{EvalFunc, GameState, SearchResult};
+use crate::{GameState, SearchResult};
 
-struct Negamax<'a, B: Board + Hash + Eq + Clone> {
+type EvalFunc<B> = fn(&GameState<B>, Color) -> i32;
+
+pub struct Negaalpha<'a, B: Board + Hash + Eq + Clone> {
     evaluate: EvalFunc<B>,
     transposition_table: HashMap<B, i32>,
     phantom: std::marker::PhantomData<&'a B>,
 }
 
-impl<'a, B: Board + Hash + Eq + Clone> Negamax<'a, B> {
+impl<'a, B: Board + Hash + Eq + Clone> Negaalpha<'a, B> {
     fn new(evaluate: EvalFunc<B>) -> Self {
-        Negamax {
+        Negaalpha {
             evaluate,
             transposition_table: HashMap::new(),
             phantom: std::marker::PhantomData,
         }
     }
 
-    fn search(&mut self, state: &GameState<B>, depth: usize) -> SearchResult {
+    fn search(
+        &mut self,
+        state: &GameState<B>,
+        depth: usize,
+        mut alpha: i32,
+        beta: i32,
+    ) -> SearchResult {
         // メモ化テーブルの確認
         if let Some(&score) = self.transposition_table.get(&state.board) {
             return SearchResult {
@@ -68,7 +77,7 @@ impl<'a, B: Board + Hash + Eq + Clone> Negamax<'a, B> {
             };
 
             // 再帰的にsearchを呼び出し
-            let result = self.search(&new_state, depth - 1);
+            let result = self.search(&new_state, depth - 1, -beta, -alpha);
 
             // スコアを反転
             let score = -result.score;
@@ -88,6 +97,16 @@ impl<'a, B: Board + Hash + Eq + Clone> Negamax<'a, B> {
                 }];
                 best_path.extend(result.path);
             }
+
+            // アルファ値の更新
+            if score > alpha {
+                alpha = score;
+            }
+
+            // ベータカットオフ
+            if alpha >= beta {
+                break;
+            }
         }
 
         // 結果をメモ化
@@ -106,56 +125,56 @@ impl<'a, B: Board + Hash + Eq + Clone> Negamax<'a, B> {
 
 #[cfg(test)]
 mod tests {
-    use reversi_core::{array_board::ArrayBoard, Color, Position};
+    use reversi_core::{array_board::ArrayBoard, Position};
 
-    use crate::simple_evaluate::simple_evaluate;
+    use crate::evaluate::simple_evaluate;
 
     use super::*;
 
     #[test]
-    fn test_negamax() {
+    fn test_negaalpha() {
         // ボードを初期化
         let board = ArrayBoard::new();
 
         // ゲーム状態を作成
         let state = GameState::new(board, Color::Black);
 
-        // 探索深さを設定
-        let depth = 3;
+        // 評価関数を指定してNegaalphaを作成
+        let mut negaalpha = Negaalpha::new(simple_evaluate);
 
-        // negamax関数を呼び出す
-        let mut negamax = Negamax::new(simple_evaluate);
-        let result = negamax.search(&state, depth);
+        // 探索深さを設定
+        let depth = 5;
+
+        // アルファとベータの初期値を設定
+        let alpha = i32::MIN + 1;
+        let beta = i32::MAX;
+
+        // 探索を開始
+        let result = negaalpha.search(&state, depth, alpha, beta);
 
         // ベストムーブを表示
         println!("ベストムーブ: {:?}", result.best_move);
 
-        // パスを表示
-        println!("パス: ");
-        let mut board = state.board.clone();
-        board.display();
-        for mov in result.path {
-            board.make_move(mov.color, &mov.position.unwrap());
-            board.display();
-        }
-        println!();
-
-        // 期待するベストムーブを定義
+        // ベストムーブが期待したものかを確認（例としてD3を期待）
         let expected_best_move = Move {
             position: Some(Position::D3),
             color: Color::Black,
         };
 
-        // アサートで確認
         assert_eq!(
             result.best_move,
             Some(expected_best_move),
             "ベストムーブが期待したものと異なります。"
         );
 
+        // スコアが期待値かを確認（具体的な期待値は評価関数によります）
         assert!(result.score > 0, "スコアが正の値ではありません。");
 
-        let max_nodes_searched = 100000;
-        assert!(result.nodes_searched <= max_nodes_searched,);
+        // 探索ノード数が適切か確認（アルファベータ法によりノード数が減少しているか）
+        let max_nodes_searched = 5000; // ネガマックス法と比較してノード数が減っているか確認
+        assert!(
+            result.nodes_searched <= max_nodes_searched,
+            "探索ノード数が多すぎます。"
+        );
     }
 }
