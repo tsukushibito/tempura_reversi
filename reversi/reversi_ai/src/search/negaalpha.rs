@@ -155,6 +155,16 @@ mod tests {
         // ベストムーブを表示
         println!("ベストムーブ: {:?}", result.best_move);
 
+        // パスを表示
+        println!("パス: ");
+        let mut board = state.board.clone();
+        board.display();
+        for mov in result.path {
+            board.make_move(mov.color, &mov.position.unwrap());
+            board.display();
+        }
+        println!();
+
         // ベストムーブが期待したものかを確認（例としてD3を期待）
         let expected_best_move = Move {
             position: Some(Position::D3),

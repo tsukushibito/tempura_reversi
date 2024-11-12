@@ -106,6 +106,7 @@ impl<'a, B: Board + Hash + Eq + Clone> Negamax<'a, B> {
 
 #[cfg(test)]
 mod tests {
+
     use reversi_core::{array_board::ArrayBoard, Color, Position};
 
     use crate::evaluate::simple_evaluate;
