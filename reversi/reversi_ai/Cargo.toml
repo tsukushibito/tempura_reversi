@@ -3,5 +3,16 @@ name = "reversi_ai"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "reversi_ai"
+path = "src/lib.rs"
+
 [dependencies]
 reversi_core = { path = "../reversi_core" }
+
+[dev-dependencies]
+criterion = "0.5.1"
+
+[[bench]]
+name = "search_bench"
+harness = false

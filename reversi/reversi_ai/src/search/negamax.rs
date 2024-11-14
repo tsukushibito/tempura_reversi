@@ -12,7 +12,7 @@ pub struct Negamax<'a, B: Board + Hash + Eq + Clone> {
 }
 
 impl<'a, B: Board + Hash + Eq + Clone> Negamax<'a, B> {
-    fn new(evaluate: EvalFunc<B>) -> Self {
+    pub fn new(evaluate: EvalFunc<B>) -> Self {
         Negamax {
             evaluate,
             transposition_table: HashMap::new(),
@@ -20,7 +20,7 @@ impl<'a, B: Board + Hash + Eq + Clone> Negamax<'a, B> {
         }
     }
 
-    fn search(&mut self, state: &GameState<B>, depth: usize) -> SearchResult {
+    pub fn search(&mut self, state: &GameState<B>, depth: usize) -> SearchResult {
         // メモ化テーブルの確認
         if let Some(&score) = self.transposition_table.get(&state.board) {
             return SearchResult {

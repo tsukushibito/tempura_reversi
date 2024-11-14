@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::hash::Hash;
 
 use reversi_core::Color;
-use reversi_core::{board::Board, Move};
+use reversi_core::{board::Board, Move, Position};
 
 use crate::{GameState, SearchResult};
 
@@ -11,19 +11,44 @@ type EvalFunc<B> = fn(&GameState<B>, Color) -> i32;
 pub struct Negaalpha<'a, B: Board + Hash + Eq + Clone> {
     evaluate: EvalFunc<B>,
     transposition_table: HashMap<B, i32>,
+    use_move_ordering: bool,
     phantom: std::marker::PhantomData<&'a B>,
 }
 
 impl<'a, B: Board + Hash + Eq + Clone> Negaalpha<'a, B> {
-    fn new(evaluate: EvalFunc<B>) -> Self {
+    pub fn new(evaluate: EvalFunc<B>) -> Self {
         Negaalpha {
             evaluate,
             transposition_table: HashMap::new(),
+            use_move_ordering: true,
             phantom: std::marker::PhantomData,
         }
     }
 
-    fn search(
+    pub fn set_move_ordering(&mut self, enabled: bool) {
+        self.use_move_ordering = enabled;
+    }
+
+    // ムーブを評価する関数を追加
+    fn evaluate_move(&self, state: &GameState<B>, pos: &Position) -> i32 {
+        // 位置評価テーブル（例）
+        const POSITION_WEIGHTS: [[i32; 8]; 8] = [
+            [100, -20, 10, 5, 5, 10, -20, 100],
+            [-20, -50, -2, -2, -2, -2, -50, -20],
+            [10, -2, -1, -1, -1, -1, -2, 10],
+            [5, -2, -1, -1, -1, -1, -2, 5],
+            [5, -2, -1, -1, -1, -1, -2, 5],
+            [10, -2, -1, -1, -1, -1, -2, 10],
+            [-20, -50, -2, -2, -2, -2, -50, -20],
+            [100, -20, 10, 5, 5, 10, -20, 100],
+        ];
+
+        let x = pos.x as usize;
+        let y = pos.y as usize;
+        POSITION_WEIGHTS[y][x]
+    }
+
+    pub fn search(
         &mut self,
         state: &GameState<B>,
         depth: usize,
@@ -44,7 +69,7 @@ impl<'a, B: Board + Hash + Eq + Clone> Negaalpha<'a, B> {
         let mut nodes_searched = 1;
 
         // 現在のプレイヤーの有効な手を取得
-        let valid_moves = state.board.get_valid_moves(state.player);
+        let mut valid_moves = state.board.get_valid_moves(state.player);
 
         // 終端条件のチェック
         if depth == 0 || valid_moves.is_empty() {
@@ -57,6 +82,11 @@ impl<'a, B: Board + Hash + Eq + Clone> Negaalpha<'a, B> {
                 nodes_searched,
                 score,
             };
+        }
+
+        if self.use_move_ordering {
+            // ムーブオーダリング: ムーブを評価してソート
+            valid_moves.sort_by_cached_key(|pos| -self.evaluate_move(state, pos));
         }
 
         // ベストスコアとベストムーブの初期化
@@ -132,7 +162,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_negaalpha() {
+    fn test_negaalpha_with_move_ordering() {
         // ボードを初期化
         let board = ArrayBoard::new();
 
@@ -180,8 +210,8 @@ mod tests {
         // スコアが期待値かを確認（具体的な期待値は評価関数によります）
         assert!(result.score > 0, "スコアが正の値ではありません。");
 
-        // 探索ノード数が適切か確認（アルファベータ法によりノード数が減少しているか）
-        let max_nodes_searched = 5000; // ネガマックス法と比較してノード数が減っているか確認
+        // 探索ノード数が適切か確認（ムーブオーダリングによりノード数が減少しているか）
+        let max_nodes_searched = 3000; // ノード数の上限を減らします
         assert!(
             result.nodes_searched <= max_nodes_searched,
             "探索ノード数が多すぎます。"

@@ -9,7 +9,7 @@ pub struct GameState<B: Board> {
 }
 
 impl<B: Board> GameState<B> {
-    fn new(board: B, player: Color) -> Self {
+    pub fn new(board: B, player: Color) -> Self {
         GameState { board, player }
     }
 }
