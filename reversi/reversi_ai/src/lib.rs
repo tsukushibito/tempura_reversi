@@ -1,11 +1,18 @@
+pub mod ai_player;
 pub mod evaluate;
+pub mod game_play;
+pub mod human_player;
+pub mod player;
 pub mod search;
 
-use reversi_core::{board::Board, Color, Move};
+use reversi_core::{
+    board::{Board, BOARD_SIZE},
+    Color, Move,
+};
 
 pub struct GameState<B: Board> {
-    board: B,
-    player: Color,
+    pub board: B,
+    pub player: Color,
 }
 
 impl<B: Board> GameState<B> {
@@ -15,10 +22,11 @@ impl<B: Board> GameState<B> {
 }
 
 pub struct SearchResult {
-    best_move: Option<Move>,
-    path: Vec<Move>,
-    nodes_searched: usize,
-    score: i32,
+    pub best_move: Option<Move>,
+    pub path: Vec<Move>,
+    pub nodes_searched: usize,
+    pub score: i32,
+    pub policy: [i32; BOARD_SIZE * BOARD_SIZE],
 }
 
 pub type EvalFunc<B> = fn(&GameState<B>, Color) -> i32;

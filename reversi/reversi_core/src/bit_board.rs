@@ -97,7 +97,7 @@ impl Board for BitBoard {
     }
 
     fn get_disc(&self, pos: &Position) -> Option<Color> {
-        let index = pos.y * BOARD_SIZE as i32 + pos.x;
+        let index = pos.y * BOARD_SIZE as i8 + pos.x;
         let bit = 1u64 << index;
         if self.black & bit != 0 {
             Some(Color::Black)
@@ -109,7 +109,7 @@ impl Board for BitBoard {
     }
 
     fn set_disc(&mut self, pos: &Position, color: Option<Color>) {
-        let index = pos.y * BOARD_SIZE as i32 + pos.x;
+        let index = pos.y * BOARD_SIZE as i8 + pos.x;
         let bit = 1u64 << index;
         match color {
             Some(Color::Black) => {
@@ -138,7 +138,7 @@ impl Board for BitBoard {
     }
 
     fn make_move(&mut self, color: Color, pos: &Position) -> bool {
-        let idx = pos.x + pos.y * BOARD_SIZE as i32;
+        let idx = pos.x + pos.y * BOARD_SIZE as i8;
         let move_bit = 1u64 << idx;
 
         let (player_bits, opponent_bits) = match color {
@@ -170,8 +170,8 @@ impl Board for BitBoard {
         while bits != 0 {
             let lsb = bits & (!bits + 1); // 最下位の1ビットを取得
             let index = lsb.trailing_zeros() as usize;
-            let x = (index % 8) as i32;
-            let y = (index / 8) as i32;
+            let x = (index % 8) as i8;
+            let y = (index / 8) as i8;
             moves.push(Position { x, y });
             bits &= bits - 1; // 最下位の1ビットをクリア
         }
@@ -180,9 +180,9 @@ impl Board for BitBoard {
 
     fn display(&self) {
         println!("  A B C D E F G H");
-        for y in 0..BOARD_SIZE as i32 {
+        for y in 0..BOARD_SIZE as i8 {
             print!("{}", y + 1);
-            for x in 0..BOARD_SIZE as i32 {
+            for x in 0..BOARD_SIZE as i8 {
                 print!(" ");
                 match self.get_disc(&Position { x, y }) {
                     Some(Color::Black) => print!("B"), // 黒の駒

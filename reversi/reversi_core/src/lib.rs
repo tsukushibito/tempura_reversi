@@ -1,11 +1,13 @@
+use board::BOARD_SIZE;
+
 pub mod array_board;
 pub mod bit_board;
 pub mod board;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Position {
-    pub x: i32,
-    pub y: i32,
+    pub x: i8,
+    pub y: i8,
 }
 
 impl Position {
@@ -73,6 +75,17 @@ impl Position {
     pub const H6: Position = Position { x: 7, y: 5 };
     pub const H7: Position = Position { x: 7, y: 6 };
     pub const H8: Position = Position { x: 7, y: 7 };
+
+    pub fn from_index(index: i8) -> Self {
+        Position {
+            x: index % BOARD_SIZE as i8,
+            y: index / BOARD_SIZE as i8,
+        }
+    }
+
+    pub fn to_index(&self) -> i8 {
+        self.y * BOARD_SIZE as i8 + self.x
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

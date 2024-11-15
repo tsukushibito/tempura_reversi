@@ -22,8 +22,8 @@ pub fn positional_evaluate<B: Board>(state: &GameState<B>, color: Color) -> i32 
     (0..BOARD_SIZE).for_each(|y| {
         (0..BOARD_SIZE).for_each(|x| {
             let pos = Position {
-                x: x as i32,
-                y: y as i32,
+                x: x as i8,
+                y: y as i8,
             };
             if let Some(c) = state.board.get_disc(&pos) {
                 if c == color {

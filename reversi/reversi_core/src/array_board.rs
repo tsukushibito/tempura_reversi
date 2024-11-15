@@ -15,7 +15,7 @@ fn get_color_value(color: Option<Color>) -> u8 {
     }
 }
 
-fn get_direction_vector(dir: Direction) -> (i32, i32) {
+fn get_direction_vector(dir: Direction) -> (i8, i8) {
     match dir {
         Direction::East => (0, 1),
         Direction::West => (0, -1),
@@ -47,7 +47,7 @@ impl ArrayBoard {
             let mut y = pos.y + dy;
             let mut found_opponent = false;
 
-            while x >= 0 && x < BOARD_SIZE as i32 && y >= 0 && y < BOARD_SIZE as i32 {
+            while x >= 0 && x < BOARD_SIZE as i8 && y >= 0 && y < BOARD_SIZE as i8 {
                 let index = x as usize + y as usize * BOARD_SIZE;
                 match self.discs[index] {
                     d if d == opponent => found_opponent = true,
@@ -147,7 +147,7 @@ impl Board for ArrayBoard {
             let mut y = pos.y + dy;
             let mut potential_flips = Vec::new();
 
-            while x >= 0 && x < BOARD_SIZE as i32 && y >= 0 && y < BOARD_SIZE as i32 {
+            while x >= 0 && x < BOARD_SIZE as i8 && y >= 0 && y < BOARD_SIZE as i8 {
                 let index = x as usize + y as usize * BOARD_SIZE;
                 match self.discs[index] {
                     d if d == opponent => potential_flips.push((x, y)),
@@ -175,8 +175,8 @@ impl Board for ArrayBoard {
 
     fn get_valid_moves(&self, color: Color) -> Vec<Position> {
         let mut valid_moves = Vec::new();
-        for y in 0..BOARD_SIZE as i32 {
-            for x in 0..BOARD_SIZE as i32 {
+        for y in 0..BOARD_SIZE as i8 {
+            for x in 0..BOARD_SIZE as i8 {
                 let pos = Position { x, y };
                 if self.is_valid_move(color, &pos) {
                     valid_moves.push(pos);

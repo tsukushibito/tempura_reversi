@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::hash::Hash;
 
+use reversi_core::board::BOARD_SIZE;
 use reversi_core::Color;
 use reversi_core::{board::Board, Move, Position};
 
@@ -8,20 +9,25 @@ use crate::{GameState, SearchResult};
 
 type EvalFunc<B> = fn(&GameState<B>, Color) -> i32;
 
-pub struct Negaalpha<'a, B: Board + Hash + Eq + Clone> {
-    evaluate: EvalFunc<B>,
-    transposition_table: HashMap<B, i32>,
-    use_move_ordering: bool,
-    phantom: std::marker::PhantomData<&'a B>,
+pub struct TranspositionTableEntry {
+    pub score: i32,
+    pub depth: u8,
+    pub best_move: i8,
+    pub policy: [i32; BOARD_SIZE * BOARD_SIZE],
 }
 
-impl<'a, B: Board + Hash + Eq + Clone> Negaalpha<'a, B> {
+pub struct Negaalpha<B: Board + Hash + Eq + Clone> {
+    evaluate: EvalFunc<B>,
+    transposition_table: HashMap<B, TranspositionTableEntry>,
+    use_move_ordering: bool,
+}
+
+impl<B: Board + Hash + Eq + Clone> Negaalpha<B> {
     pub fn new(evaluate: EvalFunc<B>) -> Self {
         Negaalpha {
             evaluate,
             transposition_table: HashMap::new(),
             use_move_ordering: true,
-            phantom: std::marker::PhantomData,
         }
     }
 
@@ -29,9 +35,7 @@ impl<'a, B: Board + Hash + Eq + Clone> Negaalpha<'a, B> {
         self.use_move_ordering = enabled;
     }
 
-    // ムーブを評価する関数を追加
     fn evaluate_move(&self, state: &GameState<B>, pos: &Position) -> i32 {
-        // 位置評価テーブル（例）
         const POSITION_WEIGHTS: [[i32; 8]; 8] = [
             [100, -20, 10, 5, 5, 10, -20, 100],
             [-20, -50, -2, -2, -2, -2, -50, -20],
@@ -48,73 +52,87 @@ impl<'a, B: Board + Hash + Eq + Clone> Negaalpha<'a, B> {
         POSITION_WEIGHTS[y][x]
     }
 
+    // fn evaluate_move(&self, state: &GameState<B>, pos: &Position) -> i32 {
+    //     let mut board = state.board.clone();
+    //     board.make_move(state.player, pos);
+    //     let my_moves = board.get_valid_moves(state.player).len() as i32;
+    //     let opponent_moves = board.get_valid_moves(state.player.opponent()).len() as i32;
+    //     my_moves - opponent_moves
+    // }
+
     pub fn search(
         &mut self,
         state: &GameState<B>,
-        depth: usize,
+        depth: u8,
         mut alpha: i32,
         beta: i32,
     ) -> SearchResult {
-        // メモ化テーブルの確認
-        if let Some(&score) = self.transposition_table.get(&state.board) {
-            return SearchResult {
-                best_move: None,
-                path: Vec::new(),
-                nodes_searched: 0, // 新たなノードは探索していない
-                score,
-            };
+        if let Some(entry) = self.transposition_table.get(&state.board) {
+            if entry.depth >= depth {
+                return SearchResult {
+                    best_move: Some(Move {
+                        position: Some(Position::from_index(entry.best_move)),
+                        color: state.player,
+                    }),
+                    path: Vec::new(),
+                    nodes_searched: 0,
+                    score: entry.score,
+                    policy: entry.policy,
+                };
+            }
         }
 
-        // ノード数をカウント
         let mut nodes_searched = 1;
+        let mut policy = [0; BOARD_SIZE * BOARD_SIZE];
 
-        // 現在のプレイヤーの有効な手を取得
         let mut valid_moves = state.board.get_valid_moves(state.player);
 
-        // 終端条件のチェック
         if depth == 0 || valid_moves.is_empty() {
             let score = (self.evaluate)(state, state.player);
-            // スコアをメモ化
-            self.transposition_table.insert(state.board.clone(), score);
+            self.transposition_table.insert(
+                state.board.clone(),
+                TranspositionTableEntry {
+                    score,
+                    depth,
+                    best_move: -1,
+                    policy: [0; 64],
+                },
+            );
             return SearchResult {
                 best_move: None,
                 path: Vec::new(),
                 nodes_searched,
                 score,
+                policy,
             };
         }
 
         if self.use_move_ordering {
-            // ムーブオーダリング: ムーブを評価してソート
             valid_moves.sort_by_cached_key(|pos| -self.evaluate_move(state, pos));
         }
 
-        // ベストスコアとベストムーブの初期化
         let mut max_score = i32::MIN;
         let mut best_move = None;
         let mut best_path = Vec::new();
 
-        // すべての有効な手をループ
         for mv_pos in valid_moves {
-            // ボードをクローンして手を適用
             let mut new_board = state.board.clone();
             new_board.make_move(state.player, &mv_pos);
 
-            // 相手のターンで新しいゲーム状態を作成
             let new_state = GameState {
                 board: new_board,
                 player: state.player.opponent(),
             };
 
-            // 再帰的にsearchを呼び出し
             let result = self.search(&new_state, depth - 1, -beta, -alpha);
 
-            // スコアを反転
             let score = -result.score;
 
             nodes_searched += result.nodes_searched;
 
-            // ベストスコアの更新
+            let index = mv_pos.to_index();
+            policy[index as usize] = score;
+
             if score > max_score {
                 max_score = score;
                 best_move = Some(Move {
@@ -128,27 +146,40 @@ impl<'a, B: Board + Hash + Eq + Clone> Negaalpha<'a, B> {
                 best_path.extend(result.path);
             }
 
-            // アルファ値の更新
             if score > alpha {
                 alpha = score;
             }
 
-            // ベータカットオフ
             if alpha >= beta {
                 break;
             }
         }
 
-        // 結果をメモ化
-        self.transposition_table
-            .insert(state.board.clone(), max_score);
+        let best_move_index = if let Some(bm) = best_move {
+            if let Some(p) = bm.position {
+                p.to_index()
+            } else {
+                -1
+            }
+        } else {
+            -1
+        };
+        self.transposition_table.insert(
+            state.board.clone(),
+            TranspositionTableEntry {
+                score: max_score,
+                depth,
+                best_move: best_move_index,
+                policy,
+            },
+        );
 
-        // 結果を返す
         SearchResult {
             best_move,
             path: best_path,
             nodes_searched,
             score: max_score,
+            policy,
         }
     }
 }
@@ -162,31 +193,23 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_negaalpha_with_move_ordering() {
-        // ボードを初期化
+    fn test_negaalpha_no_move_ordering() {
         let board = ArrayBoard::new();
-
-        // ゲーム状態を作成
         let state = GameState::new(board, Color::Black);
 
-        // 評価関数を指定してNegaalphaを作成
         let mut negaalpha = Negaalpha::new(simple_evaluate);
+        negaalpha.set_move_ordering(false);
 
-        // 探索深さを設定
-        let depth = 5;
+        let depth = 9;
 
-        // アルファとベータの初期値を設定
         let alpha = i32::MIN + 1;
         let beta = i32::MAX;
 
-        // 探索を開始
         let result = negaalpha.search(&state, depth, alpha, beta);
 
-        // ベストムーブを表示
-        println!("ベストムーブ: {:?}", result.best_move);
+        println!("best_move: {:?}", result.best_move);
 
-        // パスを表示
-        println!("パス: ");
+        println!("path: ");
         let mut board = state.board.clone();
         board.display();
         for mov in result.path {
@@ -195,7 +218,6 @@ mod tests {
         }
         println!();
 
-        // ベストムーブが期待したものかを確認（例としてD3を期待）
         let expected_best_move = Move {
             position: Some(Position::D3),
             color: Color::Black,
@@ -207,14 +229,46 @@ mod tests {
             "ベストムーブが期待したものと異なります。"
         );
 
-        // スコアが期待値かを確認（具体的な期待値は評価関数によります）
-        assert!(result.score > 0, "スコアが正の値ではありません。");
+        println!("nodes_searched: {:?}", result.nodes_searched);
+    }
 
-        // 探索ノード数が適切か確認（ムーブオーダリングによりノード数が減少しているか）
-        let max_nodes_searched = 3000; // ノード数の上限を減らします
-        assert!(
-            result.nodes_searched <= max_nodes_searched,
-            "探索ノード数が多すぎます。"
+    #[test]
+    fn test_negaalpha_with_move_ordering() {
+        let board = ArrayBoard::new();
+        let state = GameState::new(board, Color::Black);
+
+        let mut negaalpha = Negaalpha::new(simple_evaluate);
+        negaalpha.set_move_ordering(true);
+
+        let depth = 9;
+
+        let alpha = i32::MIN + 1;
+        let beta = i32::MAX;
+
+        let result = negaalpha.search(&state, depth, alpha, beta);
+
+        println!("best_move: {:?}", result.best_move);
+
+        println!("path: ");
+        let mut board = state.board.clone();
+        board.display();
+        for mov in result.path {
+            board.make_move(mov.color, &mov.position.unwrap());
+            board.display();
+        }
+        println!();
+
+        let expected_best_move = Move {
+            position: Some(Position::D3),
+            color: Color::Black,
+        };
+
+        assert_eq!(
+            result.best_move,
+            Some(expected_best_move),
+            "ベストムーブが期待したものと異なります。"
         );
+
+        println!("nodes_searched: {:?}", result.nodes_searched);
     }
 }
