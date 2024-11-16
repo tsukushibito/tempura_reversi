@@ -1,6 +1,8 @@
-use crate::{player::Player, Board, GameState};
-use reversi_core::Position;
 use std::io::{self, Write};
+
+use crate::{board::Board, Position};
+
+use super::{player::Player, GameState};
 
 pub struct HumanPlayer;
 

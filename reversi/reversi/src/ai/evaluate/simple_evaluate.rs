@@ -1,6 +1,4 @@
-use reversi_core::{board::Board, Color};
-
-use crate::GameState;
+use crate::{ai::GameState, board::Board, Color};
 
 pub fn simple_evaluate<B: Board>(state: &GameState<B>, color: Color) -> i32 {
     let black_count = state.board.black_count() as i32;

@@ -1,12 +1,11 @@
 use std::collections::HashMap;
 use std::hash::Hash;
 
-use reversi_core::{
+use crate::{
+    ai::{EvalFunc, GameState, SearchResult},
     board::{Board, BOARD_SIZE},
     Move,
 };
-
-use crate::{EvalFunc, GameState, SearchResult};
 
 pub struct Negamax<'a, B: Board + Hash + Eq + Clone> {
     evaluate: EvalFunc<B>,
@@ -113,9 +112,9 @@ impl<'a, B: Board + Hash + Eq + Clone> Negamax<'a, B> {
 #[cfg(test)]
 mod tests {
 
-    use reversi_core::{array_board::ArrayBoard, Color, Position};
+    use crate::{array_board::ArrayBoard, Color, Position};
 
-    use crate::evaluate::simple_evaluate;
+    use crate::ai::evaluate::simple_evaluate;
 
     use super::*;
 

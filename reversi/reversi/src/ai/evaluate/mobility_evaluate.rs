@@ -1,6 +1,4 @@
-use reversi_core::{board::Board, Color};
-
-use crate::GameState;
+use crate::{ai::GameState, board::Board, Color};
 
 pub fn mobility_evaluate<B: Board>(state: &GameState<B>, color: Color) -> i32 {
     let my_moves = state.board.get_valid_moves(color).len() as i32;

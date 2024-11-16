@@ -1,11 +1,9 @@
 use std::collections::HashMap;
 use std::hash::Hash;
 
-use reversi_core::board::BOARD_SIZE;
-use reversi_core::Color;
-use reversi_core::{board::Board, Move, Position};
-
-use crate::{GameState, SearchResult};
+use crate::ai::{GameState, SearchResult};
+use crate::board::{Board, BOARD_SIZE};
+use crate::{Color, Move, Position};
 
 type EvalFunc<B> = fn(&GameState<B>, Color) -> i32;
 
@@ -186,9 +184,9 @@ impl<B: Board + Hash + Eq + Clone> Negaalpha<B> {
 
 #[cfg(test)]
 mod tests {
-    use reversi_core::{array_board::ArrayBoard, Position};
+    use crate::{array_board::ArrayBoard, Position};
 
-    use crate::evaluate::simple_evaluate;
+    use crate::ai::evaluate::simple_evaluate;
 
     use super::*;
 

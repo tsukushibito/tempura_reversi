@@ -1,6 +1,6 @@
-use reversi_core::{board::Board, Color};
+use crate::{board::Board, Color};
 
-use crate::{player::Player, GameState};
+use super::{player::Player, GameState};
 
 pub struct Game<B: Board> {
     board: B,

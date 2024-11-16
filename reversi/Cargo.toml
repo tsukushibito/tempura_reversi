@@ -1,11 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
-    "reversi_core",
+    "reversi",
     "reversi_gui",
-    "reversi_ai",
 ]
 
-[workspace.package]
-
-[workspace.dependencies]

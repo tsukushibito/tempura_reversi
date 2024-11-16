@@ -1,5 +1,6 @@
 use board::BOARD_SIZE;
 
+pub mod ai;
 pub mod array_board;
 pub mod bit_board;
 pub mod board;

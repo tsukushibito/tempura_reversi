@@ -1,9 +1,8 @@
-use reversi_core::{
+use crate::{
+    ai::GameState,
     board::{Board, BOARD_SIZE},
     Color, Position,
 };
-
-use crate::GameState;
 
 pub fn positional_evaluate<B: Board>(state: &GameState<B>, color: Color) -> i32 {
     let weights: [[i32; BOARD_SIZE]; BOARD_SIZE] = [
