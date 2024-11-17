@@ -1,10 +1,14 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use reversi_ai::{
-    evaluate::simple_evaluate,
-    search::{Negaalpha, Negamax},
-    GameState,
+use reversi::{
+    ai::{
+        evaluate::simple_evaluate,
+        search::{Negaalpha, Negamax},
+        GameState,
+    },
+    bit_board::BitBoard,
+    board::Board,
+    Color,
 };
-use reversi_core::{array_board::ArrayBoard, bit_board::BitBoard, board::Board, Color};
 
 // ベンチマーク用の深さを設定
 const DEPTH: u8 = 5;

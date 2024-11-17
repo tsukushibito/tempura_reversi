@@ -1,9 +1,13 @@
 use std::io::{self, Write};
 
-use reversi_ai::{
-    ai_player::AIPlayer, game_play::Game, human_player::HumanPlayer, player::Player, GameState,
+use reversi::{
+    ai::{
+        ai_player::AIPlayer, game_play::Game, human_player::HumanPlayer, player::Player, GameState,
+    },
+    bit_board::BitBoard,
+    board::Board,
+    Color,
 };
-use reversi_core::{bit_board::BitBoard, board::Board, Color};
 
 fn main() {
     // 盤面評価関数を定義または参照

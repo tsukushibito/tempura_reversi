@@ -184,7 +184,7 @@ impl<B: Board + Hash + Eq + Clone> Negaalpha<B> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{array_board::ArrayBoard, Position};
+    use crate::{bit_board::BitBoard, Position};
 
     use crate::ai::evaluate::simple_evaluate;
 
@@ -192,7 +192,7 @@ mod tests {
 
     #[test]
     fn test_negaalpha_no_move_ordering() {
-        let board = ArrayBoard::new();
+        let board = BitBoard::new();
         let state = GameState::new(board, Color::Black);
 
         let mut negaalpha = Negaalpha::new(simple_evaluate);
@@ -232,7 +232,7 @@ mod tests {
 
     #[test]
     fn test_negaalpha_with_move_ordering() {
-        let board = ArrayBoard::new();
+        let board = BitBoard::new();
         let state = GameState::new(board, Color::Black);
 
         let mut negaalpha = Negaalpha::new(simple_evaluate);
