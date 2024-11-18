@@ -31,6 +31,13 @@ fn main() {
     let board = BitBoard::new();
     let mut game = Game::new(board, black_player, white_player);
     game.play();
+    std::io::stdout().flush().unwrap();
+
+    println!("game is over!");
+    println!("*************");
+
+    let mut s = String::new();
+    std::io::stdin().read_line(&mut s).ok();
 }
 
 fn select_player<B: Board + 'static>(

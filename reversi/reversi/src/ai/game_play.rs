@@ -22,6 +22,10 @@ impl<B: Board> Game<B> {
         }
     }
 
+    pub fn board(&self) -> B {
+        self.board.clone()
+    }
+
     /// ゲームを開始し、プレイを管理する関数
     pub fn play(&mut self) {
         let mut state = GameState::new(self.board.clone(), Color::Black);
@@ -86,6 +90,7 @@ impl<B: Board> Game<B> {
 
             if black_moves.is_empty() && white_moves.is_empty() {
                 println!("Game over.");
+                state.board.display();
                 println!(
                     "Final score - Black: {}, White: {}",
                     state.board.black_count(),

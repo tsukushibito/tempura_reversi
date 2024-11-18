@@ -117,9 +117,9 @@ pub enum Direction {
     South,     // 南
     North,     // 北
     SouthEast, // 南東
-    NorthWest, // 北西
     SouthWest, // 南西
     NorthEast, // 北東
+    NorthWest, // 北西
 }
 
 impl Direction {
