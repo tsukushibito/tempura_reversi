@@ -2,22 +2,22 @@ use crate::{board::Board, Color, Position};
 
 use super::{player::Player, search::Negaalpha, GameState};
 
-pub struct AIPlayer<B: Board> {
+pub struct AiPlayer<B: Board> {
     searcher: Negaalpha<B>,
     color: Color,
     // 必要に応じて他のフィールドを追加
 }
 
-impl<B: Board + Clone + std::hash::Hash + Eq> AIPlayer<B> {
+impl<B: Board + Clone + std::hash::Hash + Eq> AiPlayer<B> {
     pub fn new(evaluate_fn: fn(&GameState<B>, Color) -> i32, color: Color) -> Self {
-        AIPlayer {
+        AiPlayer {
             searcher: Negaalpha::new(evaluate_fn),
             color,
         }
     }
 }
 
-impl<B: Board + Clone + std::hash::Hash + Eq> Player<B> for AIPlayer<B> {
+impl<B: Board + Clone + std::hash::Hash + Eq> Player<B> for AiPlayer<B> {
     fn get_move(&mut self, state: &GameState<B>) -> Option<Position> {
         let search_result = self.searcher.search(state, 5, i32::MIN + 1, i32::MAX);
         search_result.best_move.map(|mv| mv.position.unwrap())

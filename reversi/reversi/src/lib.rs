@@ -129,9 +129,9 @@ impl Direction {
         Direction::South,
         Direction::North,
         Direction::SouthEast,
-        Direction::NorthWest,
         Direction::SouthWest,
         Direction::NorthEast,
+        Direction::NorthWest,
     ];
 
     pub fn dx(&self) -> i32 {
@@ -141,9 +141,9 @@ impl Direction {
             Direction::South => 0,
             Direction::North => 0,
             Direction::SouthEast => 1,
-            Direction::NorthWest => -1,
             Direction::SouthWest => -1,
             Direction::NorthEast => 1,
+            Direction::NorthWest => -1,
         }
     }
 
@@ -154,9 +154,9 @@ impl Direction {
             Direction::South => 1,
             Direction::North => -1,
             Direction::SouthEast => 1,
-            Direction::NorthWest => -1,
             Direction::SouthWest => 1,
             Direction::NorthEast => -1,
+            Direction::NorthWest => -1,
         }
     }
 }

@@ -46,7 +46,7 @@ fn parse_position(input: &str) -> Option<Position> {
     };
 
     let y = match row_str.parse::<u8>() {
-        Ok(n) if n >= 1 && n <= 8 => n - 1,
+        Ok(n) if (1..=8).contains(&n) => n - 1,
         _ => return None,
     };
 

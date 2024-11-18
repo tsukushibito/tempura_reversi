@@ -2,7 +2,7 @@ use std::io::{self, Write};
 
 use reversi::{
     ai::{
-        ai_player::AIPlayer, game_play::Game, human_player::HumanPlayer, player::Player, GameState,
+        ai_player::AiPlayer, game_play::Game, human_player::HumanPlayer, player::Player, GameState,
     },
     bit_board::BitBoard,
     board::Board,
@@ -55,7 +55,7 @@ fn select_player<B: Board + 'static>(
                 return Box::new(HumanPlayer);
             }
             "ai" | "a" => {
-                return Box::new(AIPlayer::new(evaluate_fn, color));
+                return Box::new(AiPlayer::new(evaluate_fn, color));
             }
             _ => {
                 println!("Invalid input. Please enter 'h' for Human or 'a' for AI.");
