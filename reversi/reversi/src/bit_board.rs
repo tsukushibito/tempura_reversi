@@ -10,30 +10,39 @@ pub struct BitBoard {
 }
 
 fn get_shift_and_mask(dir: Direction) -> (i32, u64) {
-    const NOT_A_FILE: u64 = 0xfefefefefefefefeu64;
-    const NOT_H_FILE: u64 = 0x7f7f7f7f7f7f7f7fu64;
-    const NOT_FIRST_RANK: u64 = 0xffffffffffffff00u64;
-    const NOT_LAST_RANK: u64 = 0x00ffffffffffffffu64;
+    const MASK_EXCLUDE_A_FILE: u64 = 0xfefefefefefefefeu64;
+    const MASK_EXCLUDE_H_FILE: u64 = 0x7f7f7f7f7f7f7f7fu64;
+    const MASK_EXCLUDE_FIRST_RANK: u64 = 0xffffffffffffff00u64;
+    const MASK_EXCLUDE_LAST_RANK: u64 = 0x00ffffffffffffffu64;
     match dir {
-        Direction::East => (1, NOT_A_FILE),
-        Direction::West => (1, NOT_H_FILE),
-        Direction::South => (8, NOT_FIRST_RANK),
-        Direction::North => (8, NOT_LAST_RANK),
-        Direction::SouthEast => (9, NOT_FIRST_RANK & NOT_A_FILE & NOT_H_FILE),
-        Direction::SouthWest => (7, NOT_FIRST_RANK & NOT_A_FILE & NOT_H_FILE),
-        Direction::NorthEast => (7, NOT_LAST_RANK & NOT_A_FILE & NOT_H_FILE),
-        Direction::NorthWest => (9, NOT_LAST_RANK & NOT_A_FILE & NOT_H_FILE),
+        Direction::East => (1, MASK_EXCLUDE_A_FILE),
+        Direction::West => (-1, MASK_EXCLUDE_H_FILE),
+        Direction::South => (8, MASK_EXCLUDE_FIRST_RANK),
+        Direction::North => (-8, MASK_EXCLUDE_LAST_RANK),
+        Direction::SouthEast => (
+            9,
+            MASK_EXCLUDE_FIRST_RANK & MASK_EXCLUDE_A_FILE & MASK_EXCLUDE_H_FILE,
+        ),
+        Direction::SouthWest => (
+            7,
+            MASK_EXCLUDE_FIRST_RANK & MASK_EXCLUDE_A_FILE & MASK_EXCLUDE_H_FILE,
+        ),
+        Direction::NorthEast => (
+            -7,
+            MASK_EXCLUDE_LAST_RANK & MASK_EXCLUDE_A_FILE & MASK_EXCLUDE_H_FILE,
+        ),
+        Direction::NorthWest => (
+            -9,
+            MASK_EXCLUDE_LAST_RANK & MASK_EXCLUDE_A_FILE & MASK_EXCLUDE_H_FILE,
+        ),
     }
 }
 
-fn shift_bits(bits: u64, shift: i32, dir: Direction) -> u64 {
-    match dir {
-        Direction::East | Direction::SouthEast | Direction::SouthWest | Direction::South => {
-            bits << shift
-        }
-        Direction::West | Direction::NorthEast | Direction::NorthWest | Direction::North => {
-            bits >> shift
-        }
+fn shift_bits(bits: u64, shift_amount: i32) -> u64 {
+    if shift_amount >= 0 {
+        bits << shift_amount
+    } else {
+        bits >> -shift_amount
     }
 }
 
@@ -42,15 +51,15 @@ fn get_valid_moves_bits(player_bits: u64, opponent_bits: u64) -> u64 {
     let mut valid_moves = 0u64;
 
     for dir in Direction::DIRECTIONS {
-        let (shift, mask) = get_shift_and_mask(dir);
+        let (shift_amount, mask) = get_shift_and_mask(dir);
         let watcher = opponent_bits & mask;
-        let mut tmp = shift_bits(player_bits, shift, dir) & watcher;
+        let mut tmp = shift_bits(player_bits, shift_amount) & watcher;
 
         for _i in 0..6 {
-            tmp |= shift_bits(tmp, shift, dir) & watcher;
+            tmp |= shift_bits(tmp, shift_amount) & watcher;
         }
 
-        valid_moves |= shift_bits(tmp, shift, dir) & empty;
+        valid_moves |= shift_bits(tmp, shift_amount) & empty;
     }
 
     valid_moves
@@ -60,12 +69,12 @@ fn get_flips_bits(move_bit: u64, player_bits: u64, opponent_bits: u64) -> u64 {
     let mut flips = 0u64;
 
     for dir in Direction::DIRECTIONS {
-        let (shift, mask) = get_shift_and_mask(dir);
+        let (shift_amount, mask) = get_shift_and_mask(dir);
         let mut tmp_flips = 0;
-        let mut tmp = shift_bits(move_bit, shift, dir) & mask;
+        let mut tmp = shift_bits(move_bit, shift_amount) & mask;
         while (tmp != 0) && ((tmp & opponent_bits) != 0) {
             tmp_flips |= tmp;
-            tmp = shift_bits(tmp, shift, dir) & mask;
+            tmp = shift_bits(tmp, shift_amount) & mask;
         }
         if (tmp & player_bits) != 0 {
             flips |= tmp_flips;
