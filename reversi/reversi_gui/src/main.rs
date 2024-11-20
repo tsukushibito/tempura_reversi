@@ -37,7 +37,7 @@ fn view(state: &State) -> Element<Message> {
         })
         .width(Length::FillPortion(2))
         .height(Length::Fill),
-        text!("Inspector Area").width(Length::FillPortion(1)),
+        column![text!("Inspector Area").width(Length::FillPortion(1)),],
     ]
     .into()
     // row![Canvas::new(&state.board)
