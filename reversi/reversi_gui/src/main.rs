@@ -1,55 +1,53 @@
-use iced::alignment::Horizontal;
-use iced::widget::canvas::Program;
-use iced::widget::canvas::{Cache, Frame, Geometry, Path};
-use iced::widget::shader::wgpu::naga::proc::Alignment;
-use iced::widget::{Canvas, Column, Row, Text};
-use iced::{Color, Element, Length, Sandbox, Settings};
+use iced::widget::canvas::{Cache, Frame, Geometry, Path, Program};
+use iced::widget::{canvas, column, row, text};
+use iced::{window, Color, Element, Length, Size, Subscription, Task, Theme};
 
-fn main() -> iced::Result {
-    MyApp::run(Settings::default())
+#[derive(Default)]
+struct State {
+    // board: Board,
 }
 
-struct MyApp {
-    board: Board,
+#[derive(Debug)]
+enum Message {
+    WindowResized(Size),
 }
 
-impl Sandbox for MyApp {
-    type Message = ();
+pub fn main() -> iced::Result {
+    iced::application("Tempura Reversi", update, view)
+        .subscription(subscription)
+        .theme(theme)
+        .run()
+}
 
-    fn new() -> Self {
-        Self {
-            board: Board::default(),
-        }
-    }
+fn subscription(_state: &State) -> Subscription<Message> {
+    window::resize_events().map(|(_id, size)| Message::WindowResized(size))
+}
 
-    fn title(&self) -> String {
-        String::from("Iced App with Canvas and Cache")
+fn update(state: &mut State, message: Message) -> Task<Message> {
+    match message {
+        Message::WindowResized(size) => println!("size: {}, {}", size.width, size.height),
     }
+    Task::none()
+}
 
-    fn update(&mut self, _message: Self::Message) {
-        // Nothing to update
-    }
+fn view(state: &State) -> Element<Message> {
+    row![
+        canvas(Board {
+            cache: Cache::new(),
+        })
+        .width(Length::FillPortion(2))
+        .height(Length::Fill),
+        text!("Inspector Area").width(Length::FillPortion(1)),
+    ]
+    .into()
+    // row![Canvas::new(&state.board)
+    //     .width(Length::FillPortion(1))
+    //     .height(Length::Fill),]
+    // .into()
+}
 
-    fn view(&self) -> Element<Self::Message> {
-        Row::new()
-            .push(
-                Canvas::new(&self.board)
-                    .width(Length::FillPortion(1))
-                    .height(Length::Fill),
-            )
-            .push(
-                Column::new().width(Length::FillPortion(1)).push(
-                    Text::new("Test")
-                        .width(Length::Fill)
-                        .horizontal_alignment(Horizontal::Center),
-                ),
-            )
-            .into()
-    }
-
-    fn theme(&self) -> iced::Theme {
-        iced::Theme::Dark
-    }
+fn theme(state: &State) -> Theme {
+    Theme::Dark
 }
 
 #[derive(Default)]
@@ -57,8 +55,8 @@ struct Board {
     cache: Cache,
 }
 
-impl Program<()> for Board {
-    type State = ();
+impl<Message> Program<Message> for Board {
+    type State = State;
 
     fn draw(
         &self,
