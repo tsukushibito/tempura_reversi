@@ -1,3 +1,4 @@
+use iced::event::Status;
 use iced::widget::canvas::{Cache, Frame, Geometry, Path, Program};
 use iced::{mouse, Color, Point, Rectangle};
 
@@ -127,24 +128,39 @@ impl Program<Message> for BoardProgram {
         event: iced::widget::canvas::Event,
         bounds: Rectangle,
         cursor: mouse::Cursor,
-    ) -> (iced::widget::canvas::event::Status, Option<Message>) {
-        if let iced::widget::canvas::Event::Mouse(mouse::Event::ButtonPressed(
-            mouse::Button::Left,
-        )) = event
-        {
-            if let Some(cursor_position) = cursor.position_in(bounds) {
-                let cell_size = bounds.width.min(bounds.height) / 8.0;
-                let col = (cursor_position.x / cell_size).floor() as usize;
-                let row = (cursor_position.y / cell_size).floor() as usize;
+    ) -> (Status, Option<Message>) {
+        use iced::widget::canvas::Event;
 
-                if col < 8 && row < 8 {
-                    return (
-                        iced::widget::canvas::event::Status::Captured,
-                        Some(Message::CellClicked { row, col }),
-                    );
+        match event {
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
+                if let Some(cursor_position) = cursor.position_in(bounds) {
+                    const BOARD_SIZE: usize = 8;
+                    let margin = 40.0; // ボード外周のマージン
+                    let board_size = bounds.width.min(bounds.height) - margin; // ボード領域の幅
+                    let cell_size = board_size / BOARD_SIZE as f32;
+
+                    let x_offset = (bounds.width - board_size) / 2.0 + margin / 2.0;
+                    let y_offset = (bounds.height - board_size) / 2.0 + margin / 2.0;
+
+                    // クリック位置をボード上のセルに変換
+                    if cursor_position.x >= x_offset
+                        && cursor_position.x < x_offset + board_size
+                        && cursor_position.y >= y_offset
+                        && cursor_position.y < y_offset + board_size
+                    {
+                        let col = ((cursor_position.x - x_offset) / cell_size).floor() as usize;
+                        let row = ((cursor_position.y - y_offset) / cell_size).floor() as usize;
+
+                        if row < BOARD_SIZE && col < BOARD_SIZE {
+                            // クリックしたセルの座標をメッセージとして送信
+                            return (Status::Captured, Some(Message::CellClicked { row, col }));
+                        }
+                    }
                 }
+
+                (Status::Ignored, None)
             }
+            _ => (Status::Ignored, None),
         }
-        (iced::widget::canvas::event::Status::Ignored, None)
     }
 }

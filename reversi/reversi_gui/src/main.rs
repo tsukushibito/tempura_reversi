@@ -20,7 +20,14 @@ pub fn main() -> iced::Result {
         .run()
 }
 
-fn update(_state: &mut State, _message: Message) {}
+fn update(_state: &mut State, message: Message) {
+    match message {
+        Message::CellClicked { row, col } => {
+            println!("Clicked cell: row = {}, col = {}", row, col);
+            // ここにゲームロジックを追加
+        }
+    }
+}
 
 fn view(_state: &State) -> Element<Message> {
     row![
