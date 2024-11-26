@@ -1,8 +1,14 @@
 use iced::event::Status;
-use iced::widget::canvas::{Cache, Frame, Geometry, Path, Program};
-use iced::{mouse, Color, Point, Rectangle};
+use iced::widget::canvas::{Cache, Frame, Geometry, Path, Program, Stroke, Text};
+use iced::{mouse, Color, Point, Rectangle, Size};
 
 use crate::Message;
+
+const BOARD_SIZE: usize = 8;
+const MARGIN: f32 = 40.0;
+const LABEL_SIZE: f32 = 20.0;
+const CELL_STROKE_WIDTH: f32 = 2.0;
+const STONE_RADIUS_FACTOR: f32 = 1.0 / 3.0;
 
 #[derive(Default)]
 pub struct BoardProgram {
@@ -32,94 +38,19 @@ impl Program<Message> for BoardProgram {
         bounds: Rectangle,
         _cursor: mouse::Cursor,
     ) -> Vec<Geometry> {
+        let layout = Layout::calculate(bounds);
+
         let background = state.cache.draw(renderer, bounds.size(), |frame| {
-            const BOARD_SIZE: usize = 8; // リバーシのボードは8x8のグリッド
-            let margin = 40.0; // 数字とアルファベットを表示するためのマージン
-            let board_size = bounds.width.min(bounds.height) - margin; // ボードのサイズは幅と高さの小さい方に合わせる（マージンを除く）
-            let cell_size = board_size / BOARD_SIZE as f32; // 各セルのサイズを計算
-
-            // ボード全体を中央に配置するためのオフセットを計算（マージンを考慮）
-            let x_offset = (bounds.width - board_size) / 2.0 + margin / 2.0;
-            let y_offset = (bounds.height - board_size) / 2.0 + margin / 2.0;
-
-            // ボードの背景を描画（緑色）
-            let board_background =
-                Path::rectangle([x_offset, y_offset].into(), [board_size, board_size].into());
-            frame.fill(&board_background, Color::from_rgb(0.0, 0.5, 0.0)); // リバーシのボードの緑色
-
-            // 8x8のセルを描画
-            for row in 0..BOARD_SIZE {
-                for col in 0..BOARD_SIZE {
-                    // 各セルの左上の座標を計算
-                    let x = x_offset + col as f32 * cell_size;
-                    let y = y_offset + row as f32 * cell_size;
-
-                    // セルの描画（枠線）
-                    let cell = Path::rectangle([x, y].into(), [cell_size, cell_size].into());
-                    frame.stroke(
-                        &cell,
-                        iced::widget::canvas::Stroke::default()
-                            .with_color(Color::BLACK)
-                            .with_width(2.0),
-                    ); // 枠線は黒色
-                }
-            }
-
-            const LABEL_SIZE: f32 = 20.0;
-            // 数字（1-8）を左側に描画
-            for i in 0..BOARD_SIZE {
-                let text = iced::widget::canvas::Text {
-                    content: format!("{}", i + 1),
-                    position: iced::Point::new(
-                        x_offset - LABEL_SIZE,
-                        y_offset + i as f32 * cell_size + cell_size / 2.0 - LABEL_SIZE / 2.0,
-                    ),
-                    color: Color::WHITE,
-                    size: iced::Pixels(LABEL_SIZE),
-                    ..iced::widget::canvas::Text::default()
-                };
-                frame.fill_text(text);
-            }
-
-            // アルファベット（A-H）を上側に描画
-            for i in 0..BOARD_SIZE {
-                let text = iced::widget::canvas::Text {
-                    content: format!("{}", (b'A' + i as u8) as char),
-                    position: iced::Point::new(
-                        x_offset + i as f32 * cell_size + cell_size / 2.0 - LABEL_SIZE / 2.0,
-                        y_offset - LABEL_SIZE * 1.25,
-                    ),
-                    color: Color::WHITE,
-                    size: iced::Pixels(LABEL_SIZE),
-                    ..iced::widget::canvas::Text::default()
-                };
-                frame.fill_text(text);
-            }
+            self.draw_board_background(frame, &layout);
+            self.draw_grid(frame, &layout);
+            self.draw_labels(frame, &layout);
         });
 
-        let mut frame = Frame::new(renderer, bounds.size());
-        let cell_size = bounds.width.min(bounds.height) / 8.0;
+        let mut stones_frame = Frame::new(renderer, bounds.size());
+        self.draw_stones(&mut stones_frame, &layout);
+        let stones_geometry = stones_frame.into_geometry();
 
-        // 石の描画
-        for row in 0..8 {
-            for col in 0..8 {
-                if let Some(is_black) = self.board_data[row][col] {
-                    let x = col as f32 * cell_size;
-                    let y = row as f32 * cell_size;
-
-                    let color = if is_black { Color::BLACK } else { Color::WHITE };
-                    frame.fill(
-                        &Path::circle(
-                            Point::new(x + cell_size / 2.0, y + cell_size / 2.0),
-                            cell_size / 3.0,
-                        ),
-                        color,
-                    );
-                }
-            }
-        }
-
-        vec![background, frame.into_geometry()]
+        vec![background, stones_geometry]
     }
 
     fn update(
@@ -134,27 +65,10 @@ impl Program<Message> for BoardProgram {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 if let Some(cursor_position) = cursor.position_in(bounds) {
-                    const BOARD_SIZE: usize = 8;
-                    let margin = 40.0; // ボード外周のマージン
-                    let board_size = bounds.width.min(bounds.height) - margin; // ボード領域の幅
-                    let cell_size = board_size / BOARD_SIZE as f32;
-
-                    let x_offset = (bounds.width - board_size) / 2.0 + margin / 2.0;
-                    let y_offset = (bounds.height - board_size) / 2.0 + margin / 2.0;
-
-                    // クリック位置をボード上のセルに変換
-                    if cursor_position.x >= x_offset
-                        && cursor_position.x < x_offset + board_size
-                        && cursor_position.y >= y_offset
-                        && cursor_position.y < y_offset + board_size
+                    let layout = Layout::calculate(bounds);
+                    if let Some((row, col)) = self.get_cell_from_position(cursor_position, &layout)
                     {
-                        let col = ((cursor_position.x - x_offset) / cell_size).floor() as usize;
-                        let row = ((cursor_position.y - y_offset) / cell_size).floor() as usize;
-
-                        if row < BOARD_SIZE && col < BOARD_SIZE {
-                            // クリックしたセルの座標をメッセージとして送信
-                            return (Status::Captured, Some(Message::CellClicked { row, col }));
-                        }
+                        return (Status::Captured, Some(Message::CellClicked { row, col }));
                     }
                 }
 
@@ -162,5 +76,131 @@ impl Program<Message> for BoardProgram {
             }
             _ => (Status::Ignored, None),
         }
+    }
+}
+
+struct Layout {
+    board_size: f32,
+    cell_size: f32,
+    x_offset: f32,
+    y_offset: f32,
+}
+
+impl Layout {
+    fn calculate(bounds: Rectangle) -> Self {
+        let board_size = bounds.width.min(bounds.height) - MARGIN;
+        let cell_size = board_size / BOARD_SIZE as f32;
+        let x_offset = (bounds.width - board_size) / 2.0 + MARGIN / 2.0;
+        let y_offset = (bounds.height - board_size) / 2.0 + MARGIN / 2.0;
+        Self {
+            board_size,
+            cell_size,
+            x_offset,
+            y_offset,
+        }
+    }
+}
+
+impl BoardProgram {
+    fn draw_board_background(&self, frame: &mut Frame, layout: &Layout) {
+        let background = Path::rectangle(
+            Point::new(layout.x_offset, layout.y_offset),
+            Size::new(layout.board_size, layout.board_size),
+        );
+        frame.fill(&background, Color::from_rgb(0.0, 0.5, 0.0));
+    }
+
+    fn draw_grid(&self, frame: &mut Frame, layout: &Layout) {
+        for i in 0..=BOARD_SIZE {
+            // 縦線
+            let x = layout.x_offset + i as f32 * layout.cell_size;
+            let start = Point::new(x, layout.y_offset);
+            let end = Point::new(x, layout.y_offset + layout.board_size);
+            frame.stroke(
+                &Path::line(start, end),
+                Stroke::default()
+                    .with_color(Color::BLACK)
+                    .with_width(CELL_STROKE_WIDTH),
+            );
+
+            let y = layout.y_offset + i as f32 * layout.cell_size;
+            let start = Point::new(layout.x_offset, y);
+            let end = Point::new(layout.x_offset + layout.board_size, y);
+            frame.stroke(
+                &Path::line(start, end),
+                Stroke::default()
+                    .with_color(Color::BLACK)
+                    .with_width(CELL_STROKE_WIDTH),
+            );
+        }
+    }
+
+    fn draw_labels(&self, frame: &mut Frame, layout: &Layout) {
+        for i in 0..BOARD_SIZE {
+            let label = Text {
+                content: format!("{}", i + 1),
+                position: Point::new(
+                    layout.x_offset - LABEL_SIZE,
+                    layout.y_offset + i as f32 * layout.cell_size + layout.cell_size / 2.0
+                        - LABEL_SIZE / 2.0,
+                ),
+                color: Color::WHITE,
+                size: iced::Pixels(LABEL_SIZE),
+                ..Text::default()
+            };
+            frame.fill_text(label);
+        }
+
+        for i in 0..BOARD_SIZE {
+            let label = Text {
+                content: format!("{}", (b'A' + i as u8) as char),
+                position: Point::new(
+                    layout.x_offset + i as f32 * layout.cell_size + layout.cell_size / 2.0
+                        - LABEL_SIZE / 2.0,
+                    layout.y_offset - LABEL_SIZE * 1.25,
+                ),
+                color: Color::WHITE,
+                size: iced::Pixels(LABEL_SIZE),
+                ..Text::default()
+            };
+            frame.fill_text(label);
+        }
+    }
+
+    fn draw_stones(&self, frame: &mut Frame, layout: &Layout) {
+        for (row, row_data) in self.board_data.iter().enumerate() {
+            for (col, &cell) in row_data.iter().enumerate() {
+                if let Some(is_black) = cell {
+                    let x =
+                        layout.x_offset + col as f32 * layout.cell_size + layout.cell_size / 2.0;
+                    let y =
+                        layout.y_offset + row as f32 * layout.cell_size + layout.cell_size / 2.0;
+                    let radius = layout.cell_size * STONE_RADIUS_FACTOR;
+
+                    let color = if is_black { Color::BLACK } else { Color::WHITE };
+                    let stone = Path::circle(Point::new(x, y), radius);
+                    frame.fill(&stone, color);
+                }
+            }
+        }
+    }
+
+    fn get_cell_from_position(&self, position: Point, layout: &Layout) -> Option<(usize, usize)> {
+        let relative_x = position.x - layout.x_offset;
+        let relative_y = position.y - layout.y_offset;
+
+        if relative_x >= 0.0
+            && relative_x < layout.board_size
+            && relative_y >= 0.0
+            && relative_y < layout.board_size
+        {
+            let col = (relative_x / layout.cell_size).floor() as usize;
+            let row = (relative_y / layout.cell_size).floor() as usize;
+            if row < BOARD_SIZE && col < BOARD_SIZE {
+                return Some((row, col));
+            }
+        }
+
+        None
     }
 }

@@ -3,7 +3,7 @@ mod board;
 use board::BoardProgram;
 use iced::{
     widget::{canvas, column, row, text},
-    Element, Length, Theme,
+    Element, Length, Settings, Theme,
 };
 
 #[derive(Default)]
@@ -17,6 +17,10 @@ enum Message {
 pub fn main() -> iced::Result {
     iced::application("Tempura Reversi", update, view)
         .theme(theme)
+        .settings(Settings {
+            antialiasing: true,
+            ..Default::default()
+        })
         .run()
 }
 
