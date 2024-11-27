@@ -1,8 +1,8 @@
 use std::io::{self, Write};
 
-use crate::{board::Board, Position};
+use crate::{board::Board, game_play::GameState, Position};
 
-use super::{player::Player, GameState};
+use super::player::Player;
 
 pub struct HumanPlayer;
 

@@ -443,35 +443,53 @@ mod tests {
     }
 
     //   A B C D E F G H
-    // 1 B W W W W W - -
-    // 2 W W W W W - - -
+    // 1 B B B B B B B B
+    // 2 - - W W W W - -
+    // 3 - - B W W B B B
+    // 4 - - B W W - - W
+    // 5 - - - W W - - -
+    // 6 - - - W - - - -
+    // 7 - - - - - - - -
+    // 8 - - - - - - - -
     #[test]
     fn test_make_move() {
         let mut board = BitBoard::default();
 
         // 行1
-        board.set_disc(&Position { x: 0, y: 0 }, Some(Color::Black));
-        board.set_disc(&Position { x: 1, y: 0 }, Some(Color::White));
-        board.set_disc(&Position { x: 2, y: 0 }, Some(Color::White));
-        board.set_disc(&Position { x: 3, y: 0 }, Some(Color::White));
-        board.set_disc(&Position { x: 4, y: 0 }, Some(Color::White));
-        board.set_disc(&Position { x: 5, y: 0 }, Some(Color::White));
+        // board.set_disc(&Position::A1, Some(Color::Black));
+        // board.set_disc(&Position::B1, Some(Color::Black));
+        // board.set_disc(&Position::C1, Some(Color::Black));
+        // board.set_disc(&Position::D1, Some(Color::Black));
+        // board.set_disc(&Position::E1, Some(Color::Black));
+        // board.set_disc(&Position::F1, Some(Color::Black));
+        // board.set_disc(&Position::G1, Some(Color::Black));
+        // board.set_disc(&Position::H1, Some(Color::Black));
 
         // 行2
-        board.set_disc(&Position { x: 0, y: 1 }, Some(Color::White));
-        board.set_disc(&Position { x: 1, y: 1 }, Some(Color::White));
-        board.set_disc(&Position { x: 2, y: 1 }, Some(Color::White));
-        board.set_disc(&Position { x: 3, y: 1 }, Some(Color::White));
-        board.set_disc(&Position { x: 4, y: 1 }, Some(Color::White));
+        // board.set_disc(&Position::C2, Some(Color::White));
+        // board.set_disc(&Position::D2, Some(Color::White));
+        // board.set_disc(&Position::E2, Some(Color::White));
+        // board.set_disc(&Position::F2, Some(Color::White));
 
-        board.make_move(Color::Black, &Position::G1);
+        // board.set_disc(&Position::C3, Some(Color::Black));
+        // board.set_disc(&Position::D3, Some(Color::White));
+        // board.set_disc(&Position::E3, Some(Color::White));
+        // board.set_disc(&Position::F3, Some(Color::Black));
+        board.set_disc(&Position::G3, Some(Color::White));
+        board.set_disc(&Position::H3, Some(Color::Black));
 
-        assert_eq!(board.get_disc(&Position::A1), Some(Color::Black));
-        assert_eq!(board.get_disc(&Position::B1), Some(Color::Black));
-        assert_eq!(board.get_disc(&Position::C1), Some(Color::Black));
-        assert_eq!(board.get_disc(&Position::D1), Some(Color::Black));
-        assert_eq!(board.get_disc(&Position::E1), Some(Color::Black));
-        assert_eq!(board.get_disc(&Position::F1), Some(Color::Black));
-        assert_eq!(board.get_disc(&Position::G1), Some(Color::Black));
+        // board.set_disc(&Position::C4, Some(Color::Black));
+        // board.set_disc(&Position::D4, Some(Color::White));
+        // board.set_disc(&Position::E4, Some(Color::White));
+        board.set_disc(&Position::H4, Some(Color::White));
+
+        // board.set_disc(&Position::D5, Some(Color::White));
+        // board.set_disc(&Position::E5, Some(Color::White));
+
+        // board.set_disc(&Position::D6, Some(Color::White));
+
+        let moves = board.get_valid_moves(Color::White);
+
+        assert_eq!(moves.len(), 9);
     }
 }

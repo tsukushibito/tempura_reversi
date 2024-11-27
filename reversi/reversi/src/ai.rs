@@ -1,22 +1,10 @@
-use crate::{board::Board, board::BOARD_SIZE, Color, Move};
+use crate::{board::BOARD_SIZE, game_play::GameState, Color, Move};
 
 pub mod ai_player;
 pub mod evaluate;
-pub mod game_play;
 pub mod human_player;
 pub mod player;
 pub mod search;
-
-pub struct GameState<B: Board> {
-    pub board: B,
-    pub player: Color,
-}
-
-impl<B: Board> GameState<B> {
-    pub fn new(board: B, player: Color) -> Self {
-        GameState { board, player }
-    }
-}
 
 pub struct SearchResult {
     pub best_move: Option<Move>,

@@ -2,8 +2,9 @@ use std::collections::HashMap;
 use std::hash::Hash;
 
 use crate::{
-    ai::{EvalFunc, GameState, SearchResult},
+    ai::{EvalFunc, SearchResult},
     board::{Board, BOARD_SIZE},
+    game_play::GameState,
     Move,
 };
 

@@ -1,6 +1,6 @@
-use crate::{board::Board, Color, Position};
+use crate::{board::Board, game_play::GameState, Color, Position};
 
-use super::{player::Player, search::Negaalpha, GameState};
+use super::{player::Player, search::Negaalpha};
 
 pub struct AiPlayer<B: Board> {
     searcher: Negaalpha<B>,

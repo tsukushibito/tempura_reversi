@@ -1,8 +1,17 @@
 use std::sync::mpsc::Sender;
 
-use crate::{board::Board, Color, Position};
+use crate::{ai::player::Player, board::Board, Color, Position};
 
-use super::{player::Player, GameState};
+pub struct GameState<B: Board> {
+    pub board: B,
+    pub player: Color,
+}
+
+impl<B: Board> GameState<B> {
+    pub fn new(board: B, player: Color) -> Self {
+        GameState { board, player }
+    }
+}
 
 /// ゲーム結果を表す列挙型
 #[derive(Debug, Clone)]
@@ -197,9 +206,9 @@ mod tests {
         let board = BitBoard::new();
 
         // プレイヤーの初期化
-        // let black_player: Box<dyn Player<BitBoard> + Send> = Box::new(HumanPlayer);
-        let black_player: Box<dyn Player<BitBoard> + Send> =
-            Box::new(AiPlayer::new(evaluate::mobility_evaluate, Color::Black));
+        let black_player: Box<dyn Player<BitBoard> + Send> = Box::new(HumanPlayer);
+        // let black_player: Box<dyn Player<BitBoard> + Send> =
+        //     Box::new(AiPlayer::new(evaluate::mobility_evaluate, Color::Black));
         let white_player: Box<dyn Player<BitBoard> + Send> =
             Box::new(AiPlayer::new(evaluate::mobility_evaluate, Color::White));
 

@@ -1,6 +1,6 @@
 use crate::{
-    ai::GameState,
     board::{Board, BOARD_SIZE},
+    game_play::GameState,
     Color, Position,
 };
 

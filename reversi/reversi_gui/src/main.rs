@@ -1,13 +1,15 @@
 mod board;
 
-use board::BoardProgram;
+use board::Board;
 use iced::{
     widget::{canvas, column, row, text},
     Element, Length, Settings, Theme,
 };
 
 #[derive(Default)]
-struct State {}
+struct State {
+    pub stones_cache: canvas::Cache,
+}
 
 #[derive(Debug)]
 enum Message {
@@ -33,11 +35,14 @@ fn update(_state: &mut State, message: Message) {
     }
 }
 
-fn view(_state: &State) -> Element<Message> {
+fn view(state: &State) -> Element<Message> {
     row![
-        canvas(BoardProgram::default())
-            .width(Length::FillPortion(2))
-            .height(Length::Fill),
+        canvas(Board {
+            stones_cache: &state.stones_cache,
+            board_data: Default::default(),
+        })
+        .width(Length::FillPortion(2))
+        .height(Length::Fill),
         column![text!("Info Area").width(Length::FillPortion(1)),],
     ]
     .into()

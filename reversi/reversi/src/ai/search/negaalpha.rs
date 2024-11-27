@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 use std::hash::Hash;
 
-use crate::ai::{GameState, SearchResult};
+use crate::ai::SearchResult;
 use crate::board::{Board, BOARD_SIZE};
+use crate::game_play::GameState;
 use crate::{Color, Move, Position};
 
 type EvalFunc<B> = fn(&GameState<B>, Color) -> i32;
