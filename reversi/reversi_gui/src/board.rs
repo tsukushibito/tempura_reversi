@@ -13,22 +13,16 @@ const STONE_RADIUS_FACTOR: f32 = 1.0 / 3.0;
 #[derive(Default)]
 pub struct BoardProgram {
     board_data: [[Option<bool>; 8]; 8],
+    stones_cache: Cache,
 }
 
-pub struct BoardProgramState {
-    cache: Cache, // 背景とグリッド線をキャッシュ
-}
-
-impl Default for BoardProgramState {
-    fn default() -> Self {
-        Self {
-            cache: Cache::new(),
-        }
-    }
+#[derive(Default)]
+pub struct BoardState {
+    board_cache: Cache,
 }
 
 impl Program<Message> for BoardProgram {
-    type State = BoardProgramState;
+    type State = BoardState;
 
     fn draw(
         &self,
@@ -40,17 +34,17 @@ impl Program<Message> for BoardProgram {
     ) -> Vec<Geometry> {
         let layout = Layout::calculate(bounds);
 
-        let background = state.cache.draw(renderer, bounds.size(), |frame| {
+        let background_geometry = state.board_cache.draw(renderer, bounds.size(), |frame| {
             self.draw_board_background(frame, &layout);
             self.draw_grid(frame, &layout);
             self.draw_labels(frame, &layout);
         });
 
-        let mut stones_frame = Frame::new(renderer, bounds.size());
-        self.draw_stones(&mut stones_frame, &layout);
-        let stones_geometry = stones_frame.into_geometry();
+        let stones_geometry = self.stones_cache.draw(renderer, bounds.size(), |frame| {
+            self.draw_stones(frame, &layout);
+        });
 
-        vec![background, stones_geometry]
+        vec![background_geometry, stones_geometry]
     }
 
     fn update(
