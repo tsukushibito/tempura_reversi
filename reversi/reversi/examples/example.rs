@@ -1,42 +1,91 @@
-use std::io::{self, Write};
+use std::{
+    io::{self, Write},
+    sync::mpsc,
+    thread,
+};
 
 use reversi::{
-    ai::{
-        ai_player::AiPlayer, game_play::Game, human_player::HumanPlayer, player::Player, GameState,
-    },
+    ai::{ai_player::AiPlayer, evaluate, human_player::HumanPlayer, player::Player},
     bit_board::BitBoard,
     board::Board,
+    game_play::{Game, GameEvent, GameState},
     Color,
 };
 
 fn main() {
-    // 盤面評価関数を定義または参照
-    fn evaluate_fn<B: Board>(state: &GameState<B>, color: Color) -> i32 {
-        // 例: 石の数の差を評価値とする
-        if color == Color::Black {
-            state.board.black_count() as i32 - state.board.white_count() as i32
-        } else {
-            state.board.white_count() as i32 - state.board.black_count() as i32
+    // チャネルの作成
+    let (tx, rx) = mpsc::channel();
+
+    // ボードの初期化
+    let board = BitBoard::new();
+
+    // プレイヤーの初期化
+    let black_player: Box<dyn Player<BitBoard> + Send> = Box::new(HumanPlayer);
+    // let black_player: Box<dyn Player<BitBoard> + Send> =
+    //     Box::new(AiPlayer::new(evaluate::mobility_evaluate, Color::Black));
+    let white_player: Box<dyn Player<BitBoard> + Send> =
+        Box::new(AiPlayer::new(evaluate::mobility_evaluate, Color::White));
+
+    // ゲームの初期化
+    let game = Game::new(board, black_player, white_player, tx);
+
+    // ゲームを別スレッドで実行
+    thread::spawn(move || {
+        game.play();
+    });
+
+    // ゲームイベントの処理
+    loop {
+        match rx.recv() {
+            Ok(event) => match event {
+                GameEvent::GameStarted {
+                    current_player: _,
+                    board,
+                } => {
+                    println!("Game Started!");
+                    board.display();
+                }
+                GameEvent::MoveMade {
+                    position,
+                    color,
+                    board,
+                } => {
+                    println!("{:?} make move with {:?} ", color, position);
+                    board.display();
+                }
+                GameEvent::PlayerPassed { color, board } => {
+                    println!("{:?} passed", color);
+                    board.display();
+                }
+                GameEvent::GameOver {
+                    black_score,
+                    white_score,
+                    winner,
+                    board,
+                } => {
+                    println!(
+                        "Game Over score: black {} - white {}",
+                        black_score, white_score
+                    );
+                    match winner {
+                        Some(color) => println!("{:?} wins", color),
+                        None => println!("draw"),
+                    }
+                    board.display();
+                    break;
+                }
+                GameEvent::GameReset { board } => {
+                    println!("Reseted");
+                    board.display();
+                }
+            },
+            Err(_) => {
+                println!("Game thread exited");
+                break;
+            }
         }
     }
-
-    // プレイヤーの選択
-    println!("Select Black player type (Human: h, AI: a): ");
-    let black_player = select_player(Color::Black, evaluate_fn);
-
-    println!("Select White player type (Human: h, AI: a): ");
-    let white_player = select_player(Color::White, evaluate_fn);
-
-    // ゲームを初期化し、プレイを開始
-    let board = BitBoard::new();
-    let mut game = Game::new(board, black_player, white_player);
-    game.play();
-    std::io::stdout().flush().unwrap();
-
-    println!("game is over!");
-    println!("*************");
-
-    let mut s = String::new();
+    let mut s: String = Default::default();
     std::io::stdin().read_line(&mut s).ok();
 }
 

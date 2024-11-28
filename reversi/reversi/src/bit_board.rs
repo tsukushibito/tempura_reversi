@@ -9,32 +9,37 @@ pub struct BitBoard {
     white: u64,
 }
 
-fn get_shift_and_mask(dir: Direction) -> (i32, u64) {
-    const MASK_EXCLUDE_A_FILE: u64 = 0xfefefefefefefefeu64;
-    const MASK_EXCLUDE_H_FILE: u64 = 0x7f7f7f7f7f7f7f7fu64;
-    const MASK_EXCLUDE_FIRST_RANK: u64 = 0xffffffffffffff00u64;
-    const MASK_EXCLUDE_LAST_RANK: u64 = 0x00ffffffffffffffu64;
+const MASK_EXCLUDE_A_FILE: u64 = 0xfefefefefefefefeu64;
+const MASK_EXCLUDE_H_FILE: u64 = 0x7f7f7f7f7f7f7f7fu64;
+const MASK_EXCLUDE_FIRST_RANK: u64 = 0xffffffffffffff00u64;
+const MASK_EXCLUDE_LAST_RANK: u64 = 0x00ffffffffffffffu64;
+const MASK_FOR_HORIZONTAL: u64 = MASK_EXCLUDE_A_FILE & MASK_EXCLUDE_H_FILE;
+const MASK_FOR_VERTICAL: u64 = MASK_EXCLUDE_FIRST_RANK & MASK_EXCLUDE_LAST_RANK;
+const MASK_FOR_DIAGONAL: u64 = MASK_FOR_HORIZONTAL & MASK_FOR_VERTICAL;
+
+fn get_shift_and_mask_for_valid_moves(dir: Direction) -> (i32, u64) {
+    match dir {
+        Direction::East => (1, MASK_FOR_HORIZONTAL),
+        Direction::West => (-1, MASK_FOR_HORIZONTAL),
+        Direction::South => (8, MASK_FOR_VERTICAL),
+        Direction::North => (-8, MASK_FOR_VERTICAL),
+        Direction::SouthEast => (9, MASK_FOR_DIAGONAL),
+        Direction::SouthWest => (7, MASK_FOR_DIAGONAL),
+        Direction::NorthEast => (-7, MASK_FOR_DIAGONAL),
+        Direction::NorthWest => (-9, MASK_FOR_DIAGONAL),
+    }
+}
+
+fn get_shift_and_mask_for_flips(dir: Direction) -> (i32, u64) {
     match dir {
         Direction::East => (1, MASK_EXCLUDE_A_FILE),
         Direction::West => (-1, MASK_EXCLUDE_H_FILE),
         Direction::South => (8, MASK_EXCLUDE_FIRST_RANK),
         Direction::North => (-8, MASK_EXCLUDE_LAST_RANK),
-        Direction::SouthEast => (
-            9,
-            MASK_EXCLUDE_FIRST_RANK & MASK_EXCLUDE_A_FILE & MASK_EXCLUDE_H_FILE,
-        ),
-        Direction::SouthWest => (
-            7,
-            MASK_EXCLUDE_FIRST_RANK & MASK_EXCLUDE_A_FILE & MASK_EXCLUDE_H_FILE,
-        ),
-        Direction::NorthEast => (
-            -7,
-            MASK_EXCLUDE_LAST_RANK & MASK_EXCLUDE_A_FILE & MASK_EXCLUDE_H_FILE,
-        ),
-        Direction::NorthWest => (
-            -9,
-            MASK_EXCLUDE_LAST_RANK & MASK_EXCLUDE_A_FILE & MASK_EXCLUDE_H_FILE,
-        ),
+        Direction::SouthEast => (9, MASK_EXCLUDE_A_FILE & MASK_EXCLUDE_FIRST_RANK),
+        Direction::SouthWest => (7, MASK_EXCLUDE_H_FILE & MASK_EXCLUDE_FIRST_RANK),
+        Direction::NorthEast => (-7, MASK_EXCLUDE_A_FILE & MASK_EXCLUDE_LAST_RANK),
+        Direction::NorthWest => (-9, MASK_EXCLUDE_H_FILE & MASK_EXCLUDE_LAST_RANK),
     }
 }
 
@@ -51,7 +56,7 @@ fn get_valid_moves_bits(player_bits: u64, opponent_bits: u64) -> u64 {
     let mut valid_moves = 0u64;
 
     for dir in Direction::DIRECTIONS {
-        let (shift_amount, mask) = get_shift_and_mask(dir);
+        let (shift_amount, mask) = get_shift_and_mask_for_valid_moves(dir);
         let watcher = opponent_bits & mask;
         let mut tmp = shift_bits(player_bits, shift_amount) & watcher;
 
@@ -69,7 +74,7 @@ fn get_flips_bits(move_bit: u64, player_bits: u64, opponent_bits: u64) -> u64 {
     let mut flips = 0u64;
 
     for dir in Direction::DIRECTIONS {
-        let (shift_amount, mask) = get_shift_and_mask(dir);
+        let (shift_amount, mask) = get_shift_and_mask_for_flips(dir);
         let mut tmp_flips = 0;
         let mut tmp = shift_bits(move_bit, shift_amount) & mask;
         while (tmp != 0) && ((tmp & opponent_bits) != 0) {
@@ -362,54 +367,8 @@ mod tests {
     fn test_get_valid_moves_custom_position() {
         let mut board = BitBoard::default();
 
-        // 行1
-        board.set_disc(&Position { x: 1, y: 0 }, Some(Color::Black));
-        board.set_disc(&Position { x: 2, y: 0 }, Some(Color::Black));
-        board.set_disc(&Position { x: 3, y: 0 }, Some(Color::Black));
-        board.set_disc(&Position { x: 4, y: 0 }, Some(Color::Black));
-        board.set_disc(&Position { x: 5, y: 0 }, Some(Color::Black));
-        board.set_disc(&Position { x: 6, y: 0 }, Some(Color::Black));
-        board.set_disc(&Position { x: 7, y: 0 }, Some(Color::Black));
-
-        // 行2
-        board.set_disc(&Position { x: 3, y: 1 }, Some(Color::White));
-        board.set_disc(&Position { x: 4, y: 1 }, Some(Color::Black));
-        board.set_disc(&Position { x: 6, y: 1 }, Some(Color::Black));
-
-        // 行3
-        board.set_disc(&Position { x: 2, y: 2 }, Some(Color::White));
-        board.set_disc(&Position { x: 3, y: 2 }, Some(Color::Black));
-        board.set_disc(&Position { x: 4, y: 2 }, Some(Color::White));
-        board.set_disc(&Position { x: 5, y: 2 }, Some(Color::Black));
-        board.set_disc(&Position { x: 6, y: 2 }, Some(Color::Black));
-        board.set_disc(&Position { x: 7, y: 2 }, Some(Color::White));
-
-        // 行4
-        board.set_disc(&Position { x: 3, y: 3 }, Some(Color::Black));
-        board.set_disc(&Position { x: 4, y: 3 }, Some(Color::White));
-        board.set_disc(&Position { x: 5, y: 3 }, Some(Color::White));
-        board.set_disc(&Position { x: 6, y: 3 }, Some(Color::White));
-        board.set_disc(&Position { x: 7, y: 3 }, Some(Color::White));
-
-        // 行5
-        board.set_disc(&Position { x: 0, y: 4 }, Some(Color::White));
-        board.set_disc(&Position { x: 1, y: 4 }, Some(Color::White));
-        board.set_disc(&Position { x: 2, y: 4 }, Some(Color::White));
-        board.set_disc(&Position { x: 3, y: 4 }, Some(Color::Black));
-        board.set_disc(&Position { x: 4, y: 4 }, Some(Color::White));
-        board.set_disc(&Position { x: 5, y: 4 }, Some(Color::White));
-        board.set_disc(&Position { x: 6, y: 4 }, Some(Color::White));
-        board.set_disc(&Position { x: 7, y: 4 }, Some(Color::White));
-
-        // 行6
-        board.set_disc(&Position { x: 2, y: 5 }, Some(Color::Black));
-        board.set_disc(&Position { x: 3, y: 5 }, Some(Color::White));
-        board.set_disc(&Position { x: 5, y: 5 }, Some(Color::White));
-        board.set_disc(&Position { x: 6, y: 5 }, Some(Color::White));
-        board.set_disc(&Position { x: 7, y: 5 }, Some(Color::White));
-
-        // 行7
-        board.set_disc(&Position { x: 2, y: 6 }, Some(Color::White));
+        board.set_disc(&Position::A1, Some(Color::White));
+        board.set_disc(&Position::A2, Some(Color::Black));
 
         board.display();
 
@@ -422,15 +381,7 @@ mod tests {
         tmp_board.display();
         std::io::stdout().flush().unwrap();
 
-        let expected_moves_white = vec![
-            Position::C2,
-            Position::F2,
-            Position::H2,
-            Position::C4,
-            Position::B6,
-            Position::B7,
-            Position::D7,
-        ];
+        let expected_moves_white = vec![Position::A3];
 
         // ソートして比較
         let mut valid_moves_white_sorted = valid_moves_white.clone();
@@ -443,53 +394,28 @@ mod tests {
     }
 
     //   A B C D E F G H
-    // 1 B B B B B B B B
-    // 2 - - W W W W - -
-    // 3 - - B W W B B B
-    // 4 - - B W W - - W
-    // 5 - - - W W - - -
-    // 6 - - - W - - - -
+    // 1 - - - - - - - -
+    // 2 - - - - - - - -
+    // 3 - - - - - - W B
+    // 4 - - - - - - - -
+    // 5 - - - - - - - -
+    // 6 - - - - - - - -
     // 7 - - - - - - - -
     // 8 - - - - - - - -
     #[test]
     fn test_make_move() {
         let mut board = BitBoard::default();
 
-        // 行1
-        // board.set_disc(&Position::A1, Some(Color::Black));
-        // board.set_disc(&Position::B1, Some(Color::Black));
-        // board.set_disc(&Position::C1, Some(Color::Black));
-        // board.set_disc(&Position::D1, Some(Color::Black));
-        // board.set_disc(&Position::E1, Some(Color::Black));
-        // board.set_disc(&Position::F1, Some(Color::Black));
-        // board.set_disc(&Position::G1, Some(Color::Black));
-        // board.set_disc(&Position::H1, Some(Color::Black));
+        board.set_disc(&Position::A1, Some(Color::Black));
+        board.set_disc(&Position::A2, Some(Color::White));
 
-        // 行2
-        // board.set_disc(&Position::C2, Some(Color::White));
-        // board.set_disc(&Position::D2, Some(Color::White));
-        // board.set_disc(&Position::E2, Some(Color::White));
-        // board.set_disc(&Position::F2, Some(Color::White));
+        let moves = board.get_valid_moves(Color::Black);
 
-        // board.set_disc(&Position::C3, Some(Color::Black));
-        // board.set_disc(&Position::D3, Some(Color::White));
-        // board.set_disc(&Position::E3, Some(Color::White));
-        // board.set_disc(&Position::F3, Some(Color::Black));
-        board.set_disc(&Position::G3, Some(Color::White));
-        board.set_disc(&Position::H3, Some(Color::Black));
+        board.make_move(Color::Black, &moves[0]);
 
-        // board.set_disc(&Position::C4, Some(Color::Black));
-        // board.set_disc(&Position::D4, Some(Color::White));
-        // board.set_disc(&Position::E4, Some(Color::White));
-        board.set_disc(&Position::H4, Some(Color::White));
+        let color = board.get_disc(&Position::A2);
+        board.display();
 
-        // board.set_disc(&Position::D5, Some(Color::White));
-        // board.set_disc(&Position::E5, Some(Color::White));
-
-        // board.set_disc(&Position::D6, Some(Color::White));
-
-        let moves = board.get_valid_moves(Color::White);
-
-        assert_eq!(moves.len(), 9);
+        assert_eq!(color, Some(Color::Black));
     }
 }

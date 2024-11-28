@@ -162,5 +162,12 @@ impl Direction {
     }
 }
 
+impl std::fmt::Display for Position {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let file = (b'A' + self.x as u8) as char;
+        write!(f, "{}{}", file, self.y + 1)
+    }
+}
+
 #[cfg(test)]
 mod tests {}

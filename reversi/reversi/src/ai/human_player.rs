@@ -10,6 +10,7 @@ impl<B: Board> Player<B> for HumanPlayer {
     fn get_move(&mut self, state: &GameState<B>) -> Option<Position> {
         loop {
             println!("Enter your move (e.g., D3): ");
+            std::io::stdout().flush();
             let mut input = String::new();
             io::stdout().flush().unwrap();
             io::stdin()
