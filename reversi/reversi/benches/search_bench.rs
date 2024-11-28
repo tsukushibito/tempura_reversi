@@ -3,18 +3,19 @@ use reversi::{
     ai::{
         evaluate::simple_evaluate,
         search::{Negaalpha, Negamax},
-        GameState,
     },
     bit_board::BitBoard,
     board::Board,
+    game_play::GameState,
     Color,
 };
 
 // ベンチマーク用の深さを設定
-const DEPTH: u8 = 5;
+const DEPTH: u8 = 8;
 
 // negamaxのベンチマーク
 fn benchmark_negamax(c: &mut Criterion) {
+    println!("benchmark_negamax");
     c.bench_function(&format!("negamax depth {}", DEPTH), |b| {
         b.iter(|| {
             let board = BitBoard::new();

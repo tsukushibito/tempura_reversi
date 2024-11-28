@@ -20,9 +20,9 @@ fn main() {
     let board = BitBoard::new();
 
     // プレイヤーの初期化
-    let black_player: Box<dyn Player<BitBoard> + Send> = Box::new(HumanPlayer);
-    // let black_player: Box<dyn Player<BitBoard> + Send> =
-    //     Box::new(AiPlayer::new(evaluate::mobility_evaluate, Color::Black));
+    // let black_player: Box<dyn Player<BitBoard> + Send> = Box::new(HumanPlayer);
+    let black_player: Box<dyn Player<BitBoard> + Send> =
+        Box::new(AiPlayer::new(evaluate::mobility_evaluate, Color::Black));
     let white_player: Box<dyn Player<BitBoard> + Send> =
         Box::new(AiPlayer::new(evaluate::mobility_evaluate, Color::White));
 
