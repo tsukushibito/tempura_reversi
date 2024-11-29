@@ -1,8 +1,5 @@
-use std::{
-    io::{self, Write},
-    sync::mpsc,
-    thread,
-};
+use std::io::{self, Write};
+use std::{sync::mpsc, thread};
 
 use reversi::{
     ai::{ai_player::AiPlayer, evaluate, human_player::HumanPlayer, player::Player},
@@ -20,9 +17,9 @@ fn main() {
     let board = BitBoard::new();
 
     // プレイヤーの初期化
-    // let black_player: Box<dyn Player<BitBoard> + Send> = Box::new(HumanPlayer);
-    let black_player: Box<dyn Player<BitBoard> + Send> =
-        Box::new(AiPlayer::new(evaluate::mobility_evaluate, Color::Black));
+    let black_player: Box<dyn Player<BitBoard> + Send> = Box::new(HumanPlayer);
+    // let black_player: Box<dyn Player<BitBoard> + Send> =
+    //     Box::new(AiPlayer::new(evaluate::mobility_evaluate, Color::Black));
     let white_player: Box<dyn Player<BitBoard> + Send> =
         Box::new(AiPlayer::new(evaluate::mobility_evaluate, Color::White));
 
@@ -95,7 +92,6 @@ fn select_player<B: Board + 'static>(
 ) -> Box<dyn Player<B>> {
     loop {
         let mut input = String::new();
-        io::stdout().flush().unwrap();
         io::stdin()
             .read_line(&mut input)
             .expect("Failed to read line");
