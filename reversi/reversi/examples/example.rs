@@ -1,8 +1,5 @@
-use std::{
-    io::{self, Write},
-    sync::mpsc,
-    thread,
-};
+use std::io::{self, Write};
+use std::{sync::mpsc, thread};
 
 use reversi::{
     ai::{ai_player::AiPlayer, evaluate, human_player::HumanPlayer, player::Player},
@@ -90,7 +87,6 @@ fn main() {
 fn select_player(color: Color, evaluate_fn: fn(&BitBoard, Color) -> i32) -> Box<dyn Player> {
     loop {
         let mut input = String::new();
-        io::stdout().flush().unwrap();
         io::stdin()
             .read_line(&mut input)
             .expect("Failed to read line");
