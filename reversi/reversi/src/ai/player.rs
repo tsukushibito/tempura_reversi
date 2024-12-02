@@ -1,5 +1,5 @@
-use crate::{board::Board, game_play::GameState, Position};
+use crate::{game_play::GameState, Position};
 
-pub trait Player<B: Board> {
-    fn get_move(&mut self, state: &GameState<B>) -> Option<Position>;
+pub trait Player {
+    fn get_move(&mut self, state: &GameState) -> Option<Position>;
 }

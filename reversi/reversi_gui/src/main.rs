@@ -1,53 +1,102 @@
 mod board;
 
-use board::Board;
-use iced::{
-    widget::{canvas, column, row, text},
-    Element, Length, Settings, Theme,
+use std::{
+    sync::mpsc::{self, Receiver},
+    thread,
 };
 
-#[derive(Default)]
-struct State {
-    pub stones_cache: canvas::Cache,
-}
-
-#[derive(Debug)]
-enum Message {
-    CellClicked { row: usize, col: usize },
-}
+use board::BoardView;
+use iced::{
+    widget::{canvas, column, row, text},
+    Element, Length, Settings, Subscription, Task, Theme,
+};
+use reversi::{
+    ai::{ai_player::AiPlayer, human_player::HumanPlayer, player::Player},
+    bit_board::BitBoard,
+    board::Board,
+    game_play::{Game, GameEvent, GameState},
+    Color,
+};
 
 pub fn main() -> iced::Result {
-    iced::application("Tempura Reversi", update, view)
-        .theme(theme)
+    iced::application("Tempura Reversi", Reversi::update, Reversi::view)
+        .theme(Reversi::theme)
         .settings(Settings {
             antialiasing: true,
             ..Default::default()
         })
-        .run()
+        .subscription(Reversi::subscription)
+        .run_with(Reversi::new)
 }
 
-fn update(_state: &mut State, message: Message) {
-    match message {
-        Message::CellClicked { row, col } => {
-            println!("Clicked cell: row = {}, col = {}", row, col);
-            // ここにゲームロジックを追加
+struct Reversi {
+    pub stones_cache: canvas::Cache,
+    pub event_receiver: Receiver<GameEvent<BitBoard>>,
+    pub last_event: Option<GameEvent<BitBoard>>,
+}
+
+#[derive(Debug, Clone)]
+enum Message {
+    CellClicked { row: usize, col: usize },
+}
+
+impl Reversi {
+    fn new() -> (Self, Task<Message>) {
+        let (event_sender, event_receiver) = mpsc::channel();
+
+        let black_player = Box::new(HumanPlayer) as Box<dyn Player<BitBoard> + Send>;
+        let white_player = Box::new(AiPlayer::new(
+            reversi::ai::evaluate::simple_evaluate,
+            Color::White,
+        ));
+
+        let initial_board = BitBoard::new();
+        let game_state = GameState::new(initial_board, Color::Black);
+        let game = Game::new(
+            game_state.board.clone(),
+            black_player,
+            white_player,
+            event_sender.clone(),
+        );
+
+        // 別スレッドでゲームを実行
+        thread::spawn(move || {
+            game.play();
+        });
+
+        (
+            Self {
+                stones_cache: canvas::Cache::default(),
+                event_receiver,
+                last_event: None,
+            },
+            iced::widget::focus_next(),
+        )
+    }
+
+    fn update(&mut self, message: Message) {
+        match message {
+            Message::CellClicked { row, col } => {
+                println!("Clicked cell: row = {}, col = {}", row, col);
+                // ここにゲームロジックを追加
+            }
         }
     }
-}
 
-fn view(state: &State) -> Element<Message> {
-    row![
-        canvas(Board {
-            stones_cache: &state.stones_cache,
-            board_data: Default::default(),
-        })
-        .width(Length::FillPortion(2))
-        .height(Length::Fill),
-        column![text!("Info Area").width(Length::FillPortion(1)),],
-    ]
-    .into()
-}
+    fn view(&self) -> Element<Message> {
+        row![
+            canvas(BoardView {
+                stones_cache: &self.stones_cache,
+                board_data: Default::default(),
+            })
+            .width(Length::FillPortion(2))
+            .height(Length::Fill),
+            column![text!("Info Area").width(Length::FillPortion(1)),],
+        ]
+        .into()
+    }
 
-fn theme(_state: &State) -> Theme {
-    Theme::Dark
+    fn theme(&self) -> Theme {
+        Theme::Dark
+    }
 }

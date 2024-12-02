@@ -1,14 +1,74 @@
 use std::sync::mpsc::Sender;
 
-use crate::{ai::player::Player, board::Board, Color, Position};
+use crate::{
+    ai::player::Player,
+    bit_board::BitBoard,
+    board::{Board, BOARD_SIZE},
+    Color, Position,
+};
 
-pub struct GameState<B: Board> {
-    pub board: B,
+#[derive(Copy, Clone, Debug)]
+pub enum CellState {
+    Empty,
+    Black,
+    White,
+}
+
+pub type BoardState = [CellState; BOARD_SIZE * BOARD_SIZE];
+
+pub fn board_state_to_bit_board(board: &BoardState) -> BitBoard {
+    let mut bit_board = BitBoard::default();
+
+    for x in 0..BOARD_SIZE {
+        for y in 0..BOARD_SIZE {
+            let index = y * BOARD_SIZE + x;
+            let color = match board[index] {
+                CellState::Empty => None,
+                CellState::Black => Some(Color::Black),
+                CellState::White => Some(Color::White),
+            };
+            bit_board.set_disc(
+                &Position {
+                    x: x as i8,
+                    y: y as i8,
+                },
+                color,
+            );
+        }
+    }
+
+    bit_board
+}
+
+pub fn bit_board_to_board_state(bit_board: &BitBoard) -> BoardState {
+    let mut board_state = [CellState::Empty; BOARD_SIZE * BOARD_SIZE];
+
+    for x in 0..BOARD_SIZE {
+        for y in 0..BOARD_SIZE {
+            let index = y * BOARD_SIZE + x;
+            let cell = match bit_board.get_disc(&Position {
+                x: x as i8,
+                y: y as i8,
+            }) {
+                Some(Color::Black) => CellState::Black,
+                Some(Color::White) => CellState::White,
+                None => CellState::Empty,
+            };
+            board_state[index] = cell;
+        }
+    }
+
+    board_state
+}
+
+#[derive(Clone, Debug)]
+pub struct GameState {
+    pub board: BoardState,
     pub player: Color,
 }
 
-impl<B: Board> GameState<B> {
-    pub fn new(board: B, player: Color) -> Self {
+impl GameState {
+    pub fn new(board: BoardState, player: Color) -> Self {
         GameState { board, player }
     }
 }
@@ -22,51 +82,48 @@ pub enum GameResult {
 }
 
 #[derive(Debug, Clone)]
-pub enum GameEvent<B: Board> {
+pub enum GameEvent {
     GameStarted {
-        current_player: Color,
-        board: B,
+        state: GameState,
     },
     MoveMade {
         position: Position,
         color: Color,
-        board: B,
+        state: GameState,
     },
     PlayerPassed {
-        color: Color,
-        board: B,
+        state: GameState,
     },
     GameOver {
         black_score: usize,
         white_score: usize,
         winner: Option<Color>,
-        board: B,
+        state: GameState,
     },
     GameReset {
-        board: B,
+        state: GameState,
     },
 }
 
 /// ゲーム構造体
-pub struct Game<B: Board> {
-    black_player: Box<dyn Player<B> + Send>,
-    white_player: Box<dyn Player<B> + Send>,
-    state: GameState<B>,
-    event_sender: Sender<GameEvent<B>>, // イベント送信用チャネル
+pub struct Game {
+    black_player: Box<dyn Player + Send>,
+    white_player: Box<dyn Player + Send>,
+    state: GameState,
+    event_sender: Sender<GameEvent>, // イベント送信用チャネル
 }
 
-impl<B: Board + Send + 'static> Game<B> {
+impl Game {
     /// 新しいゲームを初期化
     pub fn new(
-        board: B,
-        black_player: Box<dyn Player<B> + Send>,
-        white_player: Box<dyn Player<B> + Send>,
-        sender: Sender<GameEvent<B>>,
+        black_player: Box<dyn Player + Send>,
+        white_player: Box<dyn Player + Send>,
+        sender: Sender<GameEvent>,
     ) -> Self {
         Game {
             black_player,
             white_player,
-            state: GameState::new(board, Color::Black),
+            state: GameState::new(bit_board_to_board_state(&BitBoard::new()), Color::Black),
             event_sender: sender,
         }
     }
@@ -75,8 +132,7 @@ impl<B: Board + Send + 'static> Game<B> {
     pub fn play(mut self) {
         // ゲーム開始イベントを送信
         let _ = self.event_sender.send(GameEvent::GameStarted {
-            current_player: self.state.player,
-            board: self.state.board.clone(),
+            state: self.state.clone(),
         });
 
         loop {
@@ -84,23 +140,18 @@ impl<B: Board + Send + 'static> Game<B> {
             let current_player = self.state.player;
 
             // 現在のプレイヤーが有効な手を持っているか確認
-            let valid_moves = self.state.board.get_valid_moves(current_player);
+            let mut bit_board = board_state_to_bit_board(&self.state.board);
+            let valid_moves = bit_board.get_valid_moves(current_player);
             if valid_moves.is_empty() {
                 // プレイヤーがパスする必要がある
                 let _ = self.event_sender.send(GameEvent::PlayerPassed {
-                    color: current_player,
-                    board: self.state.board.clone(),
+                    state: self.state.clone(),
                 });
                 // プレイヤーを交代
                 self.state.player = current_player.opponent();
 
                 // 両プレイヤーがパスした場合、ゲーム終了
-                if self
-                    .state
-                    .board
-                    .get_valid_moves(self.state.player)
-                    .is_empty()
-                {
+                if bit_board.get_valid_moves(self.state.player).is_empty() {
                     self.end_game();
                     break;
                 }
@@ -115,13 +166,17 @@ impl<B: Board + Send + 'static> Game<B> {
 
             match move_pos {
                 Some(pos) => {
-                    let success = self.state.board.make_move(current_player, &pos);
+                    let success = bit_board.make_move(current_player, &pos);
                     if success {
+                        self.state.board = bit_board_to_board_state(&bit_board);
                         // MoveMade イベントを送信
                         let _ = self.event_sender.send(GameEvent::MoveMade {
                             position: pos,
                             color: current_player,
-                            board: self.state.board.clone(),
+                            state: GameState {
+                                board: bit_board_to_board_state(&bit_board),
+                                player: current_player,
+                            },
                         });
                     } else {
                         // 無効な手の場合、再試行（ここではスキップ）
@@ -132,18 +187,15 @@ impl<B: Board + Send + 'static> Game<B> {
                 None => {
                     // プレイヤーが手を打てない場合、パス
                     let _ = self.event_sender.send(GameEvent::PlayerPassed {
-                        color: current_player,
-                        board: self.state.board.clone(),
+                        state: GameState {
+                            board: bit_board_to_board_state(&bit_board),
+                            player: current_player,
+                        },
                     });
                     self.state.player = current_player.opponent();
 
                     // 両プレイヤーがパスした場合、ゲーム終了
-                    if self
-                        .state
-                        .board
-                        .get_valid_moves(self.state.player)
-                        .is_empty()
-                    {
+                    if bit_board.get_valid_moves(self.state.player).is_empty() {
                         self.end_game();
                         break;
                     }
@@ -157,8 +209,9 @@ impl<B: Board + Send + 'static> Game<B> {
 
     /// ゲームを終了し、結果を送信する関数
     fn end_game(&mut self) {
-        let black_score = self.state.board.black_count();
-        let white_score = self.state.board.white_count();
+        let bit_board = board_state_to_bit_board(&self.state.board);
+        let black_score = bit_board.black_count();
+        let white_score = bit_board.white_count();
         let winner = match black_score.cmp(&white_score) {
             std::cmp::Ordering::Greater => Some(Color::Black),
             std::cmp::Ordering::Less => Some(Color::White),
@@ -169,18 +222,18 @@ impl<B: Board + Send + 'static> Game<B> {
             black_score,
             white_score,
             winner,
-            board: self.state.board.clone(),
+            state: self.state.clone(),
         };
 
         let _ = self.event_sender.send(game_over_event);
     }
 
     /// ゲームをリセットする関数（必要に応じて追加）
-    pub fn reset(&mut self, new_board: B) {
-        self.state = GameState::new(new_board.clone(), Color::Black);
-        let _ = self
-            .event_sender
-            .send(GameEvent::GameReset { board: new_board });
+    pub fn reset(&mut self) {
+        self.state = GameState::new(bit_board_to_board_state(&BitBoard::new()), Color::Black);
+        let _ = self.event_sender.send(GameEvent::GameReset {
+            state: self.state.clone(),
+        });
     }
 }
 
@@ -190,30 +243,30 @@ mod tests {
 
     use crate::{
         ai::{ai_player::AiPlayer, evaluate, human_player::HumanPlayer, player::Player},
-        bit_board::BitBoard,
         board::Board,
         Color,
     };
 
-    use super::{Game, GameEvent};
+    use super::{board_state_to_bit_board, BoardState, Game, GameEvent};
+
+    fn display_board(board: &BoardState) {
+        board_state_to_bit_board(board).display();
+    }
 
     #[test]
     fn test_game_play() {
         // チャネルの作成
         let (tx, rx) = mpsc::channel();
 
-        // ボードの初期化
-        let board = BitBoard::new();
-
         // プレイヤーの初期化
-        let black_player: Box<dyn Player<BitBoard> + Send> = Box::new(HumanPlayer);
+        let black_player: Box<dyn Player + Send> = Box::new(HumanPlayer);
         // let black_player: Box<dyn Player<BitBoard> + Send> =
         //     Box::new(AiPlayer::new(evaluate::mobility_evaluate, Color::Black));
-        let white_player: Box<dyn Player<BitBoard> + Send> =
+        let white_player: Box<dyn Player + Send> =
             Box::new(AiPlayer::new(evaluate::mobility_evaluate, Color::White));
 
         // ゲームの初期化
-        let game = Game::new(board, black_player, white_player, tx);
+        let game = Game::new(black_player, white_player, tx);
 
         // ゲームを別スレッドで実行
         thread::spawn(move || {
@@ -224,30 +277,27 @@ mod tests {
         loop {
             match rx.recv() {
                 Ok(event) => match event {
-                    GameEvent::GameStarted {
-                        current_player: _,
-                        board,
-                    } => {
+                    GameEvent::GameStarted { state } => {
                         println!("ゲームが開始されました。");
-                        board.display();
+                        display_board(&state.board);
                     }
                     GameEvent::MoveMade {
                         position,
                         color,
-                        board,
+                        state,
                     } => {
                         println!("{:?} プレイヤーが {:?} に手を打ちました。", color, position);
-                        board.display();
+                        display_board(&state.board);
                     }
-                    GameEvent::PlayerPassed { color, board } => {
-                        println!("{:?} プレイヤーはパスしました。", color);
-                        board.display();
+                    GameEvent::PlayerPassed { state } => {
+                        println!("{:?} プレイヤーはパスしました。", state.player);
+                        display_board(&state.board);
                     }
                     GameEvent::GameOver {
                         black_score,
                         white_score,
                         winner,
-                        board,
+                        state,
                     } => {
                         println!(
                             "ゲームが終了しました。スコア: 黒 {} - 白 {}",
@@ -257,12 +307,12 @@ mod tests {
                             Some(color) => println!("{:?} プレイヤーの勝利です！", color),
                             None => println!("引き分けです！"),
                         }
-                        board.display();
+                        display_board(&state.board);
                         break;
                     }
-                    GameEvent::GameReset { board } => {
+                    GameEvent::GameReset { state } => {
                         println!("ゲームがリセットされました。");
-                        board.display();
+                        display_board(&state.board);
                     }
                 },
                 Err(_) => {

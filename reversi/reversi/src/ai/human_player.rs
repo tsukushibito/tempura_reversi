@@ -1,13 +1,17 @@
 use std::io::{self, Write};
 
-use crate::{board::Board, game_play::GameState, Position};
+use crate::{
+    board::Board,
+    game_play::{board_state_to_bit_board, GameState},
+    Position,
+};
 
 use super::player::Player;
 
 pub struct HumanPlayer;
 
-impl<B: Board> Player<B> for HumanPlayer {
-    fn get_move(&mut self, state: &GameState<B>) -> Option<Position> {
+impl Player for HumanPlayer {
+    fn get_move(&mut self, state: &GameState) -> Option<Position> {
         loop {
             println!("Enter your move (e.g., D3): ");
             std::io::stdout().flush();
@@ -17,9 +21,11 @@ impl<B: Board> Player<B> for HumanPlayer {
                 .read_line(&mut input)
                 .expect("Failed to read line");
 
+            let bit_board = board_state_to_bit_board(&state.board);
+
             match parse_position(&input) {
                 Some(pos) => {
-                    if state.board.get_valid_moves(state.player).contains(&pos) {
+                    if bit_board.get_valid_moves(state.player).contains(&pos) {
                         return Some(pos);
                     } else {
                         println!("Invalid move: not a valid position. Try again.");

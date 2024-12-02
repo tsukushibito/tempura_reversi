@@ -10,7 +10,7 @@ const LABEL_SIZE: f32 = 20.0;
 const CELL_STROKE_WIDTH: f32 = 2.0;
 const STONE_RADIUS_FACTOR: f32 = 1.0 / 3.0;
 
-pub struct Board<'a> {
+pub struct BoardView<'a> {
     pub board_data: [[Option<bool>; 8]; 8],
     pub stones_cache: &'a Cache,
 }
@@ -20,7 +20,7 @@ pub struct BoardState {
     board_cache: Cache,
 }
 
-impl<'a> Program<Message> for Board<'a> {
+impl<'a> Program<Message> for BoardView<'a> {
     type State = BoardState;
 
     fn draw(
@@ -94,7 +94,7 @@ impl Layout {
     }
 }
 
-impl<'a> Board<'a> {
+impl<'a> BoardView<'a> {
     fn draw_board_background(&self, frame: &mut Frame, layout: &Layout) {
         let background = Path::rectangle(
             Point::new(layout.x_offset, layout.y_offset),
