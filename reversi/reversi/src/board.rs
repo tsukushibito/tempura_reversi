@@ -1,17 +1,39 @@
 use crate::{Color, Position};
-use std::hash::Hash;
 
 pub const BOARD_SIZE: usize = 8;
 
-pub trait Board: Clone + Default + Hash + PartialEq + Eq {
-    fn new() -> Self {
-        let mut board = Self::default();
-        board.set_disc(&Position::D4, Some(Color::White));
-        board.set_disc(&Position::E5, Some(Color::White));
-        board.set_disc(&Position::D5, Some(Color::Black));
-        board.set_disc(&Position::E4, Some(Color::Black));
+pub trait CloneAsBoard {
+    fn clone_as_board(&self) -> Box<dyn Board + Send>;
+}
 
-        board
+impl<T: Board + Send + Clone + 'static> CloneAsBoard for T {
+    fn clone_as_board(&self) -> Box<dyn Board + Send> {
+        Box::new(self.clone())
+    }
+}
+
+pub trait Board: CloneAsBoard + std::fmt::Debug {
+    fn clear(&mut self) {
+        for x in 0..BOARD_SIZE {
+            for y in 0..BOARD_SIZE {
+                self.set_disc(
+                    &Position {
+                        x: x as i8,
+                        y: y as i8,
+                    },
+                    None,
+                );
+            }
+        }
+    }
+
+    fn init(&mut self) {
+        self.clear();
+
+        self.set_disc(&Position::E4, Some(Color::Black));
+        self.set_disc(&Position::D5, Some(Color::Black));
+        self.set_disc(&Position::D4, Some(Color::White));
+        self.set_disc(&Position::E5, Some(Color::White));
     }
 
     fn discs(&self) -> Vec<Vec<Option<Color>>>;

@@ -34,6 +34,12 @@ pub struct ArrayBoard {
 }
 
 impl ArrayBoard {
+    pub fn init_board() -> Self {
+        let mut board = Self::default();
+        board.init();
+        board
+    }
+
     fn is_valid_move(&self, color: Color, pos: &Position) -> bool {
         if self.discs[pos.x as usize + pos.y as usize * BOARD_SIZE] != EMPTY {
             return false;
@@ -210,7 +216,7 @@ mod tests {
 
     #[test]
     fn test_is_valid_move() {
-        let board = ArrayBoard::new();
+        let board = ArrayBoard::init_board();
 
         assert!(board.is_valid_move(Color::Black, &Position::C4));
         assert!(!board.is_valid_move(Color::Black, &Position::A1));
@@ -218,7 +224,7 @@ mod tests {
 
     #[test]
     fn test_make_move() {
-        let mut board = ArrayBoard::new();
+        let mut board = ArrayBoard::init_board();
 
         assert!(board.make_move(Color::Black, &Position::C4));
         assert_eq!(board.discs[2 + 3 * BOARD_SIZE], BLACK);
@@ -228,7 +234,7 @@ mod tests {
 
     #[test]
     fn test_count_of() {
-        let board = ArrayBoard::new();
+        let board = ArrayBoard::init_board();
 
         assert_eq!(board.count_of(Some(Color::Black)), 2);
         assert_eq!(board.count_of(Some(Color::White)), 2);
@@ -237,7 +243,7 @@ mod tests {
 
     #[test]
     fn test_get_valid_moves() {
-        let board = ArrayBoard::new();
+        let board = ArrayBoard::init_board();
 
         let valid_move_pos = board.get_valid_moves(Color::Black);
         println!("valid_moves: {:?}", valid_move_pos);
@@ -249,7 +255,7 @@ mod tests {
 
     #[test]
     fn test_display() {
-        let board = ArrayBoard::new();
+        let board = ArrayBoard::init_board();
 
         board.display();
     }

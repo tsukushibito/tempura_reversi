@@ -1,10 +1,9 @@
 use std::collections::HashMap;
-use std::hash::Hash;
 
 use crate::ai::SearchResult;
 use crate::bit_board::BitBoard;
 use crate::board::{Board, BOARD_SIZE};
-use crate::game_play::{bit_board_to_board_state, board_state_to_bit_board, GameState};
+use crate::game::GameState;
 use crate::{Color, Move, Position};
 
 type EvalFunc = fn(&BitBoard, Color) -> i32;
@@ -67,8 +66,8 @@ impl Negaalpha {
         mut alpha: i32,
         beta: i32,
     ) -> SearchResult {
-        let board = board_state_to_bit_board(&state.board);
-        if let Some(entry) = self.transposition_table.get(&board) {
+        let bit_board = BitBoard::from_board(&state.board);
+        if let Some(entry) = self.transposition_table.get(&bit_board) {
             if entry.depth >= depth {
                 return SearchResult {
                     best_move: Some(Move {
@@ -86,12 +85,12 @@ impl Negaalpha {
         let mut nodes_searched = 1;
         let mut policy = [0; BOARD_SIZE * BOARD_SIZE];
 
-        let mut valid_moves = board.get_valid_moves(state.player);
+        let mut valid_moves = bit_board.get_valid_moves(state.player);
 
         if depth == 0 || valid_moves.is_empty() {
-            let score = (self.evaluate)(&board, state.player);
+            let score = (self.evaluate)(&bit_board, state.player);
             self.transposition_table.insert(
-                board.clone(),
+                bit_board.clone(),
                 TranspositionTableEntry {
                     score,
                     depth,
@@ -117,13 +116,10 @@ impl Negaalpha {
         let mut best_path = Vec::new();
 
         for mv_pos in valid_moves {
-            let mut new_board = board.clone();
+            let mut new_board = bit_board.clone();
             new_board.make_move(state.player, &mv_pos);
 
-            let new_state = GameState {
-                board: bit_board_to_board_state(&new_board),
-                player: state.player.opponent(),
-            };
+            let new_state = GameState::new(&new_board, state.player.opponent());
 
             let result = self.search(&new_state, depth - 1, -beta, -alpha);
 
@@ -166,7 +162,7 @@ impl Negaalpha {
             -1
         };
         self.transposition_table.insert(
-            board.clone(),
+            bit_board.clone(),
             TranspositionTableEntry {
                 score: max_score,
                 depth,
@@ -195,8 +191,8 @@ mod tests {
 
     #[test]
     fn test_negaalpha_no_move_ordering() {
-        let board = BitBoard::new();
-        let state = GameState::new(bit_board_to_board_state(&board), Color::Black);
+        let bit_board = BitBoard::init_board();
+        let state = GameState::new(&bit_board, Color::Black);
 
         let mut negaalpha = Negaalpha::new(simple_evaluate);
         negaalpha.set_move_ordering(false);
@@ -211,11 +207,11 @@ mod tests {
         println!("best_move: {:?}", result.best_move);
 
         println!("path: ");
-        let mut board = board.clone();
-        board.display();
+        let mut new_board = bit_board.clone();
+        new_board.display();
         for mov in result.path {
-            board.make_move(mov.color, &mov.position.unwrap());
-            board.display();
+            new_board.make_move(mov.color, &mov.position.unwrap());
+            new_board.display();
         }
         println!();
 
@@ -235,8 +231,8 @@ mod tests {
 
     #[test]
     fn test_negaalpha_with_move_ordering() {
-        let board = BitBoard::new();
-        let state = GameState::new(bit_board_to_board_state(&board), Color::Black);
+        let bit_board = BitBoard::init_board();
+        let state = GameState::new(&bit_board, Color::Black);
 
         let mut negaalpha = Negaalpha::new(simple_evaluate);
         negaalpha.set_move_ordering(true);
@@ -251,11 +247,11 @@ mod tests {
         println!("best_move: {:?}", result.best_move);
 
         println!("path: ");
-        let mut board = board.clone();
-        board.display();
+        let mut new_board = bit_board.clone();
+        new_board.display();
         for mov in result.path {
-            board.make_move(mov.color, &mov.position.unwrap());
-            board.display();
+            new_board.make_move(mov.color, &mov.position.unwrap());
+            new_board.display();
         }
         println!();
 

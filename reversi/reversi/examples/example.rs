@@ -1,17 +1,12 @@
-use std::io::{self, Write};
+use std::io;
 use std::{sync::mpsc, thread};
 
 use reversi::{
     ai::{ai_player::AiPlayer, evaluate, human_player::HumanPlayer, player::Player},
     bit_board::BitBoard,
-    board::Board,
-    game_play::{board_state_to_bit_board, BoardState, Game, GameEvent},
+    game::{Game, GameEvent},
     Color,
 };
-
-fn display_board(board: &BoardState) {
-    board_state_to_bit_board(board).display();
-}
 
 fn main() {
     // チャネルの作成
@@ -38,7 +33,7 @@ fn main() {
             Ok(event) => match event {
                 GameEvent::GameStarted { state } => {
                     println!("Game Started!");
-                    display_board(&state.board);
+                    state.board.display();
                 }
                 GameEvent::MoveMade {
                     position,
@@ -46,11 +41,11 @@ fn main() {
                     state,
                 } => {
                     println!("{:?} make move with {:?} ", color, position);
-                    display_board(&state.board);
+                    state.board.display();
                 }
                 GameEvent::PlayerPassed { state } => {
                     println!("{:?} passed", state.player);
-                    display_board(&state.board);
+                    state.board.display();
                 }
                 GameEvent::GameOver {
                     black_score,
@@ -66,12 +61,12 @@ fn main() {
                         Some(color) => println!("{:?} wins", color),
                         None => println!("draw"),
                     }
-                    display_board(&state.board);
+                    state.board.display();
                     break;
                 }
                 GameEvent::GameReset { state } => {
                     println!("Reseted");
-                    display_board(&state.board);
+                    state.board.display();
                 }
             },
             Err(_) => {

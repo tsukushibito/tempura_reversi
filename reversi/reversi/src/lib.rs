@@ -4,7 +4,7 @@ pub mod ai;
 pub mod array_board;
 pub mod bit_board;
 pub mod board;
-pub mod game_play;
+pub mod game;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Position {

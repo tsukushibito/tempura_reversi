@@ -1,4 +1,4 @@
-use crate::{game_play::GameState, Position};
+use crate::{game::GameState, Position};
 
 pub trait Player {
     fn get_move(&mut self, state: &GameState) -> Option<Position>;

@@ -1,10 +1,6 @@
-use std::io::{self, Write};
+use std::io;
 
-use crate::{
-    board::Board,
-    game_play::{board_state_to_bit_board, GameState},
-    Position,
-};
+use crate::{game::GameState, Position};
 
 use super::player::Player;
 
@@ -19,17 +15,15 @@ impl Player for HumanPlayer {
                 .read_line(&mut input)
                 .expect("Failed to read line");
 
-            let bit_board = board_state_to_bit_board(&state.board);
-
             match parse_position(&input) {
                 Some(pos) => {
-                    if bit_board.get_valid_moves(state.player).contains(&pos) {
+                    if state.board.get_valid_moves(state.player).contains(&pos) {
                         return Some(pos);
                     } else {
-                        println!("Invalid move: not a valid position. Try again.");
+                        println!("Invalid move(): not a valid position. Try again.");
                     }
                 }
-                None => println!("Invalid input format. Please enter like D3."),
+                None => println!("Invalid input format.({}) Please enter like D3.", input),
             }
         }
     }

@@ -1,4 +1,4 @@
-use crate::{bit_board::BitBoard, board::Board, game_play::GameState, Color, Position};
+use crate::{bit_board::BitBoard, game::GameState, Color, Position};
 
 use super::{player::Player, search::Negaalpha};
 

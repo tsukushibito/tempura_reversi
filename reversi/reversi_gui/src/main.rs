@@ -14,7 +14,7 @@ use reversi::{
     ai::{ai_player::AiPlayer, human_player::HumanPlayer, player::Player},
     bit_board::BitBoard,
     board::Board,
-    game_play::{Game, GameEvent, GameState},
+    game::{Game, GameEvent, GameState},
     Color,
 };
 
@@ -25,14 +25,13 @@ pub fn main() -> iced::Result {
             antialiasing: true,
             ..Default::default()
         })
-        .subscription(Reversi::subscription)
         .run_with(Reversi::new)
 }
 
 struct Reversi {
     pub stones_cache: canvas::Cache,
-    pub event_receiver: Receiver<GameEvent<BitBoard>>,
-    pub last_event: Option<GameEvent<BitBoard>>,
+    // pub event_receiver: Receiver<GameEvent<BitBoard>>,
+    // pub last_event: Option<GameEvent<BitBoard>>,
 }
 
 #[derive(Debug, Clone)]
@@ -44,20 +43,13 @@ impl Reversi {
     fn new() -> (Self, Task<Message>) {
         let (event_sender, event_receiver) = mpsc::channel();
 
-        let black_player = Box::new(HumanPlayer) as Box<dyn Player<BitBoard> + Send>;
+        let black_player = Box::new(HumanPlayer) as Box<dyn Player + Send>;
         let white_player = Box::new(AiPlayer::new(
             reversi::ai::evaluate::simple_evaluate,
             Color::White,
         ));
 
-        let initial_board = BitBoard::new();
-        let game_state = GameState::new(initial_board, Color::Black);
-        let game = Game::new(
-            game_state.board.clone(),
-            black_player,
-            white_player,
-            event_sender.clone(),
-        );
+        let game = Game::new(black_player, white_player, event_sender.clone());
 
         // 別スレッドでゲームを実行
         thread::spawn(move || {
@@ -67,8 +59,8 @@ impl Reversi {
         (
             Self {
                 stones_cache: canvas::Cache::default(),
-                event_receiver,
-                last_event: None,
+                // event_receiver,
+                // last_event: None,
             },
             iced::widget::focus_next(),
         )

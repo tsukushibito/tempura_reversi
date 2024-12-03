@@ -89,6 +89,34 @@ fn get_flips_bits(move_bit: u64, player_bits: u64, opponent_bits: u64) -> u64 {
     flips
 }
 
+impl BitBoard {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn init_board() -> Self {
+        let mut board = Self::default();
+        board.init();
+        board
+    }
+
+    pub fn from_board(board: &Box<dyn Board + Send>) -> Self {
+        let mut bit_board = Self::new();
+        for x in 0..BOARD_SIZE {
+            for y in 0..BOARD_SIZE {
+                let pos = Position {
+                    x: x as i8,
+                    y: y as i8,
+                };
+                let color = board.get_disc(&pos);
+                bit_board.set_disc(&pos, color);
+            }
+        }
+
+        bit_board
+    }
+}
+
 impl Board for BitBoard {
     fn discs(&self) -> Vec<Vec<Option<Color>>> {
         let mut discs: Vec<Vec<Option<Color>>> = Vec::new();
@@ -143,6 +171,18 @@ impl Board for BitBoard {
             },
             None => (64 - self.black.count_ones() - self.white.count_ones()) as usize,
         }
+    }
+
+    fn black_count(&self) -> usize {
+        self.count_of(Some(Color::Black))
+    }
+
+    fn white_count(&self) -> usize {
+        self.count_of(Some(Color::White))
+    }
+
+    fn empty_count(&self) -> usize {
+        self.count_of(None)
     }
 
     fn make_move(&mut self, color: Color, pos: &Position) -> bool {
@@ -379,7 +419,6 @@ mod tests {
             .iter()
             .for_each(|p| tmp_board.set_disc(p, Some(Color::White)));
         tmp_board.display();
-        std::io::stdout().flush().unwrap();
 
         let expected_moves_white = vec![Position::A3];
 
