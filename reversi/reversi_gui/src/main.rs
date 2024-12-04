@@ -1,20 +1,20 @@
 mod board;
 
 use std::{
-    sync::mpsc::{self, Receiver},
+    sync::mpsc::{self, Receiver, Sender},
     thread,
 };
 
 use board::BoardView;
 use iced::{
+    futures::Stream,
+    stream,
     widget::{canvas, column, row, text},
     Element, Length, Settings, Subscription, Task, Theme,
 };
 use reversi::{
     ai::{ai_player::AiPlayer, human_player::HumanPlayer, player::Player},
-    bit_board::BitBoard,
-    board::Board,
-    game::{Game, GameEvent, GameState},
+    game::{Game, GameCommand, GameEvent},
     Color,
 };
 
@@ -25,13 +25,14 @@ pub fn main() -> iced::Result {
             antialiasing: true,
             ..Default::default()
         })
+        .subscription(Reversi::subscription)
         .run_with(Reversi::new)
 }
 
 struct Reversi {
     pub stones_cache: canvas::Cache,
-    // pub event_receiver: Receiver<GameEvent<BitBoard>>,
-    // pub last_event: Option<GameEvent<BitBoard>>,
+    pub event_receiver: Receiver<GameEvent>,
+    pub command_sender: Sender<GameCommand>,
 }
 
 #[derive(Debug, Clone)]
@@ -42,6 +43,7 @@ enum Message {
 impl Reversi {
     fn new() -> (Self, Task<Message>) {
         let (event_sender, event_receiver) = mpsc::channel();
+        let (command_sender, command_receiver) = mpsc::channel();
 
         let black_player = Box::new(HumanPlayer) as Box<dyn Player + Send>;
         let white_player = Box::new(AiPlayer::new(
@@ -49,18 +51,18 @@ impl Reversi {
             Color::White,
         ));
 
-        let game = Game::new(black_player, white_player, event_sender.clone());
+        let mut game = Game::new(event_sender, command_receiver);
 
         // 別スレッドでゲームを実行
         thread::spawn(move || {
-            game.play();
+            let _ = game.run();
         });
 
         (
             Self {
                 stones_cache: canvas::Cache::default(),
-                // event_receiver,
-                // last_event: None,
+                event_receiver,
+                command_sender,
             },
             iced::widget::focus_next(),
         )
@@ -90,5 +92,13 @@ impl Reversi {
 
     fn theme(&self) -> Theme {
         Theme::Dark
+    }
+
+    fn subscription(&self) -> Subscription<Message> {
+        Subscription::run(Self::some_worker)
+    }
+
+    fn some_worker() -> impl Stream<Item = Message> {
+        stream::channel(100, |mut output| async move {})
     }
 }
