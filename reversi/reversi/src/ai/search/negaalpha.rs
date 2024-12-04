@@ -72,7 +72,7 @@ impl Negaalpha {
                 return SearchResult {
                     best_move: Some(Move {
                         position: Some(Position::from_index(entry.best_move)),
-                        color: state.player,
+                        color: state.current_player,
                     }),
                     path: Vec::new(),
                     nodes_searched: 0,
@@ -85,10 +85,10 @@ impl Negaalpha {
         let mut nodes_searched = 1;
         let mut policy = [0; BOARD_SIZE * BOARD_SIZE];
 
-        let mut valid_moves = bit_board.get_valid_moves(state.player);
+        let mut valid_moves = bit_board.get_valid_moves(state.current_player);
 
         if depth == 0 || valid_moves.is_empty() {
-            let score = (self.evaluate)(&bit_board, state.player);
+            let score = (self.evaluate)(&bit_board, state.current_player);
             self.transposition_table.insert(
                 bit_board.clone(),
                 TranspositionTableEntry {
@@ -117,9 +117,9 @@ impl Negaalpha {
 
         for mv_pos in valid_moves {
             let mut new_board = bit_board.clone();
-            new_board.make_move(state.player, &mv_pos);
+            new_board.make_move(state.current_player, &mv_pos);
 
-            let new_state = GameState::new(&new_board, state.player.opponent());
+            let new_state = GameState::new(&new_board, state.current_player.opponent());
 
             let result = self.search(&new_state, depth - 1, -beta, -alpha);
 
@@ -134,11 +134,11 @@ impl Negaalpha {
                 max_score = score;
                 best_move = Some(Move {
                     position: Some(mv_pos),
-                    color: state.player,
+                    color: state.current_player,
                 });
                 best_path = vec![Move {
                     position: Some(mv_pos),
-                    color: state.player,
+                    color: state.current_player,
                 }];
                 best_path.extend(result.path);
             }

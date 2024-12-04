@@ -1,6 +1,7 @@
 use std::io;
 use std::{sync::mpsc, thread};
 
+use reversi::game::GameCommand;
 use reversi::{
     ai::{ai_player::AiPlayer, evaluate, human_player::HumanPlayer, player::Player},
     bit_board::BitBoard,
@@ -9,92 +10,64 @@ use reversi::{
 };
 
 fn main() {
-    // チャネルの作成
-    let (tx, rx) = mpsc::channel();
-
     // プレイヤーの初期化
-    // let black_player: Box<dyn Player + Send> = Box::new(HumanPlayer);
-    let black_player: Box<dyn Player + Send> =
-        Box::new(AiPlayer::new(evaluate::mobility_evaluate, Color::Black));
-    let white_player: Box<dyn Player + Send> =
-        Box::new(AiPlayer::new(evaluate::mobility_evaluate, Color::White));
+    let mut black_player = HumanPlayer {};
+    let mut white_player = AiPlayer::new(evaluate::mobility_evaluate, Color::White);
 
     // ゲームの初期化
-    let game = Game::new(black_player, white_player, tx);
+    let (event_sender, event_receiver) = std::sync::mpsc::channel();
+    let (command_sender, command_receiver) = std::sync::mpsc::channel();
+    let mut game = Game::new(event_sender, command_receiver);
 
     // ゲームを別スレッドで実行
-    thread::spawn(move || {
-        game.play();
+    let thread_handle = thread::spawn(move || {
+        let _ = game.run();
     });
 
     // ゲームイベントの処理
     loop {
-        match rx.recv() {
+        let r = event_receiver.recv();
+        match r {
             Ok(event) => match event {
-                GameEvent::GameStarted { state } => {
-                    println!("Game Started!");
-                    state.board.display();
-                }
-                GameEvent::MoveMade {
-                    position,
-                    color,
-                    state,
-                } => {
-                    println!("{:?} make move with {:?} ", color, position);
-                    state.board.display();
-                }
-                GameEvent::PlayerPassed { state } => {
-                    println!("{:?} passed", state.player);
-                    state.board.display();
-                }
-                GameEvent::GameOver {
-                    black_score,
-                    white_score,
-                    winner,
-                    state,
-                } => {
-                    println!(
-                        "Game Over score: black {} - white {}",
-                        black_score, white_score
-                    );
-                    match winner {
-                        Some(color) => println!("{:?} wins", color),
-                        None => println!("draw"),
+                GameEvent::Turn(game_state) => {
+                    println!("Turn: {:?}", game_state.current_player);
+                    game_state.board.display();
+
+                    match game_state.current_player {
+                        Color::Black => {
+                            let p = black_player.get_move(&game_state).unwrap();
+                            command_sender
+                                .send(GameCommand::MakeMove {
+                                    position: p,
+                                    player: Color::Black,
+                                })
+                                .unwrap();
+                        }
+                        Color::White => {
+                            let p = white_player.get_move(&game_state).unwrap();
+                            command_sender
+                                .send(GameCommand::MakeMove {
+                                    position: p,
+                                    player: Color::White,
+                                })
+                                .unwrap();
+                        }
                     }
-                    state.board.display();
+                }
+                GameEvent::GameOver(game_state) => {
+                    command_sender.send(GameCommand::Exit).unwrap();
+                    println!("Game Over");
+                    game_state.board.display();
                     break;
                 }
-                GameEvent::GameReset { state } => {
-                    println!("Reseted");
-                    state.board.display();
-                }
             },
-            Err(_) => {
-                println!("Game thread exited");
-                break;
+            Err(error) => {
+                println!("{}", error);
             }
         }
     }
+
+    let _ = thread_handle.join();
     let mut s: String = Default::default();
     std::io::stdin().read_line(&mut s).ok();
-}
-
-fn select_player(color: Color, evaluate_fn: fn(&BitBoard, Color) -> i32) -> Box<dyn Player> {
-    loop {
-        let mut input = String::new();
-        io::stdin()
-            .read_line(&mut input)
-            .expect("Failed to read line");
-        match input.trim().to_lowercase().as_str() {
-            "human" | "h" => {
-                return Box::new(HumanPlayer);
-            }
-            "ai" | "a" => {
-                return Box::new(AiPlayer::new(evaluate_fn, color));
-            }
-            _ => {
-                println!("Invalid input. Please enter 'h' for Human or 'a' for AI.");
-            }
-        }
-    }
 }

@@ -17,7 +17,11 @@ impl Player for HumanPlayer {
 
             match parse_position(&input) {
                 Some(pos) => {
-                    if state.board.get_valid_moves(state.player).contains(&pos) {
+                    if state
+                        .board
+                        .get_valid_moves(state.current_player)
+                        .contains(&pos)
+                    {
                         return Some(pos);
                     } else {
                         println!("Invalid move(): not a valid position. Try again.");

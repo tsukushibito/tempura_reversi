@@ -40,11 +40,11 @@ impl Negamax {
         let mut nodes_searched = 1;
 
         // 現在のプレイヤーの有効な手を取得
-        let valid_moves = bit_board.get_valid_moves(state.player);
+        let valid_moves = bit_board.get_valid_moves(state.current_player);
 
         // 終端条件のチェック
         if depth == 0 || valid_moves.is_empty() {
-            let score = (self.evaluate)(&bit_board, state.player);
+            let score = (self.evaluate)(&bit_board, state.current_player);
             // スコアをメモ化
             self.transposition_table.insert(bit_board.clone(), score);
             return SearchResult {
@@ -65,10 +65,10 @@ impl Negamax {
         for mv_pos in valid_moves {
             // ボードをクローンして手を適用
             let mut new_board = bit_board.clone();
-            new_board.make_move(state.player, &mv_pos);
+            new_board.make_move(state.current_player, &mv_pos);
 
             // 相手のターンで新しいゲーム状態を作成
-            let new_state = GameState::new(&new_board, state.player.opponent());
+            let new_state = GameState::new(&new_board, state.current_player.opponent());
 
             // 再帰的にsearchを呼び出し
             let result = self.search(&new_state, depth - 1);
@@ -83,11 +83,11 @@ impl Negamax {
                 max_score = score;
                 best_move = Some(Move {
                     position: Some(mv_pos),
-                    color: state.player,
+                    color: state.current_player,
                 });
                 best_path = vec![Move {
                     position: Some(mv_pos),
-                    color: state.player,
+                    color: state.current_player,
                 }];
                 best_path.extend(result.path);
             }

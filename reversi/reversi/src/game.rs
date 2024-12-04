@@ -1,6 +1,6 @@
-use std::sync::mpsc::Sender;
+use std::sync::mpsc::{Receiver, Sender};
 
-use crate::{ai::player::Player, bit_board::BitBoard, board::Board, Color, Position};
+use crate::{bit_board::BitBoard, board::Board, Color, Position};
 
 #[derive(Copy, Clone, Debug)]
 pub enum CellState {
@@ -12,22 +12,43 @@ pub enum CellState {
 #[derive(Debug)]
 pub struct GameState {
     pub board: Box<dyn Board + Send>,
-    pub player: Color,
+    pub current_player: Color,
+    pub move_count: u32,
+    pub is_game_over: bool,
 }
 
 impl GameState {
     pub fn new<T: Board + Send + Clone + 'static>(board: &T, player: Color) -> Self {
         Self {
             board: Box::new(board.clone()),
-            player,
+            current_player: player,
+            move_count: 0,
+            is_game_over: false,
         }
     }
 
-    pub fn init() -> Self {
+    pub fn initial_state() -> Self {
         Self {
             board: Box::new(BitBoard::init_board()),
-            player: Color::Black,
+            current_player: Color::Black,
+            move_count: 0,
+            is_game_over: false,
         }
+    }
+
+    pub fn reset(&mut self) {
+        self.board.init();
+        self.current_player = Color::Black;
+        self.move_count = 0;
+        self.is_game_over = false;
+    }
+
+    pub fn get_current_players_valid_moves(&self) -> Vec<Position> {
+        self.board.get_valid_moves(self.current_player)
+    }
+
+    pub fn switch_turn(&mut self) {
+        self.current_player = self.current_player.opponent();
     }
 }
 
@@ -35,7 +56,9 @@ impl Clone for GameState {
     fn clone(&self) -> Self {
         Self {
             board: self.board.clone_as_board(),
-            player: self.player,
+            current_player: self.current_player,
+            move_count: self.move_count,
+            is_game_over: self.is_game_over,
         }
     }
 }
@@ -50,234 +73,161 @@ pub enum GameResult {
 
 #[derive(Debug, Clone)]
 pub enum GameEvent {
-    GameStarted {
-        state: GameState,
-    },
-    MoveMade {
-        position: Position,
-        color: Color,
-        state: GameState,
-    },
-    PlayerPassed {
-        state: GameState,
-    },
-    GameOver {
-        black_score: usize,
-        white_score: usize,
-        winner: Option<Color>,
-        state: GameState,
-    },
-    GameReset {
-        state: GameState,
-    },
+    Turn(GameState),
+    GameOver(GameState),
+}
+
+#[derive(Debug, Clone)]
+pub enum GameCommand {
+    MakeMove { position: Position, player: Color },
+    Reset,
+    Exit,
 }
 
 /// ゲーム構造体
 pub struct Game {
-    black_player: Box<dyn Player + Send>,
-    white_player: Box<dyn Player + Send>,
     state: GameState,
-    event_sender: Sender<GameEvent>, // イベント送信用チャネル
+    event_sender: Sender<GameEvent>,
+    command_receiver: Receiver<GameCommand>,
 }
 
 impl Game {
-    /// 新しいゲームを初期化
-    pub fn new(
-        black_player: Box<dyn Player + Send>,
-        white_player: Box<dyn Player + Send>,
-        sender: Sender<GameEvent>,
-    ) -> Self {
+    pub fn new(event_sender: Sender<GameEvent>, command_receiver: Receiver<GameCommand>) -> Self {
         Game {
-            black_player,
-            white_player,
-            state: GameState::init(),
-            event_sender: sender,
+            state: GameState::initial_state(),
+            event_sender,
+            command_receiver,
         }
     }
 
-    /// ゲームをプレイする関数
-    pub fn play(mut self) {
-        // ゲーム開始イベントを送信
-        let _ = self.event_sender.send(GameEvent::GameStarted {
-            state: self.state.clone(),
-        });
-
+    pub fn run(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         loop {
-            // 現在のプレイヤー
-            let current_player = self.state.player;
+            if !self.state.is_game_over {
+                let valid_moves = self.state.get_current_players_valid_moves();
+                if valid_moves.is_empty() {
+                    // パスなのでプレイヤー交代
+                    self.state.switch_turn();
 
-            // 現在のプレイヤーが有効な手を持っているか確認
-            let board = &self.state.board;
-            let valid_moves = board.get_valid_moves(current_player);
-            if valid_moves.is_empty() {
-                // プレイヤーがパスする必要がある
-                let _ = self.event_sender.send(GameEvent::PlayerPassed {
-                    state: self.state.clone(),
-                });
-                // プレイヤーを交代
-                self.state.player = current_player.opponent();
-
-                // 両プレイヤーがパスした場合、ゲーム終了
-                if board.get_valid_moves(self.state.player).is_empty() {
-                    self.end_game();
-                    break;
-                }
-                continue;
-            }
-
-            // プレイヤーから手を取得
-            let move_pos = match current_player {
-                Color::Black => self.black_player.get_move(&self.state),
-                Color::White => self.white_player.get_move(&self.state),
-            };
-
-            match move_pos {
-                Some(pos) => {
-                    let mut new_board = board.clone_as_board();
-                    let success = new_board.make_move(current_player, &pos);
-                    if success {
-                        self.state.board = new_board;
-                        // MoveMade イベントを送信
-                        let _ = self.event_sender.send(GameEvent::MoveMade {
-                            position: pos,
-                            color: current_player,
-                            state: self.state.clone(),
-                        });
-                    } else {
-                        // 無効な手の場合、再試行（ここではスキップ）
-                        // 必要に応じてエラーハンドリングを追加
+                    let valid_moves = self.state.board.get_valid_moves(self.state.current_player);
+                    if valid_moves.is_empty() {
+                        // 双方パスなので終了
+                        self.end_game()?;
                         continue;
                     }
                 }
-                None => {
-                    // プレイヤーが手を打てない場合、パス
-                    self.state.player = current_player.opponent();
 
-                    let _ = self.event_sender.send(GameEvent::PlayerPassed {
-                        state: self.state.clone(),
-                    });
-
-                    // 両プレイヤーがパスした場合、ゲーム終了
-                    if board.get_valid_moves(self.state.player).is_empty() {
-                        self.end_game();
-                        break;
-                    }
-                }
+                // 状態通知
+                self.event_sender
+                    .send(GameEvent::Turn(self.state.clone()))
+                    .map_err(|e| -> Box<dyn std::error::Error> { e.into() })?;
             }
 
-            // プレイヤーを交代
-            self.state.player = self.state.player.opponent();
+            let command = self
+                .command_receiver
+                .recv()
+                .map_err(|e| -> Box<dyn std::error::Error> { e.into() })?;
+
+            match command {
+                GameCommand::MakeMove { position, player } => {
+                    if player != self.state.current_player {
+                        continue;
+                    }
+                    let mut board = self.state.board.clone_as_board();
+                    let success = board.make_move(player, &position);
+                    if success {
+                        self.state.switch_turn();
+                        self.state.board = board;
+                    }
+                }
+                GameCommand::Reset => {
+                    self.state.reset();
+                }
+                GameCommand::Exit => break,
+            }
         }
+
+        Ok(())
     }
 
     /// ゲームを終了し、結果を送信する関数
-    fn end_game(&mut self) {
-        let board = &self.state.board;
-        let black_score = board.black_count();
-        let white_score = board.white_count();
-        let winner = match black_score.cmp(&white_score) {
-            std::cmp::Ordering::Greater => Some(Color::Black),
-            std::cmp::Ordering::Less => Some(Color::White),
-            std::cmp::Ordering::Equal => None,
-        };
-
-        let game_over_event = GameEvent::GameOver {
-            black_score,
-            white_score,
-            winner,
-            state: self.state.clone(),
-        };
-
-        let _ = self.event_sender.send(game_over_event);
-    }
-
-    /// ゲームをリセットする関数（必要に応じて追加）
-    pub fn reset(&mut self) {
-        self.state = GameState::init();
-        let _ = self.event_sender.send(GameEvent::GameReset {
-            state: self.state.clone(),
-        });
+    fn end_game(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        let game_over_event = GameEvent::GameOver(self.state.clone());
+        self.event_sender
+            .send(game_over_event)
+            .map_err(|e| e.into())
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::{sync::mpsc, thread};
+    use std::thread;
 
     use crate::{
         ai::{ai_player::AiPlayer, evaluate, human_player::HumanPlayer, player::Player},
         Color,
     };
 
-    use super::{Game, GameEvent};
+    use super::{Game, GameCommand, GameEvent};
 
     #[test]
     fn test_game_play() {
-        // チャネルの作成
-        let (tx, rx) = mpsc::channel();
-
         // プレイヤーの初期化
-        let black_player: Box<dyn Player + Send> = Box::new(HumanPlayer);
-        // let black_player: Box<dyn Player<BitBoard> + Send> =
-        //     Box::new(AiPlayer::new(evaluate::mobility_evaluate, Color::Black));
-        let white_player: Box<dyn Player + Send> =
-            Box::new(AiPlayer::new(evaluate::mobility_evaluate, Color::White));
+        let mut black_player = HumanPlayer {};
+        let mut white_player = AiPlayer::new(evaluate::mobility_evaluate, Color::White);
 
         // ゲームの初期化
-        let game = Game::new(black_player, white_player, tx);
+        let (event_sender, event_receiver) = std::sync::mpsc::channel();
+        let (command_sender, command_receiver) = std::sync::mpsc::channel();
+        let mut game = Game::new(event_sender, command_receiver);
 
         // ゲームを別スレッドで実行
-        thread::spawn(move || {
-            game.play();
+        let thread_handle = thread::spawn(move || {
+            let _ = game.run();
         });
 
         // ゲームイベントの処理
         loop {
-            match rx.recv() {
+            let r = event_receiver.recv();
+            match r {
                 Ok(event) => match event {
-                    GameEvent::GameStarted { state } => {
-                        println!("ゲームが開始されました。");
-                        state.board.display();
-                    }
-                    GameEvent::MoveMade {
-                        position,
-                        color,
-                        state,
-                    } => {
-                        println!("{:?} プレイヤーが {:?} に手を打ちました。", color, position);
-                        state.board.display();
-                    }
-                    GameEvent::PlayerPassed { state } => {
-                        println!("{:?} プレイヤーはパスしました。", state.player);
-                        state.board.display();
-                    }
-                    GameEvent::GameOver {
-                        black_score,
-                        white_score,
-                        winner,
-                        state,
-                    } => {
-                        println!(
-                            "ゲームが終了しました。スコア: 黒 {} - 白 {}",
-                            black_score, white_score
-                        );
-                        match winner {
-                            Some(color) => println!("{:?} プレイヤーの勝利です！", color),
-                            None => println!("引き分けです！"),
+                    GameEvent::Turn(game_state) => {
+                        println!("Turn: {:?}", game_state.current_player);
+                        game_state.board.display();
+
+                        match game_state.current_player {
+                            Color::Black => {
+                                let p = black_player.get_move(&game_state).unwrap();
+                                command_sender
+                                    .send(GameCommand::MakeMove {
+                                        position: p,
+                                        player: Color::Black,
+                                    })
+                                    .unwrap();
+                            }
+                            Color::White => {
+                                let p = white_player.get_move(&game_state).unwrap();
+                                command_sender
+                                    .send(GameCommand::MakeMove {
+                                        position: p,
+                                        player: Color::White,
+                                    })
+                                    .unwrap();
+                            }
                         }
-                        state.board.display();
+                    }
+                    GameEvent::GameOver(game_state) => {
+                        command_sender.send(GameCommand::Exit).unwrap();
+                        println!("Game Over");
+                        game_state.board.display();
                         break;
                     }
-                    GameEvent::GameReset { state } => {
-                        println!("ゲームがリセットされました。");
-                        state.board.display();
-                    }
                 },
-                Err(_) => {
-                    println!("ゲームスレッドが終了しました。");
-                    break;
+                Err(error) => {
+                    println!("{}", error);
                 }
             }
         }
+
+        let _ = thread_handle.join();
     }
 }
