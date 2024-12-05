@@ -1,4 +1,4 @@
-use crate::{bit_board::BitBoard, game::GameState, Color, Position};
+use crate::{bit_board::BitBoard, Color, Position};
 
 use super::{player::Player, search::Negaalpha};
 
@@ -18,8 +18,10 @@ impl AiPlayer {
 }
 
 impl Player for AiPlayer {
-    fn get_move(&mut self, state: &GameState) -> Option<Position> {
-        let search_result = self.searcher.search(state, 8, i32::MIN + 1, i32::MAX);
-        search_result.best_move.map(|mv| mv.position.unwrap())
+    fn get_move(&mut self, board: &BitBoard, color: Color) -> Option<Position> {
+        let search_result = self
+            .searcher
+            .search(board, color, 8, i32::MIN + 1, i32::MAX);
+        search_result.best_move.map(|mv| mv.position)
     }
 }

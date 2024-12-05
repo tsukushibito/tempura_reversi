@@ -1,5 +1,5 @@
-use crate::{game::GameState, Position};
+use crate::{bit_board::BitBoard, Color, Position};
 
 pub trait Player {
-    fn get_move(&mut self, state: &GameState) -> Option<Position>;
+    fn get_move(&mut self, board: &BitBoard, color: Color) -> Option<Position>;
 }

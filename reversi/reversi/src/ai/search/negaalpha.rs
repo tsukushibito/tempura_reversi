@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::ai::SearchResult;
 use crate::bit_board::BitBoard;
 use crate::board::{Board, BOARD_SIZE};
-use crate::game::GameState;
+use crate::game::Game;
 use crate::{Color, Move, Position};
 
 type EvalFunc = fn(&BitBoard, Color) -> i32;
@@ -34,7 +34,7 @@ impl Negaalpha {
         self.use_move_ordering = enabled;
     }
 
-    fn evaluate_move(&self, state: &GameState, pos: &Position) -> i32 {
+    fn evaluate_move(&self, board: &BitBoard, pos: &Position) -> i32 {
         const POSITION_WEIGHTS: [[i32; 8]; 8] = [
             [100, -20, 10, 5, 5, 10, -20, 100],
             [-20, -50, -2, -2, -2, -2, -50, -20],
@@ -61,18 +61,18 @@ impl Negaalpha {
 
     pub fn search(
         &mut self,
-        state: &GameState,
+        board: &BitBoard,
+        player: Color,
         depth: u8,
         mut alpha: i32,
         beta: i32,
     ) -> SearchResult {
-        let bit_board = BitBoard::from_board(&state.board);
-        if let Some(entry) = self.transposition_table.get(&bit_board) {
+        if let Some(entry) = self.transposition_table.get(&board) {
             if entry.depth >= depth {
                 return SearchResult {
                     best_move: Some(Move {
-                        position: Some(Position::from_index(entry.best_move)),
-                        color: state.current_player,
+                        position: Position::from_index(entry.best_move),
+                        color: player,
                     }),
                     path: Vec::new(),
                     nodes_searched: 0,
@@ -85,12 +85,12 @@ impl Negaalpha {
         let mut nodes_searched = 1;
         let mut policy = [0; BOARD_SIZE * BOARD_SIZE];
 
-        let mut valid_moves = bit_board.get_valid_moves(state.current_player);
+        let mut valid_moves = board.get_valid_moves(player);
 
         if depth == 0 || valid_moves.is_empty() {
-            let score = (self.evaluate)(&bit_board, state.current_player);
+            let score = (self.evaluate)(&board, player);
             self.transposition_table.insert(
-                bit_board.clone(),
+                board.clone(),
                 TranspositionTableEntry {
                     score,
                     depth,
@@ -108,7 +108,7 @@ impl Negaalpha {
         }
 
         if self.use_move_ordering {
-            valid_moves.sort_by_cached_key(|pos| -self.evaluate_move(state, pos));
+            valid_moves.sort_by_cached_key(|pos| -self.evaluate_move(board, pos));
         }
 
         let mut max_score = i32::MIN;
@@ -116,12 +116,10 @@ impl Negaalpha {
         let mut best_path = Vec::new();
 
         for mv_pos in valid_moves {
-            let mut new_board = bit_board.clone();
-            new_board.make_move(state.current_player, &mv_pos);
+            let mut new_board = board.clone();
+            new_board.make_move(player, &mv_pos);
 
-            let new_state = GameState::new(&new_board, state.current_player.opponent());
-
-            let result = self.search(&new_state, depth - 1, -beta, -alpha);
+            let result = self.search(&new_board, player.opponent(), depth - 1, -beta, -alpha);
 
             let score = -result.score;
 
@@ -133,12 +131,12 @@ impl Negaalpha {
             if score > max_score {
                 max_score = score;
                 best_move = Some(Move {
-                    position: Some(mv_pos),
-                    color: state.current_player,
+                    position: mv_pos,
+                    color: player,
                 });
                 best_path = vec![Move {
-                    position: Some(mv_pos),
-                    color: state.current_player,
+                    position: mv_pos,
+                    color: player,
                 }];
                 best_path.extend(result.path);
             }
@@ -153,16 +151,12 @@ impl Negaalpha {
         }
 
         let best_move_index = if let Some(bm) = best_move {
-            if let Some(p) = bm.position {
-                p.to_index()
-            } else {
-                -1
-            }
+            bm.position.to_index()
         } else {
             -1
         };
         self.transposition_table.insert(
-            bit_board.clone(),
+            board.clone(),
             TranspositionTableEntry {
                 score: max_score,
                 depth,
@@ -192,7 +186,6 @@ mod tests {
     #[test]
     fn test_negaalpha_no_move_ordering() {
         let bit_board = BitBoard::init_board();
-        let state = GameState::new(&bit_board, Color::Black);
 
         let mut negaalpha = Negaalpha::new(simple_evaluate);
         negaalpha.set_move_ordering(false);
@@ -202,7 +195,7 @@ mod tests {
         let alpha = i32::MIN + 1;
         let beta = i32::MAX;
 
-        let result = negaalpha.search(&state, depth, alpha, beta);
+        let result = negaalpha.search(&bit_board, Color::Black, depth, alpha, beta);
 
         println!("best_move: {:?}", result.best_move);
 
@@ -210,13 +203,13 @@ mod tests {
         let mut new_board = bit_board.clone();
         new_board.display();
         for mov in result.path {
-            new_board.make_move(mov.color, &mov.position.unwrap());
+            new_board.make_move(mov.color, &mov.position);
             new_board.display();
         }
         println!();
 
         let expected_best_move = Move {
-            position: Some(Position::D3),
+            position: Position::D3,
             color: Color::Black,
         };
 
@@ -232,7 +225,6 @@ mod tests {
     #[test]
     fn test_negaalpha_with_move_ordering() {
         let bit_board = BitBoard::init_board();
-        let state = GameState::new(&bit_board, Color::Black);
 
         let mut negaalpha = Negaalpha::new(simple_evaluate);
         negaalpha.set_move_ordering(true);
@@ -242,7 +234,7 @@ mod tests {
         let alpha = i32::MIN + 1;
         let beta = i32::MAX;
 
-        let result = negaalpha.search(&state, depth, alpha, beta);
+        let result = negaalpha.search(&bit_board, Color::Black, depth, alpha, beta);
 
         println!("best_move: {:?}", result.best_move);
 
@@ -250,13 +242,13 @@ mod tests {
         let mut new_board = bit_board.clone();
         new_board.display();
         for mov in result.path {
-            new_board.make_move(mov.color, &mov.position.unwrap());
+            new_board.make_move(mov.color, &mov.position);
             new_board.display();
         }
         println!();
 
         let expected_best_move = Move {
-            position: Some(Position::D3),
+            position: Position::D3,
             color: Color::Black,
         };
 

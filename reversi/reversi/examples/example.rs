@@ -1,73 +1,43 @@
-use std::io;
-use std::{sync::mpsc, thread};
-
-use reversi::game::GameCommand;
 use reversi::{
     ai::{ai_player::AiPlayer, evaluate, human_player::HumanPlayer, player::Player},
     bit_board::BitBoard,
-    game::{Game, GameEvent},
+    game::Game,
     Color,
 };
 
 fn main() {
     // プレイヤーの初期化
-    let mut black_player = HumanPlayer {};
+    // let mut black_player = HumanPlayer {};
+    let mut black_player = AiPlayer::new(evaluate::mobility_evaluate, Color::Black);
     let mut white_player = AiPlayer::new(evaluate::mobility_evaluate, Color::White);
 
     // ゲームの初期化
-    let (event_sender, event_receiver) = std::sync::mpsc::channel();
-    let (command_sender, command_receiver) = std::sync::mpsc::channel();
-    let mut game = Game::new(event_sender, command_receiver);
-
-    // ゲームを別スレッドで実行
-    let thread_handle = thread::spawn(move || {
-        let _ = game.run();
-    });
+    let mut game = Game::initial();
 
     // ゲームイベントの処理
     loop {
-        let r = event_receiver.recv();
-        match r {
-            Ok(event) => match event {
-                GameEvent::Turn(game_state) => {
-                    println!("Turn: {:?}", game_state.current_player);
-                    game_state.board.display();
+        if game.is_game_over() {
+            println!("Game Over");
+            game.board().display();
+            break;
+        }
 
-                    match game_state.current_player {
-                        Color::Black => {
-                            let p = black_player.get_move(&game_state).unwrap();
-                            command_sender
-                                .send(GameCommand::MakeMove {
-                                    position: p,
-                                    player: Color::Black,
-                                })
-                                .unwrap();
-                        }
-                        Color::White => {
-                            let p = white_player.get_move(&game_state).unwrap();
-                            command_sender
-                                .send(GameCommand::MakeMove {
-                                    position: p,
-                                    player: Color::White,
-                                })
-                                .unwrap();
-                        }
-                    }
-                }
-                GameEvent::GameOver(game_state) => {
-                    command_sender.send(GameCommand::Exit).unwrap();
-                    println!("Game Over");
-                    game_state.board.display();
-                    break;
-                }
-            },
-            Err(error) => {
-                println!("{}", error);
+        println!("Turn: {:?}", game.current_player());
+        game.board().display();
+
+        let bit_board = BitBoard::from_board(game.board());
+        match game.current_player() {
+            Color::Black => {
+                let p = black_player.get_move(&bit_board, Color::Black);
+                let _ = game.progress(Color::Black, p.unwrap());
+            }
+            Color::White => {
+                let p = white_player.get_move(&bit_board, Color::White);
+                let _ = game.progress(Color::White, p.unwrap());
             }
         }
     }
 
-    let _ = thread_handle.join();
     let mut s: String = Default::default();
     std::io::stdin().read_line(&mut s).ok();
 }

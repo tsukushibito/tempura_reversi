@@ -4,7 +4,6 @@ use crate::{
     ai::SearchResult,
     bit_board::BitBoard,
     board::{Board, BOARD_SIZE},
-    game::GameState,
     Color, Move,
 };
 
@@ -23,10 +22,9 @@ impl Negamax {
         }
     }
 
-    pub fn search(&mut self, state: &GameState, depth: u8) -> SearchResult {
-        let bit_board = BitBoard::from_board(&state.board);
+    pub fn search(&mut self, board: &BitBoard, player: Color, depth: u8) -> SearchResult {
         // メモ化テーブルの確認
-        if let Some(&score) = self.transposition_table.get(&bit_board) {
+        if let Some(&score) = self.transposition_table.get(&board) {
             return SearchResult {
                 best_move: None,
                 path: Vec::new(),
@@ -40,13 +38,13 @@ impl Negamax {
         let mut nodes_searched = 1;
 
         // 現在のプレイヤーの有効な手を取得
-        let valid_moves = bit_board.get_valid_moves(state.current_player);
+        let valid_moves = board.get_valid_moves(player);
 
         // 終端条件のチェック
         if depth == 0 || valid_moves.is_empty() {
-            let score = (self.evaluate)(&bit_board, state.current_player);
+            let score = (self.evaluate)(&board, player);
             // スコアをメモ化
-            self.transposition_table.insert(bit_board.clone(), score);
+            self.transposition_table.insert(board.clone(), score);
             return SearchResult {
                 best_move: None,
                 path: Vec::new(),
@@ -64,14 +62,11 @@ impl Negamax {
         // すべての有効な手をループ
         for mv_pos in valid_moves {
             // ボードをクローンして手を適用
-            let mut new_board = bit_board.clone();
-            new_board.make_move(state.current_player, &mv_pos);
-
-            // 相手のターンで新しいゲーム状態を作成
-            let new_state = GameState::new(&new_board, state.current_player.opponent());
+            let mut new_board = board.clone();
+            new_board.make_move(player, &mv_pos);
 
             // 再帰的にsearchを呼び出し
-            let result = self.search(&new_state, depth - 1);
+            let result = self.search(&new_board, player.opponent(), depth - 1);
 
             // スコアを反転
             let score = -result.score;
@@ -82,20 +77,19 @@ impl Negamax {
             if score > max_score {
                 max_score = score;
                 best_move = Some(Move {
-                    position: Some(mv_pos),
-                    color: state.current_player,
+                    position: mv_pos,
+                    color: player,
                 });
                 best_path = vec![Move {
-                    position: Some(mv_pos),
-                    color: state.current_player,
+                    position: mv_pos,
+                    color: player,
                 }];
                 best_path.extend(result.path);
             }
         }
 
         // 結果をメモ化
-        self.transposition_table
-            .insert(bit_board.clone(), max_score);
+        self.transposition_table.insert(board.clone(), max_score);
 
         // 結果を返す
         SearchResult {
@@ -120,12 +114,11 @@ mod tests {
     #[test]
     fn test_negamax() {
         let board = BitBoard::new();
-        let state = GameState::new(&board, Color::Black);
 
         let depth = 7;
 
         let mut negamax = Negamax::new(simple_evaluate);
-        let result = negamax.search(&state, depth);
+        let result = negamax.search(&board, Color::Black, depth);
 
         println!("best_move: {:?}", result.best_move);
 
@@ -133,13 +126,13 @@ mod tests {
         let mut board = board.clone();
         board.display();
         for mov in result.path {
-            board.make_move(mov.color, &mov.position.unwrap());
+            board.make_move(mov.color, &mov.position);
             board.display();
         }
         println!();
 
         let expected_best_move = Move {
-            position: Some(Position::D3),
+            position: Position::D3,
             color: Color::Black,
         };
 

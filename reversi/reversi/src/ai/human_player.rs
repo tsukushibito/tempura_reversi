@@ -1,13 +1,13 @@
 use std::io;
 
-use crate::{game::GameState, Position};
+use crate::{bit_board::BitBoard, board::Board, Color, Position};
 
 use super::player::Player;
 
 pub struct HumanPlayer;
 
 impl Player for HumanPlayer {
-    fn get_move(&mut self, state: &GameState) -> Option<Position> {
+    fn get_move(&mut self, board: &BitBoard, color: Color) -> Option<Position> {
         loop {
             println!("Enter your move (e.g., D3): ");
             let mut input = String::new();
@@ -17,11 +17,7 @@ impl Player for HumanPlayer {
 
             match parse_position(&input) {
                 Some(pos) => {
-                    if state
-                        .board
-                        .get_valid_moves(state.current_player)
-                        .contains(&pos)
-                    {
+                    if board.get_valid_moves(color).contains(&pos) {
                         return Some(pos);
                     } else {
                         println!("Invalid move(): not a valid position. Try again.");

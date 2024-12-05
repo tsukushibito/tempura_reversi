@@ -106,8 +106,47 @@ impl Color {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CellState {
+    Disc(Color),
+    Empty,
+}
+
+impl From<Option<Color>> for CellState {
+    fn from(color: Option<Color>) -> Self {
+        match color {
+            Some(Color::Black) => CellState::Disc(Color::Black),
+            Some(Color::White) => CellState::Disc(Color::White),
+            None => CellState::Empty,
+        }
+    }
+}
+
+impl From<CellState> for Option<Color> {
+    fn from(cell_state: CellState) -> Self {
+        match cell_state {
+            CellState::Disc(Color::Black) => Some(Color::Black),
+            CellState::Disc(Color::White) => Some(Color::White),
+            CellState::Empty => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BoardState {
+    cells: [CellState; BOARD_SIZE * BOARD_SIZE],
+}
+
+impl Default for BoardState {
+    fn default() -> Self {
+        Self {
+            cells: [CellState::Empty; BOARD_SIZE * BOARD_SIZE],
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Move {
-    pub position: Option<Position>,
+    pub position: Position,
     pub color: Color,
 }
 

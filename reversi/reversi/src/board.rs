@@ -1,4 +1,4 @@
-use crate::{Color, Position};
+use crate::{BoardState, CellState, Color, Position};
 
 pub const BOARD_SIZE: usize = 8;
 
@@ -34,6 +34,35 @@ pub trait Board: CloneAsBoard + std::fmt::Debug {
         self.set_disc(&Position::D5, Some(Color::Black));
         self.set_disc(&Position::D4, Some(Color::White));
         self.set_disc(&Position::E5, Some(Color::White));
+    }
+
+    fn board_state(&self) -> BoardState {
+        let mut board_state: BoardState = Default::default();
+        for x in 0..BOARD_SIZE {
+            for y in 0..BOARD_SIZE {
+                let index = y * BOARD_SIZE + x;
+                let pos = Position {
+                    x: x as i8,
+                    y: y as i8,
+                };
+                board_state.cells[index] = self.get_disc(&pos).into();
+            }
+        }
+
+        board_state
+    }
+
+    fn set_board_state(&mut self, board_state: &BoardState) {
+        for x in 0..BOARD_SIZE {
+            for y in 0..BOARD_SIZE {
+                let index = y * BOARD_SIZE + x;
+                let pos = Position {
+                    x: x as i8,
+                    y: y as i8,
+                };
+                self.set_disc(&pos, board_state.cells[index].into());
+            }
+        }
     }
 
     fn discs(&self) -> Vec<Vec<Option<Color>>>;
