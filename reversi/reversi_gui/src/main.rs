@@ -1,14 +1,16 @@
 mod board;
 
 use std::{
-    sync::mpsc::{self, Receiver, Sender},
+    sync::{
+        mpsc::{self, Receiver, Sender},
+        Arc, Mutex,
+    },
     thread,
 };
 
 use board::BoardView;
 use iced::{
-    futures::Stream,
-    stream,
+    stream::try_channel,
     widget::{canvas, column, row, text},
     Element, Length, Settings, Subscription, Task, Theme,
 };
@@ -31,13 +33,14 @@ pub fn main() -> iced::Result {
 
 struct Reversi {
     pub stones_cache: canvas::Cache,
-    pub event_receiver: Receiver<GameEvent>,
+    pub event_receiver: Arc<Mutex<Receiver<GameEvent>>>,
     pub command_sender: Sender<GameCommand>,
 }
 
 #[derive(Debug, Clone)]
 enum Message {
     CellClicked { row: usize, col: usize },
+    GameEvent(GameEvent),
 }
 
 impl Reversi {
@@ -58,6 +61,8 @@ impl Reversi {
             let _ = game.run();
         });
 
+        let event_receiver = Arc::new(Mutex::new(event_receiver));
+
         (
             Self {
                 stones_cache: canvas::Cache::default(),
@@ -72,8 +77,8 @@ impl Reversi {
         match message {
             Message::CellClicked { row, col } => {
                 println!("Clicked cell: row = {}, col = {}", row, col);
-                // ここにゲームロジックを追加
             }
+            Message::GameEvent(game_event) => todo!(),
         }
     }
 
@@ -95,10 +100,19 @@ impl Reversi {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        Subscription::run(Self::some_worker)
-    }
-
-    fn some_worker() -> impl Stream<Item = Message> {
-        stream::channel(100, |mut output| async move {})
+        todo!()
     }
 }
+
+struct GameSubscription {
+    event_receiver: Arc<Mutex<Receiver<GameEvent>>>,
+}
+
+impl GameSubscription {
+    fn new(event_receiver: Arc<Mutex<Receiver<GameEvent>>>) -> Subscription<Message> {
+        //Subscription::from_recipe(GameSubscription { event_receiver })
+        try_channel(size, f)
+    }
+}
+
+impl Recipe<Output = Message> for GameSubscription {}

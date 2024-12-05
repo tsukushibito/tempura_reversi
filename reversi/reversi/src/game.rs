@@ -100,6 +100,43 @@ impl Game {
         }
     }
 
+    pub fn state(&self) -> &GameState {
+        &self.state
+    }
+
+    pub fn progress(&mut self, player: Color, pos: Position) -> Result<GameEvent, String> {
+        if self.state.is_game_over {
+            return Err("Already game over".to_string());
+        }
+
+        if player != self.state.current_player {
+            return Err("Invalid player".to_string());
+        }
+
+        let mut board = self.state.board.clone_as_board();
+        let success = board.make_move(player, &pos);
+        if success {
+            self.state.switch_turn();
+            self.state.board = board;
+        } else {
+            return Err("Invalid pos".to_string());
+        }
+
+        let valid_moves = self.state.get_current_players_valid_moves();
+        if valid_moves.is_empty() {
+            // パスなのでプレイヤー交代
+            self.state.switch_turn();
+
+            let valid_moves = self.state.board.get_valid_moves(self.state.current_player);
+            if valid_moves.is_empty() {
+                // 双方パスなので終了
+                return Ok(GameEvent::GameOver(self.state.clone()));
+            }
+        }
+
+        Ok(GameEvent::Turn(self.state.clone()))
+    }
+
     pub fn run(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         loop {
             if !self.state.is_game_over {
