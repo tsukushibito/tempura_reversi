@@ -1,6 +1,7 @@
 use iced::event::Status;
 use iced::widget::canvas::{Cache, Frame, Geometry, Path, Program, Stroke, Text};
 use iced::{mouse, Color, Point, Rectangle, Size};
+use reversi::CellState;
 
 use crate::Message;
 
@@ -11,17 +12,17 @@ const CELL_STROKE_WIDTH: f32 = 2.0;
 const STONE_RADIUS_FACTOR: f32 = 1.0 / 3.0;
 
 pub struct BoardView<'a> {
-    pub board_data: [[Option<bool>; 8]; 8],
+    pub board: reversi::BoardState,
     pub stones_cache: &'a Cache,
 }
 
 #[derive(Default)]
-pub struct BoardState {
+pub struct BoardViewState {
     board_cache: Cache,
 }
 
 impl<'a> Program<Message> for BoardView<'a> {
-    type State = BoardState;
+    type State = BoardViewState;
 
     fn draw(
         &self,
@@ -161,20 +162,19 @@ impl<'a> BoardView<'a> {
     }
 
     fn draw_stones(&self, frame: &mut Frame, layout: &Layout) {
-        for (row, row_data) in self.board_data.iter().enumerate() {
-            for (col, &cell) in row_data.iter().enumerate() {
-                if let Some(is_black) = cell {
-                    let x =
-                        layout.x_offset + col as f32 * layout.cell_size + layout.cell_size / 2.0;
-                    let y =
-                        layout.y_offset + row as f32 * layout.cell_size + layout.cell_size / 2.0;
-                    let radius = layout.cell_size * STONE_RADIUS_FACTOR;
-
-                    let color = if is_black { Color::BLACK } else { Color::WHITE };
-                    let stone = Path::circle(Point::new(x, y), radius);
-                    frame.fill(&stone, color);
-                }
-            }
+        for (i, cell) in self.board.cells.iter().enumerate() {
+            let color = match cell {
+                CellState::Disc(reversi::Color::Black) => Color::BLACK,
+                CellState::Disc(reversi::Color::White) => Color::WHITE,
+                CellState::Empty => continue,
+            };
+            let col = i % BOARD_SIZE;
+            let row = i / BOARD_SIZE;
+            let x = layout.x_offset + col as f32 * layout.cell_size + layout.cell_size / 2.0;
+            let y = layout.y_offset + row as f32 * layout.cell_size + layout.cell_size / 2.0;
+            let radius = layout.cell_size * STONE_RADIUS_FACTOR;
+            let stone = Path::circle(Point::new(x, y), radius);
+            frame.fill(&stone, color);
         }
     }
 

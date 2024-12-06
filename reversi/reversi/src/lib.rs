@@ -133,7 +133,7 @@ impl From<CellState> for Option<Color> {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BoardState {
-    cells: [CellState; BOARD_SIZE * BOARD_SIZE],
+    pub cells: [CellState; BOARD_SIZE * BOARD_SIZE],
 }
 
 impl Default for BoardState {

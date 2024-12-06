@@ -1,16 +1,11 @@
 mod board;
 
-use std::sync::{
-    mpsc::{Receiver, Sender},
-    Arc, Mutex,
-};
-
 use board::BoardView;
 use iced::{
     widget::{canvas, column, row, text},
     Element, Length, Settings, Subscription, Task, Theme,
 };
-use reversi::game::GameEvent;
+use reversi::game::Game;
 
 pub fn main() -> iced::Result {
     iced::application("Tempura Reversi", Reversi::update, Reversi::view)
@@ -19,18 +14,18 @@ pub fn main() -> iced::Result {
             antialiasing: true,
             ..Default::default()
         })
-        .subscription(Reversi::subscription)
         .run_with(Reversi::new)
 }
 
 struct Reversi {
     pub stones_cache: canvas::Cache,
+    pub game: Game,
 }
 
 #[derive(Debug, Clone)]
 enum Message {
     CellClicked { row: usize, col: usize },
-    GameEvent(GameEvent),
+    Updated(),
 }
 
 impl Reversi {
@@ -38,6 +33,7 @@ impl Reversi {
         (
             Self {
                 stones_cache: canvas::Cache::default(),
+                game: Game::initial(),
             },
             iced::widget::focus_next(),
         )
@@ -47,8 +43,21 @@ impl Reversi {
         match message {
             Message::CellClicked { row, col } => {
                 println!("Clicked cell: row = {}, col = {}", row, col);
+                if self.game.is_game_over() {
+                    return;
+                }
+
+                let player = self.game.current_player();
+                let _ = self.game.progress(
+                    player,
+                    reversi::Position {
+                        x: col as i8,
+                        y: row as i8,
+                    },
+                );
+                self.stones_cache.clear();
             }
-            Message::GameEvent(game_event) => todo!(),
+            Message::Updated() => todo!(),
         }
     }
 
@@ -56,7 +65,7 @@ impl Reversi {
         row![
             canvas(BoardView {
                 stones_cache: &self.stones_cache,
-                board_data: Default::default(),
+                board: self.game.board().board_state(),
             })
             .width(Length::FillPortion(2))
             .height(Length::Fill),
@@ -67,9 +76,5 @@ impl Reversi {
 
     fn theme(&self) -> Theme {
         Theme::Dark
-    }
-
-    fn subscription(&self) -> Subscription<Message> {
-        todo!()
     }
 }
