@@ -62,7 +62,7 @@ impl<'a> Program<Message> for BoardView<'a> {
                     let layout = Layout::calculate(bounds);
                     if let Some((row, col)) = self.get_cell_from_position(cursor_position, &layout)
                     {
-                        return (Status::Captured, Some(Message::CellClicked { row, col }));
+                        return (Status::Captured, Some(Message::MoveMaked { row, col }));
                     }
                 }
 

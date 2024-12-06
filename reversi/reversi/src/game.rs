@@ -39,8 +39,8 @@ impl Game {
         }
     }
 
-    pub fn board(&self) -> &Box<dyn Board + Send> {
-        &self.board
+    pub fn board(&self) -> &(dyn Board + Send) {
+        &*self.board
     }
 
     pub fn current_player(&self) -> Color {

@@ -100,7 +100,7 @@ impl BitBoard {
         board
     }
 
-    pub fn from_board(board: &Box<dyn Board + Send>) -> Self {
+    pub fn from_board(board: &(dyn Board + Send)) -> Self {
         let mut bit_board = Self::new();
         for x in 0..BOARD_SIZE {
             for y in 0..BOARD_SIZE {
