@@ -90,6 +90,7 @@ impl Reversi {
             Message::AiWorkerAwaked(sender) => {
                 println!("AiWorkerAwaked");
                 self.sender_to_ai_worker = Some(sender);
+                self.send_request_if_turn_is_ai();
             }
             Message::MoveMaked(pos) => {
                 println!("Clicked cell: ({}, {})", pos.x, pos.y);
@@ -98,36 +99,35 @@ impl Reversi {
                 }
 
                 let player = self.game.current_player();
-                if player == reversi::Color::Black {
-                    let _ = self.game.progress(player, pos);
-                    self.stones_cache.clear();
-                    if let Some(mut sender) = self.sender_to_ai_worker.take() {
-                        let _ = sender.try_send(Message::RequestAiMove {
-                            board: self.game.board().board_state(),
-                            player: self.game.current_player(),
-                        });
-                        self.sender_to_ai_worker = Some(sender);
-                    }
-                } else {
-                    let _ = self.game.progress(player, pos);
-                    self.stones_cache.clear();
-                }
+                let _ = self.game.progress(player, pos);
+                self.stones_cache.clear();
+                self.send_request_if_turn_is_ai();
             }
             Message::RequestAiMove {
                 board: _,
                 player: _,
             } => panic!(),
-            Message::PlayerTypeChanged(_) => {}
+            Message::BlackPlayerTypeChanged(_) => {}
+            Message::WhitePlayerTypeChanged(_) => {}
         }
     }
 
     fn view(&self) -> Element<Message> {
-        println!("view()");
+        let player = self.game.current_player();
+        let player_type = match player {
+            reversi::Color::Black => self.black_player_type,
+            reversi::Color::White => self.white_player_type,
+        };
+        let is_human_turn = match player_type {
+            Some(PlayerType::Human) => true,
+            Some(PlayerType::Ai) => false,
+            None => true,
+        };
         row![
             canvas(BoardView {
                 stones_cache: &self.stones_cache,
                 board: self.game.board().board_state(),
-                is_clickable: true,
+                is_clickable: is_human_turn,
             })
             .width(Length::FillPortion(2))
             .height(Length::Fill),
@@ -138,16 +138,22 @@ impl Reversi {
                     .width(Length::FillPortion(1)),
                 text(format!("Turn: {:?}", self.game.current_player()))
                     .width(Length::FillPortion(1)),
-                pick_list(
-                    PlayerType::ALL,
-                    self.black_player_type,
-                    Message::BlackPlayerTypeChanged,
-                ),
-                pick_list(
-                    PlayerType::ALL,
-                    self.black_player_type,
-                    Message::WhitePlayerTypeChanged,
-                )
+                row![
+                    text("Black player type: "),
+                    pick_list(
+                        PlayerType::ALL,
+                        self.black_player_type,
+                        Message::BlackPlayerTypeChanged,
+                    ),
+                ],
+                row![
+                    text("White player type: "),
+                    pick_list(
+                        PlayerType::ALL,
+                        self.white_player_type,
+                        Message::WhitePlayerTypeChanged,
+                    ),
+                ]
             ],
         ]
         .into()
@@ -160,6 +166,25 @@ impl Reversi {
     fn subscription(&self) -> Subscription<Message> {
         println!("subscription()");
         Subscription::run(ai_worker)
+    }
+
+    fn send_request_if_turn_is_ai(&mut self) {
+        let player = self.game.current_player();
+        let player_type = match player {
+            reversi::Color::Black => self.black_player_type,
+            reversi::Color::White => self.white_player_type,
+        };
+        if let Some(t) = player_type {
+            if t == PlayerType::Ai {
+                if let Some(mut sender) = self.sender_to_ai_worker.take() {
+                    let _ = sender.try_send(Message::RequestAiMove {
+                        board: self.game.board().board_state(),
+                        player: self.game.current_player(),
+                    });
+                    self.sender_to_ai_worker = Some(sender);
+                }
+            }
+        };
     }
 }
 
