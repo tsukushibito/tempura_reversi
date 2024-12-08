@@ -107,8 +107,14 @@ impl Reversi {
                 board: _,
                 player: _,
             } => panic!(),
-            Message::BlackPlayerTypeChanged(_) => {}
-            Message::WhitePlayerTypeChanged(_) => {}
+            Message::BlackPlayerTypeChanged(player_type) => {
+                self.black_player_type = Some(player_type);
+                self.send_request_if_turn_is_ai();
+            }
+            Message::WhitePlayerTypeChanged(player_type) => {
+                self.white_player_type = Some(player_type);
+                self.send_request_if_turn_is_ai();
+            }
         }
     }
 
