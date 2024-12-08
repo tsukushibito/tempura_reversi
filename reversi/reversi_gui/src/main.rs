@@ -4,14 +4,16 @@ use std::thread;
 
 use board::BoardView;
 use iced::{
-    futures::channel::mpsc,
-    widget::{canvas, column, row, text},
+    futures::{channel::mpsc, Stream},
+    widget::{canvas, column, pick_list, row, text},
     Element, Length, Settings, Subscription, Task, Theme,
 };
 use reversi::{
     ai::{ai_player::AiPlayer, evaluate, player::Player},
     bit_board::BitBoard,
+    board::Board,
     game::Game,
+    BoardState,
 };
 
 pub fn main() -> iced::Result {
@@ -25,15 +27,47 @@ pub fn main() -> iced::Result {
         .run_with(Reversi::new)
 }
 
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PlayerType {
+    #[default]
+    Human,
+    Ai,
+}
+
+impl PlayerType {
+    pub const ALL: [PlayerType; 2] = [PlayerType::Human, PlayerType::Ai];
+}
+impl std::fmt::Display for PlayerType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                PlayerType::Human => "Human",
+                PlayerType::Ai => "AI",
+            }
+        )
+    }
+}
+
 struct Reversi {
     pub stones_cache: canvas::Cache,
     pub game: Game,
+    pub sender_to_ai_worker: Option<mpsc::Sender<Message>>,
+    pub black_player_type: Option<PlayerType>,
+    pub white_player_type: Option<PlayerType>,
 }
 
 #[derive(Debug, Clone)]
 enum Message {
-    MoveMaked { row: usize, col: usize },
-    Updated(),
+    AiWorkerAwaked(mpsc::Sender<Message>),
+    RequestAiMove {
+        board: BoardState,
+        player: reversi::Color,
+    },
+    MoveMaked(reversi::Position),
+    BlackPlayerTypeChanged(PlayerType),
+    WhitePlayerTypeChanged(PlayerType),
 }
 
 impl Reversi {
@@ -42,6 +76,9 @@ impl Reversi {
             Self {
                 stones_cache: canvas::Cache::default(),
                 game: Game::initial(),
+                sender_to_ai_worker: None,
+                black_player_type: Some(PlayerType::Human),
+                white_player_type: Some(PlayerType::Ai),
             },
             iced::widget::focus_next(),
         )
@@ -50,25 +87,37 @@ impl Reversi {
     fn update(&mut self, message: Message) {
         println!("update()");
         match message {
-            Message::MoveMaked { row, col } => {
-                println!("Clicked cell: row = {}, col = {}", row, col);
+            Message::AiWorkerAwaked(sender) => {
+                println!("AiWorkerAwaked");
+                self.sender_to_ai_worker = Some(sender);
+            }
+            Message::MoveMaked(pos) => {
+                println!("Clicked cell: ({}, {})", pos.x, pos.y);
                 if self.game.is_game_over() {
                     return;
                 }
 
                 let player = self.game.current_player();
-                let _ = self.game.progress(
-                    player,
-                    reversi::Position {
-                        x: col as i8,
-                        y: row as i8,
-                    },
-                );
-                self.stones_cache.clear();
+                if player == reversi::Color::Black {
+                    let _ = self.game.progress(player, pos);
+                    self.stones_cache.clear();
+                    if let Some(mut sender) = self.sender_to_ai_worker.take() {
+                        let _ = sender.try_send(Message::RequestAiMove {
+                            board: self.game.board().board_state(),
+                            player: self.game.current_player(),
+                        });
+                        self.sender_to_ai_worker = Some(sender);
+                    }
+                } else {
+                    let _ = self.game.progress(player, pos);
+                    self.stones_cache.clear();
+                }
             }
-            Message::Updated() => {
-                self.stones_cache.clear();
-            }
+            Message::RequestAiMove {
+                board: _,
+                player: _,
+            } => panic!(),
+            Message::PlayerTypeChanged(_) => {}
         }
     }
 
@@ -78,6 +127,7 @@ impl Reversi {
             canvas(BoardView {
                 stones_cache: &self.stones_cache,
                 board: self.game.board().board_state(),
+                is_clickable: true,
             })
             .width(Length::FillPortion(2))
             .height(Length::Fill),
@@ -88,6 +138,16 @@ impl Reversi {
                     .width(Length::FillPortion(1)),
                 text(format!("Turn: {:?}", self.game.current_player()))
                     .width(Length::FillPortion(1)),
+                pick_list(
+                    PlayerType::ALL,
+                    self.black_player_type,
+                    Message::BlackPlayerTypeChanged,
+                ),
+                pick_list(
+                    PlayerType::ALL,
+                    self.black_player_type,
+                    Message::WhitePlayerTypeChanged,
+                )
             ],
         ]
         .into()
@@ -99,32 +159,40 @@ impl Reversi {
 
     fn subscription(&self) -> Subscription<Message> {
         println!("subscription()");
-        let game = self.game.clone();
-        Subscription::run_with_id(
-            0,
-            iced::stream::channel(100, |mut output| async move {
-                println!("stream function");
-                use iced::futures::SinkExt;
-                use iced::futures::StreamExt;
-
-                let (mut sender, mut receiver) = mpsc::channel::<reversi::Position>(100);
-                thread::spawn(move || {
-                    let mut ai_player =
-                        AiPlayer::new(evaluate::mobility_evaluate, game.current_player());
-                    let pos = ai_player
-                        .get_move(&BitBoard::from_board(game.board()), game.current_player());
-                    let _ = sender.try_send(pos.unwrap());
-                });
-
-                // Read next input sent from `Application`
-                let pos = receiver.select_next_some().await;
-                let _ = output
-                    .send(Message::MoveMaked {
-                        row: pos.y as usize,
-                        col: pos.x as usize,
-                    })
-                    .await;
-            }),
-        )
+        Subscription::run(ai_worker)
     }
+}
+
+fn ai_worker() -> impl Stream<Item = Message> {
+    println!("ai_worker()");
+    iced::stream::channel(100, |mut output| async move {
+        use iced::futures::SinkExt;
+        use iced::futures::StreamExt;
+
+        let (sender, mut receiver_from_app) = mpsc::channel::<Message>(100);
+        let _ = output.send(Message::AiWorkerAwaked(sender)).await;
+        println!("[stream] ai worker awaked");
+
+        loop {
+            let req = receiver_from_app.select_next_some().await;
+            println!("[stream] received request");
+            if let Message::RequestAiMove { board, player } = req {
+                let (mut sender, mut receiver_from_thread) =
+                    mpsc::channel::<reversi::Position>(100);
+                thread::spawn(move || {
+                    println!("[thread] begin");
+                    let mut ai_player = AiPlayer::new(evaluate::mobility_evaluate, player);
+                    let mut bit_board = BitBoard::new();
+                    bit_board.set_board_state(&board);
+                    let pos = ai_player.get_move(&bit_board, player);
+                    let _ = sender.try_send(pos.unwrap());
+                    println!("[thread] end");
+                });
+                let pos = receiver_from_thread.select_next_some().await;
+                println!("[stream] pos: {:?}", pos);
+                let _ = output.send(Message::MoveMaked(pos)).await;
+                println!("[stream] send");
+            };
+        }
+    })
 }

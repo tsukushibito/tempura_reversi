@@ -14,6 +14,7 @@ const STONE_RADIUS_FACTOR: f32 = 1.0 / 3.0;
 pub struct BoardView<'a> {
     pub board: reversi::BoardState,
     pub stones_cache: &'a Cache,
+    pub is_clickable: bool,
 }
 
 #[derive(Default)]
@@ -56,13 +57,23 @@ impl<'a> Program<Message> for BoardView<'a> {
     ) -> (Status, Option<Message>) {
         use iced::widget::canvas::Event;
 
+        if !self.is_clickable {
+            return (Status::Ignored, None);
+        }
+
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 if let Some(cursor_position) = cursor.position_in(bounds) {
                     let layout = Layout::calculate(bounds);
                     if let Some((row, col)) = self.get_cell_from_position(cursor_position, &layout)
                     {
-                        return (Status::Captured, Some(Message::MoveMaked { row, col }));
+                        return (
+                            Status::Captured,
+                            Some(Message::MoveMaked(reversi::Position {
+                                x: col as i8,
+                                y: row as i8,
+                            })),
+                        );
                     }
                 }
 
