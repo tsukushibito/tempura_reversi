@@ -4,8 +4,9 @@ use std::thread;
 
 use board::BoardView;
 use iced::{
+    alignment::{Horizontal, Vertical},
     futures::{channel::mpsc, Stream},
-    widget::{canvas, column, pick_list, row, text},
+    widget::{button, canvas, column, pick_list, row, text},
     Element, Length, Settings, Subscription, Task, Theme,
 };
 use reversi::{
@@ -75,6 +76,7 @@ enum Message {
         pos: reversi::Position,
         request_id: i32,
     },
+    Reset,
     BlackPlayerTypeChanged(PlayerType),
     WhitePlayerTypeChanged(PlayerType),
 }
@@ -147,6 +149,11 @@ impl Reversi {
                 }
                 self.send_request_if_turn_is_ai();
             }
+            Message::Reset => {
+                self.game.reset();
+                self.stones_cache.clear();
+                self.send_request_if_turn_is_ai();
+            }
         }
     }
 
@@ -182,17 +189,23 @@ impl Reversi {
                         PlayerType::ALL,
                         self.black_player_type,
                         Message::BlackPlayerTypeChanged,
-                    ),
-                ],
+                    )
+                    .padding(10),
+                ]
+                .align_y(Vertical::Center),
                 row![
                     text("White player type: "),
                     pick_list(
                         PlayerType::ALL,
                         self.white_player_type,
                         Message::WhitePlayerTypeChanged,
-                    ),
+                    )
+                    .padding(10),
                 ]
-            ],
+                .align_y(Vertical::Center),
+                button("Reset").padding(10).on_press(Message::Reset),
+            ]
+            .padding(10),
         ]
         .into()
     }
