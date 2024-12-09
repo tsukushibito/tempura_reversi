@@ -56,16 +56,25 @@ struct Reversi {
     pub sender_to_ai_worker: Option<mpsc::Sender<Message>>,
     pub black_player_type: Option<PlayerType>,
     pub white_player_type: Option<PlayerType>,
+    pub next_request_ai_move_id: i32,
+    pub waiting_requests: Vec<AiMoveRequest>,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct AiMoveRequest {
+    pub id: i32,
+    pub board: BoardState,
+    pub player: reversi::Color,
 }
 
 #[derive(Debug, Clone)]
 enum Message {
     AiWorkerAwaked(mpsc::Sender<Message>),
-    RequestAiMove {
-        board: BoardState,
-        player: reversi::Color,
+    AiMove(AiMoveRequest),
+    MoveMaked {
+        pos: reversi::Position,
+        request_id: i32,
     },
-    MoveMaked(reversi::Position),
     BlackPlayerTypeChanged(PlayerType),
     WhitePlayerTypeChanged(PlayerType),
 }
@@ -79,6 +88,8 @@ impl Reversi {
                 sender_to_ai_worker: None,
                 black_player_type: Some(PlayerType::Human),
                 white_player_type: Some(PlayerType::Ai),
+                next_request_ai_move_id: 0,
+                waiting_requests: vec![],
             },
             iced::widget::focus_next(),
         )
@@ -92,9 +103,25 @@ impl Reversi {
                 self.sender_to_ai_worker = Some(sender);
                 self.send_request_if_turn_is_ai();
             }
-            Message::MoveMaked(pos) => {
-                println!("Clicked cell: ({}, {})", pos.x, pos.y);
+            Message::MoveMaked { pos, request_id } => {
+                println!("[MoveMaked] move: ({}, {})", pos.x, pos.y);
                 if self.game.is_game_over() {
+                    return;
+                }
+
+                if request_id < 0 {
+                    // GUIからの着手なのでそのまま反映
+                } else if self.waiting_requests.iter().any(|req| req.id == request_id) {
+                    // 応答待ちリクエストからの着手なので待ちリストから削除して反映
+                    if let Some(index) = self
+                        .waiting_requests
+                        .iter()
+                        .position(|req| req.id == request_id)
+                    {
+                        self.waiting_requests.remove(index);
+                    }
+                } else {
+                    // 応答待ち以外のリクエストからの着手なので反映しない
                     return;
                 }
 
@@ -103,16 +130,21 @@ impl Reversi {
                 self.stones_cache.clear();
                 self.send_request_if_turn_is_ai();
             }
-            Message::RequestAiMove {
-                board: _,
-                player: _,
-            } => panic!(),
+            Message::AiMove(_) => panic!(),
             Message::BlackPlayerTypeChanged(player_type) => {
                 self.black_player_type = Some(player_type);
+                if player_type == PlayerType::Human {
+                    self.waiting_requests
+                        .retain(|&req| req.player == reversi::Color::White)
+                }
                 self.send_request_if_turn_is_ai();
             }
             Message::WhitePlayerTypeChanged(player_type) => {
                 self.white_player_type = Some(player_type);
+                if player_type == PlayerType::Human {
+                    self.waiting_requests
+                        .retain(|&req| req.player == reversi::Color::Black)
+                }
                 self.send_request_if_turn_is_ai();
             }
         }
@@ -183,10 +215,17 @@ impl Reversi {
         if let Some(t) = player_type {
             if t == PlayerType::Ai {
                 if let Some(mut sender) = self.sender_to_ai_worker.take() {
-                    let _ = sender.try_send(Message::RequestAiMove {
+                    let req = AiMoveRequest {
+                        id: self.next_request_ai_move_id,
                         board: self.game.board().board_state(),
                         player: self.game.current_player(),
-                    });
+                    };
+                    let _ = sender.try_send(Message::AiMove(req));
+                    self.waiting_requests.push(req);
+                    self.next_request_ai_move_id += 1;
+                    if self.next_request_ai_move_id < 0 {
+                        self.next_request_ai_move_id = 0;
+                    }
                     self.sender_to_ai_worker = Some(sender);
                 }
             }
@@ -205,23 +244,29 @@ fn ai_worker() -> impl Stream<Item = Message> {
         println!("[stream] ai worker awaked");
 
         loop {
-            let req = receiver_from_app.select_next_some().await;
+            let msg = receiver_from_app.select_next_some().await;
             println!("[stream] received request");
-            if let Message::RequestAiMove { board, player } = req {
+            if let Message::AiMove(req) = msg {
                 let (mut sender, mut receiver_from_thread) =
                     mpsc::channel::<reversi::Position>(100);
-                thread::spawn(move || {
+                let handle = thread::spawn(move || {
                     println!("[thread] begin");
-                    let mut ai_player = AiPlayer::new(evaluate::mobility_evaluate, player);
+                    let mut ai_player = AiPlayer::new(evaluate::mobility_evaluate, req.player);
                     let mut bit_board = BitBoard::new();
-                    bit_board.set_board_state(&board);
-                    let pos = ai_player.get_move(&bit_board, player);
+                    bit_board.set_board_state(&req.board);
+                    let pos = ai_player.get_move(&bit_board, req.player);
                     let _ = sender.try_send(pos.unwrap());
                     println!("[thread] end");
                 });
                 let pos = receiver_from_thread.select_next_some().await;
+                let _ = handle.join();
                 println!("[stream] pos: {:?}", pos);
-                let _ = output.send(Message::MoveMaked(pos)).await;
+                let _ = output
+                    .send(Message::MoveMaked {
+                        pos,
+                        request_id: req.id,
+                    })
+                    .await;
                 println!("[stream] send");
             };
         }

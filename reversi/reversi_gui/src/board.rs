@@ -69,10 +69,13 @@ impl<'a> Program<Message> for BoardView<'a> {
                     {
                         return (
                             Status::Captured,
-                            Some(Message::MoveMaked(reversi::Position {
-                                x: col as i8,
-                                y: row as i8,
-                            })),
+                            Some(Message::MoveMaked {
+                                pos: reversi::Position {
+                                    x: col as i8,
+                                    y: row as i8,
+                                },
+                                request_id: -1,
+                            }),
                         );
                     }
                 }
