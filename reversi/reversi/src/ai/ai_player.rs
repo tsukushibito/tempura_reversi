@@ -4,15 +4,12 @@ use super::{player::Player, search::Negaalpha};
 
 pub struct AiPlayer {
     searcher: Negaalpha,
-    color: Color,
-    // 必要に応じて他のフィールドを追加
 }
 
 impl AiPlayer {
-    pub fn new(evaluate_fn: fn(&BitBoard, Color) -> i32, color: Color) -> Self {
+    pub fn new(evaluate_fn: fn(&BitBoard, Color) -> i32) -> Self {
         AiPlayer {
             searcher: Negaalpha::new(evaluate_fn),
-            color,
         }
     }
 }

@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use crate::ai::SearchResult;
 use crate::bit_board::BitBoard;
 use crate::board::{Board, BOARD_SIZE};
-use crate::game::Game;
 use crate::{Color, Move, Position};
 
 type EvalFunc = fn(&BitBoard, Color) -> i32;
@@ -34,7 +33,7 @@ impl Negaalpha {
         self.use_move_ordering = enabled;
     }
 
-    fn evaluate_move(&self, board: &BitBoard, pos: &Position) -> i32 {
+    fn evaluate_move(&self, _board: &BitBoard, pos: &Position) -> i32 {
         const POSITION_WEIGHTS: [[i32; 8]; 8] = [
             [100, -20, 10, 5, 5, 10, -20, 100],
             [-20, -50, -2, -2, -2, -2, -50, -20],
@@ -67,7 +66,7 @@ impl Negaalpha {
         mut alpha: i32,
         beta: i32,
     ) -> SearchResult {
-        if let Some(entry) = self.transposition_table.get(&board) {
+        if let Some(entry) = self.transposition_table.get(board) {
             if entry.depth >= depth {
                 return SearchResult {
                     best_move: Some(Move {
@@ -88,7 +87,7 @@ impl Negaalpha {
         let mut valid_moves = board.get_valid_moves(player);
 
         if depth == 0 || valid_moves.is_empty() {
-            let score = (self.evaluate)(&board, player);
+            let score = (self.evaluate)(board, player);
             self.transposition_table.insert(
                 board.clone(),
                 TranspositionTableEntry {

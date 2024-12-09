@@ -4,7 +4,7 @@ use std::thread;
 
 use board::BoardView;
 use iced::{
-    alignment::{Horizontal, Vertical},
+    alignment::Vertical,
     futures::{channel::mpsc, Stream},
     widget::{button, canvas, column, pick_list, row, text},
     Element, Length, Settings, Subscription, Task, Theme,
@@ -204,8 +204,7 @@ impl Reversi {
                 ]
                 .align_y(Vertical::Center),
                 button("Reset").padding(10).on_press(Message::Reset),
-            ]
-            .padding(10),
+            ] // .padding(10),
         ]
         .into()
     }
@@ -264,7 +263,7 @@ fn ai_worker() -> impl Stream<Item = Message> {
                     mpsc::channel::<reversi::Position>(100);
                 let handle = thread::spawn(move || {
                     println!("[thread] begin");
-                    let mut ai_player = AiPlayer::new(evaluate::mobility_evaluate, req.player);
+                    let mut ai_player = AiPlayer::new(evaluate::mobility_evaluate);
                     let mut bit_board = BitBoard::new();
                     bit_board.set_board_state(&req.board);
                     let pos = ai_player.get_move(&bit_board, req.player);

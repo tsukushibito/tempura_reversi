@@ -1,4 +1,4 @@
-use crate::{BoardState, CellState, Color, Position};
+use crate::{BoardState, Color, Position};
 
 pub const BOARD_SIZE: usize = 8;
 
