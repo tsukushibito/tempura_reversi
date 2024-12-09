@@ -10,7 +10,7 @@ use iced::{
     Element, Length, Settings, Subscription, Task, Theme,
 };
 use reversi::{
-    ai::{ai_player::AiPlayer, evaluate, player::Player},
+    ai::{evaluate, search::Negaalpha},
     bit_board::BitBoard,
     board::Board,
     game::Game,
@@ -263,10 +263,14 @@ fn ai_worker() -> impl Stream<Item = Message> {
                     mpsc::channel::<reversi::Position>(100);
                 let handle = thread::spawn(move || {
                     println!("[thread] begin");
-                    let mut ai_player = AiPlayer::new(evaluate::mobility_evaluate);
                     let mut bit_board = BitBoard::new();
                     bit_board.set_board_state(&req.board);
-                    let pos = ai_player.get_move(&bit_board, req.player);
+
+                    let mut searcher = Negaalpha::new(evaluate::mobility_evaluate);
+                    let search_result =
+                        searcher.search(&bit_board, req.player, 6, i32::MIN + 1, i32::MAX);
+                    let pos = search_result.best_move.map(|mv| mv.position);
+
                     let _ = sender.try_send(pos.unwrap());
                     println!("[thread] end");
                 });
