@@ -260,7 +260,7 @@ fn ai_worker() -> impl Stream<Item = Message> {
             println!("[stream] received request");
             if let Message::AiMove(req) = msg {
                 let (mut sender, mut receiver_from_thread) =
-                    mpsc::channel::<reversi::Position>(100);
+                    mpsc::channel::<Option<reversi::Position>>(100);
                 let handle = thread::spawn(move || {
                     println!("[thread] begin");
                     let mut bit_board = BitBoard::new();
@@ -271,18 +271,20 @@ fn ai_worker() -> impl Stream<Item = Message> {
                         searcher.search(&bit_board, req.player, 6, i32::MIN + 1, i32::MAX);
                     let pos = search_result.best_move.map(|mv| mv.position);
 
-                    let _ = sender.try_send(pos.unwrap());
+                    let _ = sender.try_send(pos);
                     println!("[thread] end");
                 });
-                let pos = receiver_from_thread.select_next_some().await;
+                let pos_or_none = receiver_from_thread.select_next_some().await;
                 let _ = handle.join();
-                println!("[stream] pos: {:?}", pos);
-                let _ = output
-                    .send(Message::MoveMaked {
-                        pos,
-                        request_id: req.id,
-                    })
-                    .await;
+                println!("[stream] pos: {:?}", pos_or_none);
+                if let Some(pos) = pos_or_none {
+                    let _ = output
+                        .send(Message::MoveMaked {
+                            pos,
+                            request_id: req.id,
+                        })
+                        .await;
+                }
                 println!("[stream] send");
             };
         }
