@@ -20,7 +20,7 @@ pub struct Ai {
 impl Default for Ai {
     fn default() -> Self {
         Self {
-            searcher: Negaalpha::new(evaluate::mobility_evaluate),
+            searcher: Negaalpha::new(evaluate::test_evaluate),
         }
     }
 }

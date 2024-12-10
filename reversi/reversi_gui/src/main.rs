@@ -1,6 +1,9 @@
 mod board;
 
-use std::thread;
+use std::{
+    sync::{Arc, Mutex},
+    thread,
+};
 
 use board::BoardView;
 use iced::{
@@ -266,9 +269,9 @@ fn ai_worker() -> impl Stream<Item = Message> {
                     let mut bit_board = BitBoard::new();
                     bit_board.set_board_state(&req.board);
 
-                    let mut searcher = Negaalpha::new(evaluate::mobility_evaluate);
+                    let mut searcher = Negaalpha::new(evaluate::test_evaluate);
                     let search_result =
-                        searcher.search(&bit_board, req.player, 6, i32::MIN + 1, i32::MAX);
+                        searcher.search(&bit_board, req.player, 8, i32::MIN + 1, i32::MAX);
                     let pos = search_result.best_move.map(|mv| mv.position);
 
                     let _ = sender.try_send(pos);

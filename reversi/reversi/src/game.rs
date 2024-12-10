@@ -102,6 +102,7 @@ impl Game {
 
     pub fn self_play() {
         let mut ai_1 = Ai::new();
+        let mut ai_2 = Ai::new();
     }
 
     fn switch_turn(&mut self) {
