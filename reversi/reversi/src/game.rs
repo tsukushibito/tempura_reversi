@@ -1,4 +1,4 @@
-use crate::{bit_board::BitBoard, board::Board, Color, Position};
+use crate::{ai::Ai, bit_board::BitBoard, board::Board, Color, Position};
 
 #[derive(Copy, Clone, Debug)]
 pub enum CellState {
@@ -98,6 +98,10 @@ impl Game {
         }
 
         Ok(GameEvent::Turn(self.clone()))
+    }
+
+    pub fn self_play() {
+        let mut ai_1 = Ai::new();
     }
 
     fn switch_turn(&mut self) {

@@ -1,13 +1,7 @@
-use reversi::{
-    ai::{evaluate, search::Negaalpha, Ai},
-    bit_board::BitBoard,
-    board::Board,
-    game::Game,
-    Color, Position,
-};
+use reversi::{ai::Ai, bit_board::BitBoard, board::Board, game::Game, Color, Position};
 
 fn main() {
-    let mut ai = Ai::new(Negaalpha::new(evaluate::mobility_evaluate));
+    let mut ai = Ai::new();
 
     // ゲームの初期化
     let mut game = Game::initial();

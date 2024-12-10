@@ -17,9 +17,17 @@ pub struct Ai {
     searcher: Negaalpha,
 }
 
+impl Default for Ai {
+    fn default() -> Self {
+        Self {
+            searcher: Negaalpha::new(evaluate::mobility_evaluate),
+        }
+    }
+}
+
 impl Ai {
-    pub fn new(searcher: Negaalpha) -> Self {
-        Self { searcher }
+    pub fn new() -> Self {
+        Default::default()
     }
 
     pub fn get_move(&mut self, board: &BitBoard, color: Color) -> Option<Position> {
