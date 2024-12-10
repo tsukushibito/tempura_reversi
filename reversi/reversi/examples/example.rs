@@ -1,15 +1,13 @@
 use reversi::{
-    ai::{ai_player::AiPlayer, evaluate, human_player::HumanPlayer, player::Player},
+    ai::{evaluate, search::Negaalpha, Ai},
     bit_board::BitBoard,
+    board::Board,
     game::Game,
-    Color,
+    Color, Position,
 };
 
 fn main() {
-    // プレイヤーの初期化
-    // let mut black_player = HumanPlayer {};
-    let mut black_player = AiPlayer::new(evaluate::mobility_evaluate, Color::Black);
-    let mut white_player = AiPlayer::new(evaluate::mobility_evaluate, Color::White);
+    let mut ai = Ai::new(Negaalpha::new(evaluate::mobility_evaluate));
 
     // ゲームの初期化
     let mut game = Game::initial();
@@ -28,11 +26,11 @@ fn main() {
         let bit_board = BitBoard::from_board(game.board());
         match game.current_player() {
             Color::Black => {
-                let p = black_player.get_move(&bit_board, Color::Black);
+                let p = get_move_from_stdin(&bit_board, Color::Black);
                 let _ = game.progress(Color::Black, p.unwrap());
             }
             Color::White => {
-                let p = white_player.get_move(&bit_board, Color::White);
+                let p = ai.get_move(&bit_board, Color::White);
                 let _ = game.progress(Color::White, p.unwrap());
             }
         }
@@ -40,4 +38,51 @@ fn main() {
 
     let mut s: String = Default::default();
     std::io::stdin().read_line(&mut s).ok();
+}
+
+fn get_move_from_stdin(board: &BitBoard, color: Color) -> Option<Position> {
+    loop {
+        println!("Enter your move (e.g., D3): ");
+        let mut input = String::new();
+        std::io::stdin()
+            .read_line(&mut input)
+            .expect("Failed to read line");
+
+        match parse_position(&input) {
+            Some(pos) => {
+                if board.get_valid_moves(color).contains(&pos) {
+                    return Some(pos);
+                } else {
+                    println!("Invalid move(): not a valid position. Try again.");
+                }
+            }
+            None => println!("Invalid input format.({}) Please enter like D3.", input),
+        }
+    }
+}
+
+fn parse_position(input: &str) -> Option<Position> {
+    let trimmed = input.trim().to_uppercase();
+    if trimmed.len() < 2 {
+        return None;
+    }
+
+    let chars: Vec<char> = trimmed.chars().collect();
+    let col_char = chars[0];
+    let row_str: String = chars[1..].iter().collect();
+
+    let x = match col_char {
+        'A'..='H' => (col_char as u8) - b'A',
+        _ => return None,
+    };
+
+    let y = match row_str.parse::<u8>() {
+        Ok(n) if (1..=8).contains(&n) => n - 1,
+        _ => return None,
+    };
+
+    Some(Position {
+        x: x as i8,
+        y: y as i8,
+    })
 }

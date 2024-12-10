@@ -1,9 +1,8 @@
-use crate::{board::BOARD_SIZE, Move};
+use crate::{bit_board::BitBoard, board::BOARD_SIZE, Color, Move, Position};
 
-pub mod ai_player;
+use self::search::Negaalpha;
+
 pub mod evaluate;
-pub mod human_player;
-pub mod player;
 pub mod search;
 
 pub struct SearchResult {
@@ -12,4 +11,21 @@ pub struct SearchResult {
     pub nodes_searched: usize,
     pub score: i32,
     pub policy: [i32; BOARD_SIZE * BOARD_SIZE],
+}
+
+pub struct Ai {
+    searcher: Negaalpha,
+}
+
+impl Ai {
+    pub fn new(searcher: Negaalpha) -> Self {
+        Self { searcher }
+    }
+
+    pub fn get_move(&mut self, board: &BitBoard, color: Color) -> Option<Position> {
+        let search_result = self
+            .searcher
+            .search(board, color, 8, i32::MIN + 1, i32::MAX);
+        search_result.best_move.map(|mv| mv.position)
+    }
 }
