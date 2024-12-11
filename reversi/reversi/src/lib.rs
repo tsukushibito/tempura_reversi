@@ -8,8 +8,8 @@ pub mod game;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Position {
-    pub x: i8,
-    pub y: i8,
+    pub x: u8,
+    pub y: u8,
 }
 
 impl Position {
@@ -78,15 +78,22 @@ impl Position {
     pub const H7: Position = Position { x: 7, y: 6 };
     pub const H8: Position = Position { x: 7, y: 7 };
 
-    pub fn from_index(index: i8) -> Self {
+    pub fn new(x: usize, y: usize) -> Self {
         Position {
-            x: index % BOARD_SIZE as i8,
-            y: index / BOARD_SIZE as i8,
+            x: x as u8,
+            y: y as u8,
         }
     }
 
-    pub fn to_index(&self) -> i8 {
-        self.y * BOARD_SIZE as i8 + self.x
+    pub fn from_index(index: usize) -> Self {
+        Position {
+            x: (index % BOARD_SIZE) as u8,
+            y: (index / BOARD_SIZE) as u8,
+        }
+    }
+
+    pub fn to_index(&self) -> usize {
+        self.y as usize * BOARD_SIZE + self.x as usize
     }
 }
 

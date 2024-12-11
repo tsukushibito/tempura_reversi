@@ -1,4 +1,4 @@
-use crate::{BoardState, Color, Position};
+use crate::{BoardState, CellState, Color, Position};
 
 pub const BOARD_SIZE: usize = 8;
 
@@ -16,12 +16,12 @@ pub trait Board: CloneAsBoard + std::fmt::Debug {
     fn clear(&mut self) {
         for x in 0..BOARD_SIZE {
             for y in 0..BOARD_SIZE {
-                self.set_disc(
+                self.set_cell_state(
                     &Position {
-                        x: x as i8,
-                        y: y as i8,
+                        x: x as u8,
+                        y: y as u8,
                     },
-                    None,
+                    CellState::Empty,
                 );
             }
         }
@@ -30,10 +30,10 @@ pub trait Board: CloneAsBoard + std::fmt::Debug {
     fn init(&mut self) {
         self.clear();
 
-        self.set_disc(&Position::E4, Some(Color::Black));
-        self.set_disc(&Position::D5, Some(Color::Black));
-        self.set_disc(&Position::D4, Some(Color::White));
-        self.set_disc(&Position::E5, Some(Color::White));
+        self.set_cell_state(&Position::E4, CellState::Disc(Color::Black));
+        self.set_cell_state(&Position::D5, CellState::Disc(Color::Black));
+        self.set_cell_state(&Position::D4, CellState::Disc(Color::White));
+        self.set_cell_state(&Position::E5, CellState::Disc(Color::White));
     }
 
     fn board_state(&self) -> BoardState {
@@ -41,11 +41,8 @@ pub trait Board: CloneAsBoard + std::fmt::Debug {
         for x in 0..BOARD_SIZE {
             for y in 0..BOARD_SIZE {
                 let index = y * BOARD_SIZE + x;
-                let pos = Position {
-                    x: x as i8,
-                    y: y as i8,
-                };
-                board_state.cells[index] = self.get_disc(&pos).into();
+                let pos = Position::new(x, y);
+                board_state.cells[index] = self.get_cell_state(&pos);
             }
         }
 
@@ -56,31 +53,28 @@ pub trait Board: CloneAsBoard + std::fmt::Debug {
         for x in 0..BOARD_SIZE {
             for y in 0..BOARD_SIZE {
                 let index = y * BOARD_SIZE + x;
-                let pos = Position {
-                    x: x as i8,
-                    y: y as i8,
-                };
-                self.set_disc(&pos, board_state.cells[index].into());
+                let pos = Position::new(x, y);
+                self.set_cell_state(&pos, board_state.cells[index]);
             }
         }
     }
 
-    fn discs(&self) -> Vec<Vec<Option<Color>>>;
-    fn get_disc(&self, pos: &Position) -> Option<Color>;
-    fn set_disc(&mut self, pos: &Position, color: Option<Color>);
+    fn cell_states(&self) -> [CellState; BOARD_SIZE * BOARD_SIZE];
+    fn get_cell_state(&self, pos: &Position) -> CellState;
+    fn set_cell_state(&mut self, pos: &Position, cell: CellState);
 
-    fn count_of(&self, color: Option<Color>) -> usize;
+    fn count_of(&self, color: CellState) -> usize;
 
     fn black_count(&self) -> usize {
-        self.count_of(Some(Color::Black))
+        self.count_of(CellState::Disc(Color::Black))
     }
 
     fn white_count(&self) -> usize {
-        self.count_of(Some(Color::White))
+        self.count_of(CellState::Disc(Color::White))
     }
 
     fn empty_count(&self) -> usize {
-        self.count_of(None)
+        self.count_of(CellState::Empty)
     }
 
     fn make_move(&mut self, color: Color, pos: &Position) -> bool;

@@ -71,8 +71,8 @@ impl<'a> Program<Message> for BoardView<'a> {
                             Status::Captured,
                             Some(Message::MoveMaked {
                                 pos: reversi::Position {
-                                    x: col as i8,
-                                    y: row as i8,
+                                    x: col as u8,
+                                    y: row as u8,
                                 },
                                 request_id: -1,
                             }),

@@ -70,7 +70,7 @@ impl Negaalpha {
             if entry.depth >= depth {
                 return SearchResult {
                     best_move: Some(Move {
-                        position: Position::from_index(entry.best_move),
+                        position: Position::from_index(entry.best_move as usize),
                         color: player,
                     }),
                     path: Vec::new(),
@@ -150,7 +150,7 @@ impl Negaalpha {
         }
 
         let best_move_index = if let Some(bm) = best_move {
-            bm.position.to_index()
+            bm.position.to_index() as i8
         } else {
             -1
         };

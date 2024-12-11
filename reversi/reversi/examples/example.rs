@@ -75,8 +75,5 @@ fn parse_position(input: &str) -> Option<Position> {
         _ => return None,
     };
 
-    Some(Position {
-        x: x as i8,
-        y: y as i8,
-    })
+    Some(Position::new(x as usize, y as usize))
 }

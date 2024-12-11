@@ -1,6 +1,6 @@
 use crate::{
     board::{Board, BOARD_SIZE},
-    Color, Position,
+    CellState, Color, Position,
 };
 
 pub fn positional_evaluate<B: Board>(board: &B, color: Color) -> i32 {
@@ -19,11 +19,8 @@ pub fn positional_evaluate<B: Board>(board: &B, color: Color) -> i32 {
 
     (0..BOARD_SIZE).for_each(|y| {
         (0..BOARD_SIZE).for_each(|x| {
-            let pos = Position {
-                x: x as i8,
-                y: y as i8,
-            };
-            if let Some(c) = board.get_disc(&pos) {
+            let pos = Position::new(x, y);
+            if let CellState::Disc(c) = board.get_cell_state(&pos) {
                 if c == color {
                     score += weights[y][x];
                 } else {

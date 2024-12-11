@@ -1,6 +1,6 @@
 use crate::{
     board::{Board, BOARD_SIZE},
-    Color, Direction, Position,
+    CellState, Color, Direction, Position,
 };
 
 #[derive(Debug, Clone, Default, Hash, PartialEq, Eq)]
@@ -104,12 +104,9 @@ impl BitBoard {
         let mut bit_board = Self::new();
         for x in 0..BOARD_SIZE {
             for y in 0..BOARD_SIZE {
-                let pos = Position {
-                    x: x as i8,
-                    y: y as i8,
-                };
-                let color = board.get_disc(&pos);
-                bit_board.set_disc(&pos, color);
+                let pos = Position::new(x, y);
+                let color = board.get_cell_state(&pos);
+                bit_board.set_cell_state(&pos, color);
             }
         }
 
@@ -118,76 +115,59 @@ impl BitBoard {
 }
 
 impl Board for BitBoard {
-    fn discs(&self) -> Vec<Vec<Option<Color>>> {
-        let mut discs: Vec<Vec<Option<Color>>> = Vec::new();
+    fn cell_states(&self) -> [CellState; BOARD_SIZE * BOARD_SIZE] {
+        let mut cells: [CellState; BOARD_SIZE * BOARD_SIZE] =
+            [CellState::Empty; BOARD_SIZE * BOARD_SIZE];
 
         for y in 0..8 {
-            let mut row: Vec<Option<Color>> = Vec::new();
             for x in 0..8 {
-                row.push(self.get_disc(&Position { x, y }));
+                let index = y * BOARD_SIZE + x;
+                cells[index] = self.get_cell_state(&Position::from_index(index));
             }
-            discs.push(row);
         }
 
-        discs
+        cells
     }
 
-    fn get_disc(&self, pos: &Position) -> Option<Color> {
-        let index = pos.y * BOARD_SIZE as i8 + pos.x;
-        let bit = 1u64 << index;
+    fn get_cell_state(&self, pos: &Position) -> CellState {
+        let bit = 1u64 << pos.to_index();
         if self.black & bit != 0 {
-            Some(Color::Black)
+            CellState::Disc(Color::Black)
         } else if self.white & bit != 0 {
-            Some(Color::White)
+            CellState::Disc(Color::White)
         } else {
-            None
+            CellState::Empty
         }
     }
 
-    fn set_disc(&mut self, pos: &Position, color: Option<Color>) {
-        let index = pos.y * BOARD_SIZE as i8 + pos.x;
-        let bit = 1u64 << index;
-        match color {
-            Some(Color::Black) => {
+    fn set_cell_state(&mut self, pos: &Position, cell: CellState) {
+        let bit = 1u64 << pos.to_index();
+        match cell {
+            CellState::Disc(Color::Black) => {
                 self.black |= bit;
                 self.white &= !bit;
             }
-            Some(Color::White) => {
+            CellState::Disc(Color::White) => {
                 self.white |= bit;
                 self.black &= !bit;
             }
-            None => {
+            CellState::Empty => {
                 self.black &= !bit;
                 self.white &= !bit;
             }
         }
     }
 
-    fn count_of(&self, color: Option<Color>) -> usize {
-        match color {
-            Some(c) => match c {
-                Color::Black => self.black.count_ones() as usize,
-                Color::White => self.white.count_ones() as usize,
-            },
-            None => (64 - self.black.count_ones() - self.white.count_ones()) as usize,
+    fn count_of(&self, cell_state: CellState) -> usize {
+        match cell_state {
+            CellState::Disc(Color::Black) => self.black.count_ones() as usize,
+            CellState::Disc(Color::White) => self.white.count_ones() as usize,
+            CellState::Empty => (64 - self.black.count_ones() - self.white.count_ones()) as usize,
         }
     }
 
-    fn black_count(&self) -> usize {
-        self.count_of(Some(Color::Black))
-    }
-
-    fn white_count(&self) -> usize {
-        self.count_of(Some(Color::White))
-    }
-
-    fn empty_count(&self) -> usize {
-        self.count_of(None)
-    }
-
     fn make_move(&mut self, color: Color, pos: &Position) -> bool {
-        let idx = pos.x + pos.y * BOARD_SIZE as i8;
-        let move_bit = 1u64 << idx;
+        let move_bit = 1u64 << pos.to_index();
 
         let (player_bits, opponent_bits) = match color {
             Color::Black => (&mut self.black, &mut self.white),
@@ -218,9 +198,7 @@ impl Board for BitBoard {
         while bits != 0 {
             let lsb = bits & (!bits + 1); // 最下位の1ビットを取得
             let index = lsb.trailing_zeros() as usize;
-            let x = (index % 8) as i8;
-            let y = (index / 8) as i8;
-            moves.push(Position { x, y });
+            moves.push(Position::from_index(index));
             bits &= bits - 1; // 最下位の1ビットをクリア
         }
         moves
@@ -228,14 +206,14 @@ impl Board for BitBoard {
 
     fn display(&self) {
         println!("  A B C D E F G H");
-        for y in 0..BOARD_SIZE as i8 {
+        for y in 0..BOARD_SIZE as u8 {
             print!("{}", y + 1);
-            for x in 0..BOARD_SIZE as i8 {
+            for x in 0..BOARD_SIZE as u8 {
                 print!(" ");
-                match self.get_disc(&Position { x, y }) {
-                    Some(Color::Black) => print!("B"), // 黒の駒
-                    Some(Color::White) => print!("W"), // 白の駒
-                    None => print!("-"),               // 駒なし
+                match self.get_cell_state(&Position { x, y }) {
+                    CellState::Disc(Color::Black) => print!("B"), // 黒の駒
+                    CellState::Disc(Color::White) => print!("W"), // 白の駒
+                    CellState::Empty => print!("-"),              // 駒なし
                 }
             }
             println!();
@@ -245,7 +223,6 @@ impl Board for BitBoard {
 
 #[cfg(test)]
 mod tests {
-    use std::io::Write;
 
     use super::*;
     use crate::{Color, Position};
@@ -256,17 +233,17 @@ mod tests {
         let mut board = BitBoard::default();
 
         // 中央に黒の駒を配置
-        board.set_disc(&Position { x: 3, y: 3 }, Some(Color::Black));
+        board.set_cell_state(&Position { x: 3, y: 3 }, CellState::Disc(Color::Black));
 
         // 黒の駒の周囲に白の駒を配置
-        board.set_disc(&Position { x: 2, y: 2 }, Some(Color::White)); // 北西
-        board.set_disc(&Position { x: 3, y: 2 }, Some(Color::White)); // 北
-        board.set_disc(&Position { x: 4, y: 2 }, Some(Color::White)); // 北東
-        board.set_disc(&Position { x: 2, y: 3 }, Some(Color::White)); // 西
-        board.set_disc(&Position { x: 4, y: 3 }, Some(Color::White)); // 東
-        board.set_disc(&Position { x: 2, y: 4 }, Some(Color::White)); // 南西
-        board.set_disc(&Position { x: 3, y: 4 }, Some(Color::White)); // 南
-        board.set_disc(&Position { x: 4, y: 4 }, Some(Color::White)); // 南東
+        board.set_cell_state(&Position { x: 2, y: 2 }, CellState::Disc(Color::White)); // 北西
+        board.set_cell_state(&Position { x: 3, y: 2 }, CellState::Disc(Color::White)); // 北
+        board.set_cell_state(&Position { x: 4, y: 2 }, CellState::Disc(Color::White)); // 北東
+        board.set_cell_state(&Position { x: 2, y: 3 }, CellState::Disc(Color::White)); // 西
+        board.set_cell_state(&Position { x: 4, y: 3 }, CellState::Disc(Color::White)); // 東
+        board.set_cell_state(&Position { x: 2, y: 4 }, CellState::Disc(Color::White)); // 南西
+        board.set_cell_state(&Position { x: 3, y: 4 }, CellState::Disc(Color::White)); // 南
+        board.set_cell_state(&Position { x: 4, y: 4 }, CellState::Disc(Color::White)); // 南東
 
         // 黒の合法手を取得
         let valid_moves_black = board.get_valid_moves(Color::Black);
@@ -299,10 +276,10 @@ mod tests {
 
         // 上端でのテスト
         let mut board = BitBoard::default();
-        board.set_disc(&Position { x: 0, y: 0 }, Some(Color::Black)); // 左上隅
-        board.set_disc(&Position { x: 1, y: 0 }, Some(Color::White)); // 東
-        board.set_disc(&Position { x: 0, y: 1 }, Some(Color::White)); // 南
-        board.set_disc(&Position { x: 1, y: 1 }, Some(Color::White)); // 南東
+        board.set_cell_state(&Position { x: 0, y: 0 }, CellState::Disc(Color::Black)); // 左上隅
+        board.set_cell_state(&Position { x: 1, y: 0 }, CellState::Disc(Color::White)); // 東
+        board.set_cell_state(&Position { x: 0, y: 1 }, CellState::Disc(Color::White)); // 南
+        board.set_cell_state(&Position { x: 1, y: 1 }, CellState::Disc(Color::White)); // 南東
 
         // 黒の合法手を取得
         let valid_moves_black = board.get_valid_moves(Color::Black);
@@ -325,10 +302,10 @@ mod tests {
 
         // 下端でのテスト
         let mut board = BitBoard::default();
-        board.set_disc(&Position { x: 7, y: 7 }, Some(Color::Black)); // 右下隅
-        board.set_disc(&Position { x: 6, y: 7 }, Some(Color::White)); // 西
-        board.set_disc(&Position { x: 7, y: 6 }, Some(Color::White)); // 北
-        board.set_disc(&Position { x: 6, y: 6 }, Some(Color::White)); // 北西
+        board.set_cell_state(&Position { x: 7, y: 7 }, CellState::Disc(Color::Black)); // 右下隅
+        board.set_cell_state(&Position { x: 6, y: 7 }, CellState::Disc(Color::White)); // 西
+        board.set_cell_state(&Position { x: 7, y: 6 }, CellState::Disc(Color::White)); // 北
+        board.set_cell_state(&Position { x: 6, y: 6 }, CellState::Disc(Color::White)); // 北西
 
         // 黒の合法手を取得
         let valid_moves_black = board.get_valid_moves(Color::Black);
@@ -357,10 +334,10 @@ mod tests {
         let mut board = BitBoard::default();
 
         // 初期配置
-        board.set_disc(&Position { x: 3, y: 3 }, Some(Color::White));
-        board.set_disc(&Position { x: 4, y: 4 }, Some(Color::White));
-        board.set_disc(&Position { x: 3, y: 4 }, Some(Color::Black));
-        board.set_disc(&Position { x: 4, y: 3 }, Some(Color::Black));
+        board.set_cell_state(&Position { x: 3, y: 3 }, CellState::Disc(Color::White));
+        board.set_cell_state(&Position { x: 4, y: 4 }, CellState::Disc(Color::White));
+        board.set_cell_state(&Position { x: 3, y: 4 }, CellState::Disc(Color::Black));
+        board.set_cell_state(&Position { x: 4, y: 3 }, CellState::Disc(Color::Black));
 
         // 黒の合法手を取得
         let valid_moves_black = board.get_valid_moves(Color::Black);
@@ -407,8 +384,8 @@ mod tests {
     fn test_get_valid_moves_custom_position() {
         let mut board = BitBoard::default();
 
-        board.set_disc(&Position::A1, Some(Color::White));
-        board.set_disc(&Position::A2, Some(Color::Black));
+        board.set_cell_state(&Position::A1, CellState::Disc(Color::White));
+        board.set_cell_state(&Position::A2, CellState::Disc(Color::Black));
 
         board.display();
 
@@ -417,7 +394,7 @@ mod tests {
         let mut tmp_board = BitBoard::default();
         valid_moves_white
             .iter()
-            .for_each(|p| tmp_board.set_disc(p, Some(Color::White)));
+            .for_each(|p| tmp_board.set_cell_state(p, CellState::Disc(Color::White)));
         tmp_board.display();
 
         let expected_moves_white = vec![Position::A3];
@@ -445,16 +422,16 @@ mod tests {
     fn test_make_move() {
         let mut board = BitBoard::default();
 
-        board.set_disc(&Position::A1, Some(Color::Black));
-        board.set_disc(&Position::A2, Some(Color::White));
+        board.set_cell_state(&Position::A1, CellState::Disc(Color::Black));
+        board.set_cell_state(&Position::A2, CellState::Disc(Color::White));
 
         let moves = board.get_valid_moves(Color::Black);
 
         board.make_move(Color::Black, &moves[0]);
 
-        let color = board.get_disc(&Position::A2);
+        let color = board.get_cell_state(&Position::A2);
         board.display();
 
-        assert_eq!(color, Some(Color::Black));
+        assert_eq!(color, CellState::Disc(Color::Black));
     }
 }

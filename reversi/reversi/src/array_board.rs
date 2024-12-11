@@ -1,6 +1,6 @@
 use crate::{
     board::{Board, BOARD_SIZE},
-    Color, Direction, Position,
+    CellState, Color, Direction, Position,
 };
 
 const EMPTY: u8 = 0;
@@ -49,8 +49,8 @@ impl ArrayBoard {
 
         for dir in Direction::DIRECTIONS {
             let (dx, dy) = get_direction_vector(dir);
-            let mut x = pos.x + dx;
-            let mut y = pos.y + dy;
+            let mut x = pos.x as i8 + dx;
+            let mut y = pos.y as i8 + dy;
             let mut found_opponent = false;
 
             while x >= 0 && x < BOARD_SIZE as i8 && y >= 0 && y < BOARD_SIZE as i8 {
@@ -78,55 +78,47 @@ impl Default for ArrayBoard {
 }
 
 impl Board for ArrayBoard {
-    fn discs(&self) -> Vec<Vec<Option<Color>>> {
-        let mut discs = Vec::new();
+    fn cell_states(&self) -> [CellState; BOARD_SIZE * BOARD_SIZE] {
+        let mut cells = [CellState::Empty; BOARD_SIZE * BOARD_SIZE];
         for y in 0..BOARD_SIZE {
-            let mut row = Vec::new();
             for x in 0..BOARD_SIZE {
                 let index = x + y * BOARD_SIZE;
-                let color = match self.discs[index] {
-                    EMPTY => None,
-                    BLACK => Some(Color::Black),
-                    WHITE => Some(Color::White),
-                    _ => None,
+                cells[index] = match self.discs[index] {
+                    EMPTY => CellState::Empty,
+                    BLACK => CellState::Disc(Color::Black),
+                    WHITE => CellState::Disc(Color::White),
+                    _ => CellState::Empty,
                 };
-                row.push(color);
             }
-            discs.push(row);
         }
 
-        discs
+        cells
     }
 
-    fn get_disc(&self, pos: &Position) -> Option<Color> {
+    fn get_cell_state(&self, pos: &Position) -> CellState {
         let index = pos.x as usize + pos.y as usize * BOARD_SIZE;
         match self.discs[index] {
-            EMPTY => None,
-            BLACK => Some(Color::Black),
-            WHITE => Some(Color::White),
-            _ => None,
+            EMPTY => CellState::Empty,
+            BLACK => CellState::Disc(Color::Black),
+            WHITE => CellState::Disc(Color::White),
+            _ => CellState::Empty,
         }
     }
 
-    fn set_disc(&mut self, pos: &Position, color: Option<Color>) {
-        let c = match color {
-            None => EMPTY,
-            Some(col) => match col {
-                Color::Black => BLACK,
-                Color::White => WHITE,
-            },
+    fn set_cell_state(&mut self, pos: &Position, cell_state: CellState) {
+        let s = match cell_state {
+            CellState::Empty => EMPTY,
+            CellState::Disc(Color::Black) => BLACK,
+            CellState::Disc(Color::White) => WHITE,
         };
-        let index = pos.x as usize + pos.y as usize * BOARD_SIZE;
-        self.discs[index] = c;
+        self.discs[pos.to_index()] = s;
     }
 
-    fn count_of(&self, color: Option<Color>) -> usize {
-        let c = match color {
-            None => EMPTY,
-            Some(col) => match col {
-                Color::Black => BLACK,
-                Color::White => WHITE,
-            },
+    fn count_of(&self, cell_state: CellState) -> usize {
+        let c = match cell_state {
+            CellState::Empty => EMPTY,
+            CellState::Disc(Color::Black) => BLACK,
+            CellState::Disc(Color::White) => WHITE,
         };
         let mut count = 0;
         for disc in self.discs {
@@ -149,8 +141,8 @@ impl Board for ArrayBoard {
 
         for dir in Direction::DIRECTIONS {
             let (dx, dy) = get_direction_vector(dir);
-            let mut x = pos.x + dx;
-            let mut y = pos.y + dy;
+            let mut x = pos.x as i8 + dx;
+            let mut y = pos.y as i8 + dy;
             let mut potential_flips = Vec::new();
 
             while x >= 0 && x < BOARD_SIZE as i8 && y >= 0 && y < BOARD_SIZE as i8 {
@@ -181,9 +173,9 @@ impl Board for ArrayBoard {
 
     fn get_valid_moves(&self, color: Color) -> Vec<Position> {
         let mut valid_moves = Vec::new();
-        for y in 0..BOARD_SIZE as i8 {
-            for x in 0..BOARD_SIZE as i8 {
-                let pos = Position { x, y };
+        for y in 0..BOARD_SIZE {
+            for x in 0..BOARD_SIZE {
+                let pos = Position::new(x, y);
                 if self.is_valid_move(color, &pos) {
                     valid_moves.push(pos);
                 }
@@ -236,9 +228,12 @@ mod tests {
     fn test_count_of() {
         let board = ArrayBoard::init_board();
 
-        assert_eq!(board.count_of(Some(Color::Black)), 2);
-        assert_eq!(board.count_of(Some(Color::White)), 2);
-        assert_eq!(board.count_of(None), BOARD_SIZE * BOARD_SIZE - 4);
+        assert_eq!(board.count_of(CellState::Disc(Color::Black)), 2);
+        assert_eq!(board.count_of(CellState::Disc(Color::White)), 2);
+        assert_eq!(
+            board.count_of(CellState::Empty),
+            BOARD_SIZE * BOARD_SIZE - 4
+        );
     }
 
     #[test]
