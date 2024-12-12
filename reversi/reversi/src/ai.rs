@@ -4,6 +4,10 @@ use self::search::Negaalpha;
 
 pub mod evaluate;
 pub mod search;
+mod self_play;
+
+use evaluate::TestEvaluator;
+pub use self_play::*;
 
 pub struct SearchResult {
     pub best_move: Option<Move>,
@@ -13,15 +17,34 @@ pub struct SearchResult {
     pub policy: [i32; BOARD_SIZE * BOARD_SIZE],
 }
 
+enum Searcher {
+    TestNegaalpha(Negaalpha<TestEvaluator>),
+}
+
+impl Searcher {
+    pub fn search(
+        &mut self,
+        board: &BitBoard,
+        player: Color,
+        depth: u8,
+        alpha: i32,
+        beta: i32,
+    ) -> SearchResult {
+        match self {
+            Searcher::TestNegaalpha(s) => s.search(board, player, depth, alpha, beta),
+        }
+    }
+}
+
 pub struct Ai {
-    searcher: Negaalpha,
+    searcher: Searcher,
     search_depth: u8,
 }
 
 impl Default for Ai {
     fn default() -> Self {
         Self {
-            searcher: Negaalpha::new(evaluate::test_evaluate),
+            searcher: Searcher::TestNegaalpha(Negaalpha::new(TestEvaluator::default())),
             search_depth: 8,
         }
     }

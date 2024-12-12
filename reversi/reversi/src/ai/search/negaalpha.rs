@@ -1,11 +1,13 @@
-use std::collections::HashMap;
+use rand::rngs::StdRng;
+use rand::{self, Rng, SeedableRng};
 
+use crate::ai::evaluate::Evaluator;
 use crate::ai::SearchResult;
 use crate::bit_board::BitBoard;
 use crate::board::{Board, BOARD_SIZE};
 use crate::{Color, Move, Position};
 
-type EvalFunc = fn(&BitBoard, Color) -> i32;
+// type EvalFunc = fn(&BitBoard, Color, f32) -> i32;
 
 pub struct TranspositionTableEntry {
     pub score: i32,
@@ -14,16 +16,18 @@ pub struct TranspositionTableEntry {
     pub policy: [i32; BOARD_SIZE * BOARD_SIZE],
 }
 
-pub struct Negaalpha {
-    evaluate: EvalFunc,
+pub struct Negaalpha<E: Evaluator> {
+    evaluator: E,
     use_move_ordering: bool,
+    rng: StdRng,
 }
 
-impl Negaalpha {
-    pub fn new(evaluate: EvalFunc) -> Self {
+impl<E: Evaluator> Negaalpha<E> {
+    pub fn new(evaluator: E) -> Self {
         Negaalpha {
-            evaluate,
-            use_move_ordering: false,
+            evaluator,
+            use_move_ordering: true,
+            rng: StdRng::from_entropy(),
         }
     }
 
@@ -48,12 +52,16 @@ impl Negaalpha {
     //     POSITION_WEIGHTS[y][x]
     // }
 
-    fn evaluate_move(&self, board: &BitBoard, player: Color, pos: &Position) -> i32 {
-        let mut board = board.clone();
-        board.make_move(player, pos);
-        let my_moves = board.get_valid_moves(player).len() as i32;
-        let opponent_moves = board.get_valid_moves(player.opponent()).len() as i32;
-        my_moves - opponent_moves
+    // fn evaluate_move(&self, board: &BitBoard, player: Color, pos: &Position) -> i32 {
+    //     let mut board = board.clone();
+    //     board.make_move(player, pos);
+    //     let my_moves = board.get_valid_moves(player).len() as i32;
+    //     let opponent_moves = board.get_valid_moves(player.opponent()).len() as i32;
+    //     my_moves - opponent_moves
+    // }
+
+    fn evaluate_move(&mut self, _board: &BitBoard, _player: Color, _pos: &Position) -> i32 {
+        self.rng.gen()
     }
 
     pub fn search(
@@ -70,7 +78,7 @@ impl Negaalpha {
         let mut valid_moves = board.get_valid_moves(player);
 
         if depth == 0 || valid_moves.is_empty() {
-            let score = (self.evaluate)(board, player);
+            let score = self.evaluator.evaluate(board, player, 0.0);
             return SearchResult {
                 best_move: None,
                 path: Vec::new(),
@@ -141,9 +149,7 @@ impl Negaalpha {
 
 #[cfg(test)]
 mod tests {
-    use crate::{bit_board::BitBoard, Position};
-
-    use crate::ai::evaluate::simple_evaluate;
+    use crate::{ai::evaluate::SimpleEvaluator, bit_board::BitBoard, Position};
 
     use super::*;
 
@@ -151,7 +157,7 @@ mod tests {
     fn test_negaalpha_no_move_ordering() {
         let bit_board = BitBoard::init_board();
 
-        let mut negaalpha = Negaalpha::new(simple_evaluate);
+        let mut negaalpha = Negaalpha::new(SimpleEvaluator::default());
         negaalpha.set_move_ordering(false);
 
         let depth = 9;
@@ -190,7 +196,7 @@ mod tests {
     fn test_negaalpha_with_move_ordering() {
         let bit_board = BitBoard::init_board();
 
-        let mut negaalpha = Negaalpha::new(simple_evaluate);
+        let mut negaalpha = Negaalpha::new(SimpleEvaluator::default());
         negaalpha.set_move_ordering(true);
 
         let depth = 9;

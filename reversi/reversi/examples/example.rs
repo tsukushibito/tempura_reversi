@@ -24,7 +24,7 @@ fn main() {
                 let _ = game.progress(Color::Black, p.unwrap());
             }
             Color::White => {
-                let p = ai.get_move(&bit_board, Color::White);
+                let p = ai.decide_move(&bit_board, Color::White);
                 let _ = game.progress(Color::White, p.unwrap());
             }
         }

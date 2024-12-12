@@ -113,11 +113,6 @@ impl Game {
         Ok(GameEvent::Turn(self.clone()))
     }
 
-    pub fn self_play() {
-        let mut ai_1 = Ai::new();
-        let mut ai_2 = Ai::new();
-    }
-
     fn switch_turn(&mut self) {
         self.current_player = self.current_player.opponent();
     }
