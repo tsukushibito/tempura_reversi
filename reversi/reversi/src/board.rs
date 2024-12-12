@@ -37,16 +37,9 @@ pub trait Board: CloneAsBoard + std::fmt::Debug {
     }
 
     fn board_state(&self) -> BoardState {
-        let mut board_state: BoardState = Default::default();
-        for x in 0..BOARD_SIZE {
-            for y in 0..BOARD_SIZE {
-                let index = y * BOARD_SIZE + x;
-                let pos = Position::new(x, y);
-                board_state.cells[index] = self.get_cell_state(&pos);
-            }
+        BoardState {
+            cells: self.cell_states(),
         }
-
-        board_state
     }
 
     fn set_board_state(&mut self, board_state: &BoardState) {

@@ -15,12 +15,14 @@ pub struct SearchResult {
 
 pub struct Ai {
     searcher: Negaalpha,
+    search_depth: u8,
 }
 
 impl Default for Ai {
     fn default() -> Self {
         Self {
             searcher: Negaalpha::new(evaluate::test_evaluate),
+            search_depth: 8,
         }
     }
 }
@@ -30,10 +32,10 @@ impl Ai {
         Default::default()
     }
 
-    pub fn get_move(&mut self, board: &BitBoard, color: Color) -> Option<Position> {
-        let search_result = self
-            .searcher
-            .search(board, color, 8, i32::MIN + 1, i32::MAX);
+    pub fn decide_move(&mut self, board: &BitBoard, color: Color) -> Option<Position> {
+        let search_result =
+            self.searcher
+                .search(board, color, self.search_depth, i32::MIN + 1, i32::MAX);
         search_result.best_move.map(|mv| mv.position)
     }
 }

@@ -13,7 +13,7 @@ use iced::{
     Element, Length, Settings, Subscription, Task, Theme,
 };
 use reversi::{
-    ai::{evaluate, search::Negaalpha},
+    ai::{evaluate, search::Negaalpha, Ai},
     bit_board::BitBoard,
     board::Board,
     game::Game,
@@ -258,23 +258,31 @@ fn ai_worker() -> impl Stream<Item = Message> {
         let _ = output.send(Message::AiWorkerAwaked(sender)).await;
         println!("[stream] ai worker awaked");
 
+        let ai = Arc::new(Mutex::new(Ai::default()));
+
         loop {
             let msg = receiver_from_app.select_next_some().await;
             println!("[stream] received request");
             if let Message::AiMove(req) = msg {
                 let (mut sender, mut receiver_from_thread) =
                     mpsc::channel::<Option<reversi::Position>>(100);
+                let ai = ai.clone();
                 let handle = thread::spawn(move || {
                     println!("[thread] begin");
                     let mut bit_board = BitBoard::new();
                     bit_board.set_board_state(&req.board);
 
-                    let mut searcher = Negaalpha::new(evaluate::test_evaluate);
-                    let search_result =
-                        searcher.search(&bit_board, req.player, 8, i32::MIN + 1, i32::MAX);
-                    let pos = search_result.best_move.map(|mv| mv.position);
+                    // let mut searcher = Negaalpha::new(evaluate::test_evaluate);
+                    // let search_result =
+                    //     searcher.search(&bit_board, req.player, 8, i32::MIN + 1, i32::MAX);
+                    // let pos = search_result.best_move.map(|mv| mv.position);
 
-                    let _ = sender.try_send(pos);
+                    if let Ok(mut ai) = ai.lock() {
+                        let pos = ai.decide_move(&bit_board, req.player);
+                        let _ = sender.try_send(pos);
+                    } else {
+                        let _ = sender.try_send(None);
+                    }
                     println!("[thread] end");
                 });
                 let pos_or_none = receiver_from_thread.select_next_some().await;

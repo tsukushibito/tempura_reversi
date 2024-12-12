@@ -16,7 +16,6 @@ pub struct TranspositionTableEntry {
 
 pub struct Negaalpha {
     evaluate: EvalFunc,
-    transposition_table: HashMap<BitBoard, TranspositionTableEntry>,
     use_move_ordering: bool,
 }
 
@@ -24,8 +23,7 @@ impl Negaalpha {
     pub fn new(evaluate: EvalFunc) -> Self {
         Negaalpha {
             evaluate,
-            transposition_table: HashMap::new(),
-            use_move_ordering: true,
+            use_move_ordering: false,
         }
     }
 
@@ -33,30 +31,30 @@ impl Negaalpha {
         self.use_move_ordering = enabled;
     }
 
-    fn evaluate_move(&self, _board: &BitBoard, pos: &Position) -> i32 {
-        const POSITION_WEIGHTS: [[i32; 8]; 8] = [
-            [100, -20, 10, 5, 5, 10, -20, 100],
-            [-20, -50, -2, -2, -2, -2, -50, -20],
-            [10, -2, -1, -1, -1, -1, -2, 10],
-            [5, -2, -1, -1, -1, -1, -2, 5],
-            [5, -2, -1, -1, -1, -1, -2, 5],
-            [10, -2, -1, -1, -1, -1, -2, 10],
-            [-20, -50, -2, -2, -2, -2, -50, -20],
-            [100, -20, 10, 5, 5, 10, -20, 100],
-        ];
+    // fn evaluate_move(&self, _board: &BitBoard, _player: Color, pos: &Position) -> i32 {
+    //     const POSITION_WEIGHTS: [[i32; 8]; 8] = [
+    //         [100, -20, 10, 5, 5, 10, -20, 100],
+    //         [-20, -50, -2, -2, -2, -2, -50, -20],
+    //         [10, -2, -1, -1, -1, -1, -2, 10],
+    //         [5, -2, -1, -1, -1, -1, -2, 5],
+    //         [5, -2, -1, -1, -1, -1, -2, 5],
+    //         [10, -2, -1, -1, -1, -1, -2, 10],
+    //         [-20, -50, -2, -2, -2, -2, -50, -20],
+    //         [100, -20, 10, 5, 5, 10, -20, 100],
+    //     ];
 
-        let x = pos.x as usize;
-        let y = pos.y as usize;
-        POSITION_WEIGHTS[y][x]
-    }
-
-    // fn evaluate_move(&self, state: &GameState<B>, pos: &Position) -> i32 {
-    //     let mut board = state.board.clone();
-    //     board.make_move(state.player, pos);
-    //     let my_moves = board.get_valid_moves(state.player).len() as i32;
-    //     let opponent_moves = board.get_valid_moves(state.player.opponent()).len() as i32;
-    //     my_moves - opponent_moves
+    //     let x = pos.x as usize;
+    //     let y = pos.y as usize;
+    //     POSITION_WEIGHTS[y][x]
     // }
+
+    fn evaluate_move(&self, board: &BitBoard, player: Color, pos: &Position) -> i32 {
+        let mut board = board.clone();
+        board.make_move(player, pos);
+        let my_moves = board.get_valid_moves(player).len() as i32;
+        let opponent_moves = board.get_valid_moves(player.opponent()).len() as i32;
+        my_moves - opponent_moves
+    }
 
     pub fn search(
         &mut self,
@@ -66,21 +64,6 @@ impl Negaalpha {
         mut alpha: i32,
         beta: i32,
     ) -> SearchResult {
-        if let Some(entry) = self.transposition_table.get(board) {
-            if entry.depth >= depth {
-                return SearchResult {
-                    best_move: Some(Move {
-                        position: Position::from_index(entry.best_move as usize),
-                        color: player,
-                    }),
-                    path: Vec::new(),
-                    nodes_searched: 0,
-                    score: entry.score,
-                    policy: entry.policy,
-                };
-            }
-        }
-
         let mut nodes_searched = 1;
         let mut policy = [0; BOARD_SIZE * BOARD_SIZE];
 
@@ -88,15 +71,6 @@ impl Negaalpha {
 
         if depth == 0 || valid_moves.is_empty() {
             let score = (self.evaluate)(board, player);
-            self.transposition_table.insert(
-                board.clone(),
-                TranspositionTableEntry {
-                    score,
-                    depth,
-                    best_move: -1,
-                    policy: [0; 64],
-                },
-            );
             return SearchResult {
                 best_move: None,
                 path: Vec::new(),
@@ -107,7 +81,7 @@ impl Negaalpha {
         }
 
         if self.use_move_ordering {
-            valid_moves.sort_by_cached_key(|pos| -self.evaluate_move(board, pos));
+            valid_moves.sort_by_cached_key(|pos| -self.evaluate_move(board, player, pos));
         }
 
         let mut max_score = i32::MIN;
@@ -154,15 +128,6 @@ impl Negaalpha {
         } else {
             -1
         };
-        self.transposition_table.insert(
-            board.clone(),
-            TranspositionTableEntry {
-                score: max_score,
-                depth,
-                best_move: best_move_index,
-                policy,
-            },
-        );
 
         SearchResult {
             best_move,

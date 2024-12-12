@@ -1,4 +1,4 @@
-use crate::{ai::Ai, bit_board::BitBoard, board::Board, Color, Position};
+use crate::{ai::Ai, bit_board::BitBoard, board::Board, Color, Move, Position};
 
 #[derive(Copy, Clone, Debug)]
 pub enum CellState {
@@ -13,6 +13,7 @@ pub struct Game {
     current_player: Color,
     move_count: u32,
     is_game_over: bool,
+    last_move: Option<Move>,
 }
 
 impl Game {
@@ -21,12 +22,14 @@ impl Game {
         player: Color,
         move_count: u32,
         is_game_over: bool,
+        last_move: Option<Move>,
     ) -> Self {
         Self {
             board,
             current_player: player,
             move_count,
             is_game_over,
+            last_move,
         }
     }
 
@@ -36,6 +39,7 @@ impl Game {
             current_player: Color::Black,
             move_count: 0,
             is_game_over: false,
+            last_move: None,
         }
     }
 
@@ -55,11 +59,16 @@ impl Game {
         self.is_game_over
     }
 
+    pub fn last_move(&self) -> Option<Move> {
+        self.last_move
+    }
+
     pub fn reset(&mut self) {
         self.board.init();
         self.current_player = Color::Black;
         self.move_count = 0;
         self.is_game_over = false;
+        self.last_move = None;
     }
 
     pub fn get_current_players_valid_moves(&self) -> Vec<Position> {
@@ -80,6 +89,10 @@ impl Game {
         if success {
             self.switch_turn();
             self.board = board;
+            self.last_move = Some(Move {
+                position: pos,
+                color: player,
+            })
         } else {
             return Err("Invalid pos".to_string());
         }
@@ -117,6 +130,7 @@ impl Clone for Game {
             current_player: self.current_player,
             move_count: self.move_count,
             is_game_over: self.is_game_over,
+            last_move: self.last_move,
         }
     }
 }
