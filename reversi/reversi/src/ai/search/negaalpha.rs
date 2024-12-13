@@ -78,7 +78,7 @@ impl<E: Evaluator> Negaalpha<E> {
         let mut valid_moves = board.get_valid_moves(player);
 
         if depth == 0 || valid_moves.is_empty() {
-            let score = self.evaluator.evaluate(board, player, 0.0);
+            let score = self.evaluator.evaluate(board, player);
             return SearchResult {
                 best_move: None,
                 path: Vec::new(),
