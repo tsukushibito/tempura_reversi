@@ -11,7 +11,7 @@ impl Default for SimpleEvaluator {
 }
 
 impl Evaluator for SimpleEvaluator {
-    fn evaluate(&mut self, board: &crate::bit_board::BitBoard, color: Color) -> i32 {
+    fn evaluate(&self, board: &crate::bit_board::BitBoard, color: Color) -> i32 {
         let black_count = board.black_count() as i32;
         let white_count = board.white_count() as i32;
         match color {

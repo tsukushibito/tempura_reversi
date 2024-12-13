@@ -5,8 +5,8 @@ use crate::{
 
 #[derive(Debug, Clone, Default, Hash, PartialEq, Eq)]
 pub struct BitBoard {
-    black: u64,
-    white: u64,
+    pub black: u64,
+    pub white: u64,
 }
 
 const MASK_EXCLUDE_A_FILE: u64 = 0xfefefefefefefefeu64;

@@ -27,7 +27,7 @@ impl Default for PositionalEvaluator {
 }
 
 impl Evaluator for PositionalEvaluator {
-    fn evaluate(&mut self, board: &crate::bit_board::BitBoard, color: Color) -> i32 {
+    fn evaluate(&self, board: &crate::bit_board::BitBoard, color: Color) -> i32 {
         let mut score = 0;
         (0..BOARD_SIZE).for_each(|y| {
             (0..BOARD_SIZE).for_each(|x| {

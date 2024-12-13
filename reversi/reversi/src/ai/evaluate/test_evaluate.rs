@@ -19,7 +19,7 @@ impl Default for TestEvaluator {
 }
 
 impl Evaluator for TestEvaluator {
-    fn evaluate(&mut self, board: &crate::bit_board::BitBoard, color: Color) -> i32 {
+    fn evaluate(&self, board: &crate::bit_board::BitBoard, color: Color) -> i32 {
         let empty_count = board.count_of(CellState::Empty);
         if empty_count > 10 {
             self.mobility.evaluate(board, color)

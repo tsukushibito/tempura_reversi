@@ -1,4 +1,6 @@
+mod bit_pattern;
 mod mobility_evaluate;
+mod pattern_evaluate;
 mod positional_evaluate;
 mod simple_evaluate;
 mod test_evaluate;
@@ -11,7 +13,7 @@ pub use test_evaluate::TestEvaluator;
 use crate::{bit_board::BitBoard, Color};
 
 pub trait Evaluator {
-    fn evaluate(&mut self, board: &BitBoard, color: Color) -> i32;
+    fn evaluate(&self, board: &BitBoard, color: Color) -> i32;
 }
 
 pub fn add_noise(value: i32, epsilon: f64, rng: &mut impl rand::Rng) -> i32 {
