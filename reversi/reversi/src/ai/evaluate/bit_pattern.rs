@@ -3,18 +3,17 @@ use crate::{bit_board::BitBoard, Position};
 pub(crate) struct BitPattern {
     pub id: usize,
     pub mask: u64,
-    pub weight: f32,
 }
 
 impl BitPattern {
-    pub fn from_positions(id: usize, positions: &[Position], weight: f32) -> Self {
+    pub fn from_positions(id: usize, positions: &[Position]) -> Self {
         let mut mask = 0u64;
         for pos in positions {
             let bit_index = pos.to_index();
             mask |= 1 << bit_index;
         }
 
-        Self { id, mask, weight }
+        Self { id, mask }
     }
 
     pub fn pattern_length(&self) -> usize {
@@ -47,31 +46,31 @@ impl BitPattern {
 }
 
 /// 水平ラインパターン(8行)を生成
-fn generate_horizontal_patterns(start_id: usize, weight: f32) -> (Vec<BitPattern>, usize) {
+fn generate_horizontal_patterns(start_id: usize) -> (Vec<BitPattern>, usize) {
     let mut patterns = Vec::new();
     let mut id = start_id;
     for y in 0..8 {
         let positions: Vec<_> = (0..8).map(|x| Position { x, y }).collect();
-        patterns.push(BitPattern::from_positions(id, &positions, weight));
+        patterns.push(BitPattern::from_positions(id, &positions));
         id += 1;
     }
     (patterns, id)
 }
 
 /// 垂直ラインパターン(8列)を生成
-fn generate_vertical_patterns(start_id: usize, weight: f32) -> (Vec<BitPattern>, usize) {
+fn generate_vertical_patterns(start_id: usize) -> (Vec<BitPattern>, usize) {
     let mut patterns = Vec::new();
     let mut id = start_id;
     for x in 0..8 {
         let positions: Vec<_> = (0..8).map(|y| Position { x, y }).collect();
-        patterns.push(BitPattern::from_positions(id, &positions, weight));
+        patterns.push(BitPattern::from_positions(id, &positions));
         id += 1;
     }
     (patterns, id)
 }
 
 /// 左上→右下方向の4マス以上の斜めラインパターンを生成
-fn generate_diagonal_down_patterns(start_id: usize, weight: f32) -> (Vec<BitPattern>, usize) {
+fn generate_diagonal_down_patterns(start_id: usize) -> (Vec<BitPattern>, usize) {
     let mut patterns = Vec::new();
     let mut id = start_id;
 
@@ -85,7 +84,7 @@ fn generate_diagonal_down_patterns(start_id: usize, weight: f32) -> (Vec<BitPatt
             y += 1;
         }
         if positions.len() >= 4 {
-            patterns.push(BitPattern::from_positions(id, &positions, weight));
+            patterns.push(BitPattern::from_positions(id, &positions));
             id += 1;
         }
     }
@@ -100,7 +99,7 @@ fn generate_diagonal_down_patterns(start_id: usize, weight: f32) -> (Vec<BitPatt
             y += 1;
         }
         if positions.len() >= 4 {
-            patterns.push(BitPattern::from_positions(id, &positions, weight));
+            patterns.push(BitPattern::from_positions(id, &positions));
             id += 1;
         }
     }
@@ -109,7 +108,7 @@ fn generate_diagonal_down_patterns(start_id: usize, weight: f32) -> (Vec<BitPatt
 }
 
 /// 右上→左下方向の4マス以上の斜めラインパターンを生成
-fn generate_diagonal_up_patterns(start_id: usize, weight: f32) -> (Vec<BitPattern>, usize) {
+fn generate_diagonal_up_patterns(start_id: usize) -> (Vec<BitPattern>, usize) {
     let mut patterns = Vec::new();
     let mut id = start_id;
 
@@ -126,7 +125,7 @@ fn generate_diagonal_up_patterns(start_id: usize, weight: f32) -> (Vec<BitPatter
             y += 1;
         }
         if positions.len() >= 4 {
-            patterns.push(BitPattern::from_positions(id, &positions, weight));
+            patterns.push(BitPattern::from_positions(id, &positions));
             id += 1;
         }
     }
@@ -144,7 +143,7 @@ fn generate_diagonal_up_patterns(start_id: usize, weight: f32) -> (Vec<BitPatter
             y += 1;
         }
         if positions.len() >= 4 {
-            patterns.push(BitPattern::from_positions(id, &positions, weight));
+            patterns.push(BitPattern::from_positions(id, &positions));
             id += 1;
         }
     }
@@ -156,34 +155,33 @@ fn generate_diagonal_up_patterns(start_id: usize, weight: f32) -> (Vec<BitPatter
 pub fn generate_all_line_patterns() -> Vec<BitPattern> {
     let mut patterns = Vec::new();
     let mut current_id = 0;
-    let weight = 1.0;
 
     // 水平ライン
     {
-        let (mut horiz, id) = generate_horizontal_patterns(current_id, weight);
+        let (mut horiz, id) = generate_horizontal_patterns(current_id);
         patterns.append(&mut horiz);
         current_id = id;
     }
 
     // 垂直ライン
     {
-        let (mut vert, id) = generate_vertical_patterns(current_id, weight);
+        let (mut vert, id) = generate_vertical_patterns(current_id);
         patterns.append(&mut vert);
         current_id = id;
     }
 
     // 斜め(左上→右下)
     {
-        let (mut diag_down, id) = generate_diagonal_down_patterns(current_id, weight);
+        let (mut diag_down, id) = generate_diagonal_down_patterns(current_id);
         patterns.append(&mut diag_down);
         current_id = id;
     }
 
     // 斜め(右上→左下)
     {
-        let (mut diag_up, id) = generate_diagonal_up_patterns(current_id, weight);
+        let (mut diag_up, id) = generate_diagonal_up_patterns(current_id);
         patterns.append(&mut diag_up);
-        current_id = id;
+        // current_id = id;
     }
 
     patterns

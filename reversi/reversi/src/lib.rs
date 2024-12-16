@@ -1,10 +1,13 @@
-use board::BOARD_SIZE;
+mod ai;
+mod array_board;
+mod bit_board;
+mod board;
+mod game;
 
-pub mod ai;
-pub mod array_board;
-pub mod bit_board;
-pub mod board;
-pub mod game;
+pub use ai::*;
+pub use bit_board::*;
+pub use board::*;
+pub use game::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Position {
@@ -210,7 +213,7 @@ impl Direction {
 
 impl std::fmt::Display for Position {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let file = (b'A' + self.x as u8) as char;
+        let file = (b'A' + self.x) as char;
         write!(f, "{}{}", file, self.y + 1)
     }
 }

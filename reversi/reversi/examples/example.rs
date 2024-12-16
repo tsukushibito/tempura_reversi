@@ -1,4 +1,4 @@
-use reversi::{ai::Ai, bit_board::BitBoard, board::Board, game::Game, Color, Position};
+use reversi::{Ai, BitBoard, Board, Color, Game, Position};
 
 fn main() {
     let mut ai = Ai::new();

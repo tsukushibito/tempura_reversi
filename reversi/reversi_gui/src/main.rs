@@ -12,7 +12,7 @@ use iced::{
     widget::{button, canvas, column, pick_list, row, text},
     Element, Length, Settings, Subscription, Task, Theme,
 };
-use reversi::{ai::Ai, bit_board::BitBoard, board::Board, game::Game, BoardState};
+use reversi::{Ai, BitBoard, Board, BoardState, Game};
 
 pub fn main() -> iced::Result {
     iced::application("Tempura Reversi", Reversi::update, Reversi::view)

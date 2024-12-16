@@ -17,7 +17,7 @@ pub struct SearchResult {
     pub policy: [i32; BOARD_SIZE * BOARD_SIZE],
 }
 
-enum Searcher {
+pub enum Searcher {
     TestNegaalpha(Negaalpha<TestEvaluator>),
 }
 
@@ -37,8 +37,8 @@ impl Searcher {
 }
 
 pub struct Ai {
-    searcher: Searcher,
-    search_depth: u8,
+    pub searcher: Searcher,
+    pub search_depth: u8,
 }
 
 impl Default for Ai {

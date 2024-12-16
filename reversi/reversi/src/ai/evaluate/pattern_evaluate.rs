@@ -1,4 +1,6 @@
-use crate::{bit_board::BitBoard, Color, Position};
+use rand::Rng;
+
+use crate::{bit_board::BitBoard, Color};
 
 use super::{bit_pattern::BitPattern, Evaluator};
 
@@ -8,21 +10,17 @@ struct PatternEvalTable {
 
 impl PatternEvalTable {
     pub fn new(patterns: &[BitPattern]) -> Self {
+        let mut rng = rand::thread_rng();
         let mut pattern_scores = Vec::new();
         for p in patterns {
             let length = p.pattern_length();
             let num_states = 3usize.pow(length as u32);
-            pattern_scores.push(vec![0.0f32; num_states]);
+            let scores: Vec<f32> = (0..num_states)
+                .map(|_| rng.gen_range(-64.0..64.0))
+                .collect();
+            pattern_scores.push(scores);
         }
         PatternEvalTable { pattern_scores }
-    }
-
-    pub fn get_score(&self, pattern_id: usize, state_idx: usize) -> f32 {
-        self.pattern_scores[pattern_id][state_idx]
-    }
-
-    pub fn set_score(&mut self, pattern_id: usize, state_idx: usize, score: f32) {
-        self.pattern_scores[pattern_id][state_idx] = score;
     }
 }
 
@@ -37,8 +35,8 @@ impl Evaluator for PatternEvaluator {
 
         for pattern in &self.patterns {
             let state_idx = pattern.pattern_state_index(board);
-            let score = self.eval_table.get_score(pattern.id, state_idx);
-            total_score += score * pattern.weight;
+            let score = self.eval_table.pattern_scores[pattern.id][state_idx];
+            total_score += score;
         }
 
         match color {

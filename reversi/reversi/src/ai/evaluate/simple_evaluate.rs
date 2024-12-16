@@ -2,13 +2,8 @@ use crate::{board::Board, Color};
 
 use super::Evaluator;
 
+#[derive(Default)]
 pub struct SimpleEvaluator {}
-
-impl Default for SimpleEvaluator {
-    fn default() -> Self {
-        Self {}
-    }
-}
 
 impl Evaluator for SimpleEvaluator {
     fn evaluate(&self, board: &crate::bit_board::BitBoard, color: Color) -> i32 {

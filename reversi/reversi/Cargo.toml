@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 rand = "0.8.5"
 rand_distr = "0.4.3"
+serde = { version = "1.0.216", features = ["derive"] }
 
 [dev-dependencies]
 criterion = "0.5.1"
