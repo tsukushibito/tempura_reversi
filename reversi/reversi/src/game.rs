@@ -61,7 +61,7 @@ impl Game {
     }
 
     pub fn white_score(&self) -> usize {
-        self.white_score()
+        self.board().white_count()
     }
 
     pub fn reset(&mut self) {

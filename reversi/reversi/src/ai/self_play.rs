@@ -28,7 +28,7 @@ pub struct SelfPlaySetting {
     pub game_count: usize,
 }
 
-pub fn self_play(setting: &SelfPlaySetting) -> Result<(), Box<dyn std::error::Error>> {
+pub fn self_play(setting: &SelfPlaySetting) -> Result<Vec<GameRecord>, Box<dyn std::error::Error>> {
     let mut records: Vec<GameRecord> = vec![];
 
     for _ in 0..setting.game_count {
@@ -88,8 +88,25 @@ pub fn self_play(setting: &SelfPlaySetting) -> Result<(), Box<dyn std::error::Er
             white_score,
         };
 
+        println!("{:?}", game_record);
+
         records.push(game_record);
     }
 
-    Ok(())
+    Ok(records)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test() {
+        let setting = SelfPlaySetting {
+            max_random_moves: 10,
+            min_random_moves: 6,
+            game_count: 10,
+        };
+        let _ = self_play(&setting).unwrap();
+    }
 }
