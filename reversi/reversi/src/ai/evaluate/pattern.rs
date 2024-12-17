@@ -1,8 +1,9 @@
 use rand::Rng;
+use serde::{Deserialize, Serialize};
 
 use crate::{bit_board::BitBoard, Position};
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Pattern {
     pub id: usize,
     pub mask: u64,
@@ -48,14 +49,16 @@ impl Pattern {
     }
 }
 
+#[derive(Serialize, Deserialize, Debug)]
 pub struct PatternTable {
-    pub patterns: Vec<Pattern>,
-    pub index_offsets: Vec<usize>,
-    pub scores: Vec<f32>,
+    patterns: Vec<Pattern>,
+    index_offsets: Vec<usize>,
+    scores: Vec<f32>,
 }
 
-impl PatternTable {
-    pub fn new(patterns: &[Pattern]) -> Self {
+impl Default for PatternTable {
+    fn default() -> Self {
+        let patterns = generate_all_line_patterns();
         let mut rng = rand::thread_rng();
         let mut index_offsets = Vec::new();
         let mut index_offset = 0;
@@ -81,12 +84,30 @@ impl PatternTable {
             scores,
         }
     }
+}
 
-    pub fn evaluate(&self, board: &BitBoard) -> f32 {
-        self.patterns
-            .iter()
-            .map(|pattern| self.scores[self.score_index(board, pattern)])
-            .sum()
+impl PatternTable {
+    pub fn new(patterns: &[Pattern], index_offsets: &[usize], scores: &[f32]) -> Self {
+        Self {
+            patterns: patterns.to_vec(),
+            index_offsets: index_offsets.to_vec(),
+            scores: scores.to_vec(),
+        }
+    }
+
+    pub fn patterns(&self) -> &Vec<Pattern> {
+        &self.patterns
+    }
+
+    pub fn scores(&self) -> &Vec<f32> {
+        &self.scores
+    }
+
+    pub fn set_scores(&mut self, scores: &[f32]) {
+        if scores.len() != self.scores.len() {
+            panic!();
+        }
+        self.scores = scores.to_vec();
     }
 
     pub fn features(&self, board: &BitBoard) -> Vec<f32> {
@@ -98,6 +119,13 @@ impl PatternTable {
         });
 
         features
+    }
+
+    pub fn evaluate(&self, board: &BitBoard) -> f32 {
+        self.patterns
+            .iter()
+            .map(|pattern| self.scores[self.score_index(board, pattern)])
+            .sum()
     }
 
     fn score_index(&self, board: &BitBoard, pattern: &Pattern) -> usize {
