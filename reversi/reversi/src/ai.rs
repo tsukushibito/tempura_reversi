@@ -2,12 +2,15 @@ use crate::{bit_board::BitBoard, board::BOARD_SIZE, Color, Move, Position};
 
 use self::search::Negaalpha;
 
-pub mod evaluate;
-pub mod search;
+mod evaluate;
+mod search;
 mod self_play;
+mod training;
 
-use evaluate::TestEvaluator;
+pub use evaluate::*;
+pub use search::*;
 pub use self_play::*;
+pub use training::*;
 
 pub struct SearchResult {
     pub best_move: Option<Move>,

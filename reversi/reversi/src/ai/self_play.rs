@@ -14,10 +14,10 @@ pub enum Winner {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GameRecord {
-    moves: Vec<u8>,
-    winner: Winner,
-    black_score: u8,
-    white_score: u8,
+    pub moves: Vec<u8>,
+    pub winner: Winner,
+    pub black_score: u8,
+    pub white_score: u8,
 }
 
 pub struct SelfPlaySetting {
@@ -47,7 +47,12 @@ pub fn self_play(setting: &SelfPlaySetting) -> Result<Vec<GameRecord>, Box<dyn s
             let _ = game.progress(current_player, *pos);
         }
 
-        let mut ai = Ai {
+        let mut black_ai = Ai {
+            searcher: Searcher::TestNegaalpha(Negaalpha::new(TestEvaluator::default())),
+            search_depth: 4,
+        };
+
+        let mut white_ai = Ai {
             searcher: Searcher::TestNegaalpha(Negaalpha::new(TestEvaluator::default())),
             search_depth: 4,
         };
@@ -58,6 +63,10 @@ pub fn self_play(setting: &SelfPlaySetting) -> Result<Vec<GameRecord>, Box<dyn s
             }
 
             let bit_board = BitBoard::from_board(game.board());
+            let ai = match game.current_player() {
+                crate::Color::Black => &mut black_ai,
+                crate::Color::White => &mut white_ai,
+            };
             let mov = ai.decide_move(&bit_board, game.current_player());
             assert!(mov.is_some());
 
