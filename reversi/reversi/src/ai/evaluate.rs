@@ -1,4 +1,5 @@
 mod mobility_evaluate;
+mod model;
 mod pattern;
 mod pattern_evaluate;
 mod positional_evaluate;

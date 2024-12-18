@@ -98,6 +98,19 @@ impl Position {
     pub fn to_index(&self) -> usize {
         self.y as usize * BOARD_SIZE + self.x as usize
     }
+
+    pub fn rotated_90(&self) -> Self {
+        let mut rotated = *self;
+        rotated.rotate_90();
+        rotated
+    }
+
+    pub fn rotate_90(&mut self) {
+        let x = self.y;
+        let y = 7 - self.x;
+        self.x = x;
+        self.y = y;
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

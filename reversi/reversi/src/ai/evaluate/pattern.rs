@@ -5,49 +5,87 @@ use serde::{Deserialize, Serialize};
 
 use crate::{bit_board::BitBoard, Position};
 
+pub const PATTERN_ROTATION_0: usize = 0;
+pub const PATTERN_ROTATION_90: usize = 1;
+pub const PATTERN_ROTATION_180: usize = 2;
+pub const PATTERN_ROTATION_270: usize = 3;
+
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Pattern {
     pub id: usize,
-    pub mask: u64,
+    pub masks: [u64; 4],
+    pub values: Vec<f32>,
 }
 
 impl Pattern {
     pub fn from_positions(id: usize, positions: &[Position]) -> Self {
-        let mut mask = 0u64;
-        for pos in positions {
-            let bit_index = pos.to_index();
-            mask |= 1 << bit_index;
-        }
+        let mut masks = [0u64; 4];
+        let mut positions = positions.to_vec();
 
-        Self { id, mask }
+        masks.iter_mut().for_each(|mask| {
+            for pos in &positions {
+                let bit_index = pos.to_index();
+                *mask |= 1 << bit_index;
+            }
+            positions.iter_mut().for_each(|p| p.rotate_90());
+        });
+
+        let values = vec![0.0; masks[0].count_ones() as usize];
+
+        Self { id, masks, values }
     }
 
-    pub fn pattern_length(&self) -> usize {
-        self.mask.count_ones() as usize
+    pub fn state_count(&self) -> usize {
+        self.masks[0].count_ones() as usize
     }
 
-    pub fn pattern_state_index(&self, board: &BitBoard) -> usize {
-        let black_pattern = board.black & self.mask;
-        let white_pattern = board.white & self.mask;
+    pub fn state_indices(&self, board: &BitBoard) -> [usize; 4] {
+        let mut indices = [0usize; 4];
+        indices.iter_mut().enumerate().for_each(|(i, index)| {
+            let mask = &self.masks[i];
+            let black_pattern = board.black & mask;
+            let white_pattern = board.white & mask;
 
-        let mut idx = 0;
-        let mut mask_copy = self.mask;
+            let mut idx = 0;
+            let mut mask_copy = *mask;
 
-        while mask_copy != 0 {
-            let bit = mask_copy & (!mask_copy + 1);
-            let val = if (black_pattern & bit) != 0 {
-                1
-            } else if (white_pattern & bit) != 0 {
-                2
-            } else {
-                0
-            };
+            while mask_copy != 0 {
+                let bit = mask_copy & (!mask_copy + 1);
+                let val = if (black_pattern & bit) != 0 {
+                    1
+                } else if (white_pattern & bit) != 0 {
+                    2
+                } else {
+                    0
+                };
 
-            idx = idx * 3 + val;
-            mask_copy &= mask_copy - 1;
+                idx = idx * 3 + val;
+                mask_copy &= mask_copy - 1;
+            }
+
+            *index = idx;
+        });
+        indices
+    }
+
+    pub fn feature(&self, board: &BitBoard) -> Vec<f32> {
+        let mut feature = vec![0.0; self.state_count()];
+
+        for i in self.state_indices(board) {
+            feature[i] += 1.0;
         }
 
-        idx
+        feature
+    }
+
+    pub fn value(&self, board: &BitBoard) -> f32 {
+        let mut value = 0.0;
+
+        for i in self.state_indices(board) {
+            value += self.values[i];
+        }
+
+        value
     }
 }
 
@@ -69,7 +107,7 @@ impl Default for PatternTable {
         patterns.iter().enumerate().for_each(|(id, p)| {
             assert!(id == p.id, "idは連番");
 
-            let length = p.pattern_length();
+            let length = p.state_count();
 
             index_offsets.push(index_offset);
             index_offset += length;
@@ -140,9 +178,9 @@ impl PatternTable {
     }
 
     fn score_index(&self, board: &BitBoard, pattern: &Pattern) -> usize {
-        let state_index = pattern.pattern_state_index(board);
+        let state_index = pattern.state_indices(board);
         let index_offset = self.index_offsets[pattern.id];
-        index_offset + state_index
+        index_offset + state_index[0]
     }
 }
 
