@@ -89,7 +89,10 @@ impl<E: Evaluator> Negaalpha<E> {
         }
 
         if self.use_move_ordering {
-            valid_moves.sort_by_cached_key(|pos| -self.evaluate_move(board, player, pos));
+            valid_moves.sort_by_cached_key(|pos| {
+                let score = self.evaluate_move(board, player, pos);
+                -score.checked_neg().unwrap_or(i32::MIN)
+            });
         }
 
         let mut max_score = i32::MIN;

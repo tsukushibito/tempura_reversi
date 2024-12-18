@@ -1,34 +1,51 @@
-use reversi::{Ai, BitBoard, Board, Color, Game, Position};
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use reversi::{Ai, BitBoard, Board, Color, Game, Negaalpha, Position, Searcher, TestEvaluator};
 
 fn main() {
-    let mut ai = Ai::new();
+    let results: Vec<i32> = (0..10)
+        .into_par_iter()
+        .map(|_| {
+            let mut ai_black = Ai::new();
+            let mut ai_white = Ai::new();
+            ai_white.searcher = Searcher::TestNegaalpha(Negaalpha::new(TestEvaluator::default()));
 
-    // ゲームの初期化
-    let mut game = Game::initial();
+            // ゲームの初期化
+            let mut game = Game::initial();
 
-    // ゲームイベントの処理
-    loop {
-        if game.is_game_over() {
-            println!("Game Over");
-            game.board().display();
-            break;
-        }
+            // ゲームイベントの処理
+            loop {
+                if game.is_game_over() {
+                    // println!("Game Over");
+                    // game.board().display();
+                    break;
+                }
 
-        println!("Turn: {:?}", game.current_player());
-        game.board().display();
+                // println!("Turn: {:?}", game.current_player());
+                // game.board().display();
 
-        let bit_board = BitBoard::from_board(game.board());
-        match game.current_player() {
-            Color::Black => {
-                let p = get_move_from_stdin(&bit_board, Color::Black);
-                let _ = game.progress(Color::Black, p.unwrap());
+                let bit_board = BitBoard::from_board(game.board());
+                match game.current_player() {
+                    Color::Black => {
+                        // let p = get_move_from_stdin(&bit_board, Color::Black);
+                        let p = ai_black.decide_move(&bit_board, Color::Black);
+                        let _ = game.progress(Color::Black, p.unwrap());
+                    }
+                    Color::White => {
+                        let p = ai_white.decide_move(&bit_board, Color::White);
+                        let _ = game.progress(Color::White, p.unwrap());
+                    }
+                }
             }
-            Color::White => {
-                let p = ai.decide_move(&bit_board, Color::White);
-                let _ = game.progress(Color::White, p.unwrap());
+
+            match game.black_score().cmp(&game.white_score()) {
+                std::cmp::Ordering::Less => -1,
+                std::cmp::Ordering::Equal => 0,
+                std::cmp::Ordering::Greater => 1,
             }
-        }
-    }
+        })
+        .collect();
+
+    println!("{:?}", results);
 
     let mut s: String = Default::default();
     std::io::stdin().read_line(&mut s).ok();

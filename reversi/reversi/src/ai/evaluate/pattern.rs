@@ -1,3 +1,5 @@
+use std::{fs::File, io::Read};
+
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 
@@ -58,7 +60,7 @@ pub struct PatternTable {
 
 impl Default for PatternTable {
     fn default() -> Self {
-        let patterns = generate_all_line_patterns();
+        let patterns = generate_patterns();
         let mut rng = rand::thread_rng();
         let mut index_offsets = Vec::new();
         let mut index_offset = 0;
@@ -93,6 +95,15 @@ impl PatternTable {
             index_offsets: index_offsets.to_vec(),
             scores: scores.to_vec(),
         }
+    }
+
+    pub fn load(file_path: &str) -> Result<Self, Box<dyn std::error::Error>> {
+        let mut file = File::open(file_path)?;
+        let mut buf = vec![];
+        file.read_to_end(&mut buf)?;
+        let table: Self = bincode::deserialize(&buf)?;
+
+        Ok(table)
     }
 
     pub fn patterns(&self) -> &Vec<Pattern> {
@@ -241,8 +252,163 @@ fn generate_diagonal_up_patterns(start_id: usize) -> (Vec<Pattern>, usize) {
     (patterns, id)
 }
 
-/// 全ライン(水平, 垂直, 4マス以上の対角)のBitPatternを生成
-pub fn generate_all_line_patterns() -> Vec<Pattern> {
+pub fn generate_edge_x_patterns(start_id: usize) -> (Vec<Pattern>, usize) {
+    let mut patterns = Vec::new();
+    let mut id = start_id;
+
+    // エッジ座標定義
+    let top_edge_positions: Vec<_> = (0..8).map(|x| Position { x, y: 0 }).collect();
+    let bottom_edge_positions: Vec<_> = (0..8).map(|x| Position { x, y: 7 }).collect();
+    let left_edge_positions: Vec<_> = (0..8).map(|y| Position { x: 0, y }).collect();
+    let right_edge_positions: Vec<_> = (0..8).map(|y| Position { x: 7, y }).collect();
+
+    // Xマス定義(隅の内側)
+    let top_x_positions = vec![Position { x: 1, y: 1 }, Position { x: 6, y: 1 }];
+    let bottom_x_positions = vec![Position { x: 1, y: 6 }, Position { x: 6, y: 6 }];
+    let left_x_positions = vec![Position { x: 1, y: 1 }, Position { x: 1, y: 6 }];
+    let right_x_positions = vec![Position { x: 6, y: 1 }, Position { x: 6, y: 6 }];
+
+    // エッジ + Xマスパターン
+    {
+        let mut top_with_x = top_edge_positions.clone();
+        top_with_x.extend(&top_x_positions);
+        patterns.push(Pattern::from_positions(id, &top_with_x));
+        id += 1;
+
+        let mut bottom_with_x = bottom_edge_positions.clone();
+        bottom_with_x.extend(&bottom_x_positions);
+        patterns.push(Pattern::from_positions(id, &bottom_with_x));
+        id += 1;
+
+        let mut left_with_x = left_edge_positions.clone();
+        left_with_x.extend(&left_x_positions);
+        patterns.push(Pattern::from_positions(id, &left_with_x));
+        id += 1;
+
+        let mut right_with_x = right_edge_positions.clone();
+        right_with_x.extend(&right_x_positions);
+        patterns.push(Pattern::from_positions(id, &right_with_x));
+        id += 1;
+    }
+
+    (patterns, id)
+}
+
+pub fn generate_corner_3x3_patterns(start_id: usize) -> (Vec<Pattern>, usize) {
+    let mut patterns = Vec::new();
+    let mut id = start_id;
+
+    // 左上コーナー
+    let top_left_positions: Vec<Position> = (0..3)
+        .flat_map(|x| (0..3).map(move |y| Position { x, y }))
+        .collect();
+    patterns.push(Pattern::from_positions(id, &top_left_positions));
+    id += 1;
+
+    // 右上コーナー
+    let top_right_positions: Vec<Position> = (5..8)
+        .flat_map(|x| (0..3).map(move |y| Position { x, y }))
+        .collect();
+    patterns.push(Pattern::from_positions(id, &top_right_positions));
+    id += 1;
+
+    // 左下コーナー
+    let bottom_left_positions: Vec<Position> = (0..3)
+        .flat_map(|x| (5..8).map(move |y| Position { x, y }))
+        .collect();
+    patterns.push(Pattern::from_positions(id, &bottom_left_positions));
+    id += 1;
+
+    // 右下コーナー
+    let bottom_right_positions: Vec<Position> = (5..8)
+        .flat_map(|x| (5..8).map(move |y| Position { x, y }))
+        .collect();
+    patterns.push(Pattern::from_positions(id, &bottom_right_positions));
+    id += 1;
+
+    (patterns, id)
+}
+
+pub fn generate_corner_2x4_patterns(start_id: usize) -> (Vec<Pattern>, usize) {
+    let mut patterns = Vec::new();
+    let mut id = start_id;
+
+    // 左上コーナー (0,0)
+    // 水平(2x4): x=0..3, y=0..1
+    {
+        let positions: Vec<Position> = (0..4)
+            .flat_map(|x| (0..2).map(move |y| Position { x, y }))
+            .collect();
+        patterns.push(Pattern::from_positions(id, &positions));
+        id += 1;
+    }
+    // 垂直(4x2): x=0..1, y=0..3
+    {
+        let positions: Vec<Position> = (0..2)
+            .flat_map(|x| (0..4).map(move |y| Position { x, y }))
+            .collect();
+        patterns.push(Pattern::from_positions(id, &positions));
+        id += 1;
+    }
+
+    // 右上コーナー (7,0)
+    // 水平(2x4): x=4..7, y=0..1
+    {
+        let positions: Vec<Position> = (4..8)
+            .flat_map(|x| (0..2).map(move |y| Position { x, y }))
+            .collect();
+        patterns.push(Pattern::from_positions(id, &positions));
+        id += 1;
+    }
+    // 垂直(4x2): x=6..7, y=0..3
+    {
+        let positions: Vec<Position> = (6..8)
+            .flat_map(|x| (0..4).map(move |y| Position { x, y }))
+            .collect();
+        patterns.push(Pattern::from_positions(id, &positions));
+        id += 1;
+    }
+
+    // 左下コーナー (0,7)
+    // 水平(2x4): x=0..3, y=6..7
+    {
+        let positions: Vec<Position> = (0..4)
+            .flat_map(|x| (6..8).map(move |y| Position { x, y }))
+            .collect();
+        patterns.push(Pattern::from_positions(id, &positions));
+        id += 1;
+    }
+    // 垂直(4x2): x=0..1, y=4..7
+    {
+        let positions: Vec<Position> = (0..2)
+            .flat_map(|x| (4..8).map(move |y| Position { x, y }))
+            .collect();
+        patterns.push(Pattern::from_positions(id, &positions));
+        id += 1;
+    }
+
+    // 右下コーナー (7,7)
+    // 水平(2x4): x=4..7, y=6..7
+    {
+        let positions: Vec<Position> = (4..8)
+            .flat_map(|x| (6..8).map(move |y| Position { x, y }))
+            .collect();
+        patterns.push(Pattern::from_positions(id, &positions));
+        id += 1;
+    }
+    // 垂直(4x2): x=6..7, y=4..7
+    {
+        let positions: Vec<Position> = (6..8)
+            .flat_map(|x| (4..8).map(move |y| Position { x, y }))
+            .collect();
+        patterns.push(Pattern::from_positions(id, &positions));
+        id += 1;
+    }
+
+    (patterns, id)
+}
+
+pub fn generate_patterns() -> Vec<Pattern> {
     let mut patterns = Vec::new();
     let mut current_id = 0;
 
@@ -271,7 +437,28 @@ pub fn generate_all_line_patterns() -> Vec<Pattern> {
     {
         let (mut diag_up, id) = generate_diagonal_up_patterns(current_id);
         patterns.append(&mut diag_up);
-        // current_id = id;
+        current_id = id;
+    }
+
+    // エッジ+Xマス
+    {
+        let (mut edge_x, id) = generate_edge_x_patterns(current_id);
+        patterns.append(&mut edge_x);
+        current_id = id;
+    }
+
+    // コーナー3x3
+    {
+        let (mut corner, id) = generate_corner_3x3_patterns(current_id);
+        patterns.append(&mut corner);
+        current_id = id;
+    }
+
+    // コーナー2x4
+    {
+        let (mut corner, id) = generate_corner_2x4_patterns(current_id);
+        patterns.append(&mut corner);
+        current_id = id;
     }
 
     patterns
