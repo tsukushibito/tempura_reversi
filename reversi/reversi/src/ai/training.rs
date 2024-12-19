@@ -3,7 +3,7 @@ use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 use crate::{BitBoard, Game, Position};
 
-use super::{GameRecord, PatternTable};
+use super::{GameRecord, Pattern, PatternTable};
 
 pub struct HyperParameter {
     pub alpha: f32,
@@ -20,7 +20,7 @@ pub fn train_pattern_table(
     records: &[GameRecord],
     hyper_param: &HyperParameter,
 ) {
-    let examples = extract_training_data(records);
+    let examples = extract_training_data(records, pattern_table.patterns());
 
     // mini_batch_gradient_descent(
     //     &examples,
@@ -37,10 +37,11 @@ pub fn train_pattern_table(
 #[derive(Clone)]
 struct TrainingExample {
     pub board: BitBoard,
+    pub features: Vec<f32>,
     pub label: f32,
 }
 
-fn extract_training_data(records: &[GameRecord]) -> Vec<TrainingExample> {
+fn extract_training_data(records: &[GameRecord], patterns: &[Pattern]) -> Vec<TrainingExample> {
     let mut training_data = Vec::new();
 
     for record in records {
@@ -49,17 +50,26 @@ fn extract_training_data(records: &[GameRecord]) -> Vec<TrainingExample> {
 
         let mut game = Game::initial();
 
-        let board = BitBoard::from_board(game.board());
-
-        training_data.push(TrainingExample { board, label });
-
-        for &move_pos in &record.moves {
-            let pos = Position::from_index(move_pos.into());
-            let _ = game.progress(game.current_player(), pos);
-
+        for i in 0..=record.moves.len() {
             let board = BitBoard::from_board(game.board());
 
-            training_data.push(TrainingExample { board, label });
+            let features: Vec<f32> = patterns
+                .iter()
+                .flat_map(|pattern| pattern.feature(&board).into_iter())
+                .collect();
+
+            training_data.push(TrainingExample {
+                board,
+                label,
+                features,
+            });
+
+            if i >= record.moves.len() {
+                break;
+            }
+
+            let pos = Position::from_index(record.moves[i].into());
+            let _ = game.progress(game.current_player(), pos);
         }
     }
 
