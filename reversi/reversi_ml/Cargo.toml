@@ -1,8 +1,8 @@
 [package]
-name = "reversi_gui"
+name = "reversi_ml"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 reversi = { path = "../reversi" }
-iced = { version = "0.13.1", features = ["canvas", "tokio", "debug"] }
+burn = { version = "0.15.0", features = ["train", "wgpu"] }
