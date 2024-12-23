@@ -1,12 +1,29 @@
-use burn::{backend::Wgpu, tensor::Tensor};
+use burn::{backend::Wgpu, data::dataloader::batcher::Batcher, prelude::Backend, tensor::Tensor};
+use data::{ReversiBatcher, ReversiItem};
 
 mod data;
 mod model;
+mod training;
 
 fn main() {
     println!("Hello, world!");
 
     let device = burn::backend::wgpu::WgpuDevice::default();
-    let tensor = Tensor::<Wgpu<f32, i32>, 1>::from_floats([0.0, 0.0], &device).reshape([1, 2]);
-    println!("{:?}", tensor.shape());
+    let batcher = ReversiBatcher::<Wgpu>::new(device);
+    let items = [
+        ReversiItem {
+            feature: vec![0.0, 1.0, 2.0, 3.0],
+            value: 0.0,
+        },
+        ReversiItem {
+            feature: vec![4.0, 5.0, 6.0, 7.0],
+            value: 1.0,
+        },
+        ReversiItem {
+            feature: vec![8.0, 9.0, 0.0, 1.0],
+            value: 2.0,
+        },
+    ];
+    let batch = batcher.batch(items.to_vec());
+    println!("{:?}", batch);
 }

@@ -6,3 +6,5 @@ edition = "2021"
 [dependencies]
 reversi = { path = "../reversi" }
 burn = { version = "0.15.0", features = ["train", "wgpu"] }
+serde = { version = "1.0.216", features = ["std", "derive"] }
+csv = "1.3.1"
