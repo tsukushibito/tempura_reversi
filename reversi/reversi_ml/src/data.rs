@@ -10,6 +10,7 @@ use csv;
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct ReversiItem {
+    pub feature_size: usize,
     pub feature: Vec<f32>,
     pub value: f32,
 }
@@ -46,6 +47,11 @@ impl ReversiDataset {
         let rdr = rdr.delimiter(b'\t');
         let dataset: InMemDataset<ReversiItem> = InMemDataset::from_csv(csv_name, rdr).ok()?;
         Some(Self { dataset })
+    }
+
+    pub fn d_input(&self) -> Option<usize> {
+        let item = self.dataset.get(0)?;
+        Some(item.feature_size)
     }
 }
 

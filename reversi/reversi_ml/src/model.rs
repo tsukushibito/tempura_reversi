@@ -16,7 +16,9 @@ pub struct ReversiModel<B: Backend> {
 
 #[derive(Config, Debug)]
 pub struct ReversiModelConfig {
+    // #[config(default = 8000)]
     d_input: usize,
+    #[config(default = 1)]
     d_output: usize,
 }
 

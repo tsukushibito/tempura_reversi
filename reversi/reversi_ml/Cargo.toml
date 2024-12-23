@@ -8,3 +8,6 @@ reversi = { path = "../reversi" }
 burn = { version = "0.15.0", features = ["train", "wgpu"] }
 serde = { version = "1.0.216", features = ["std", "derive"] }
 csv = "1.3.1"
+clap = { version = "4.5.23", features = ["derive"] }
+indicatif = { version = "0.17.9", features = ["rayon"] }
+rayon = "1.10.0"
