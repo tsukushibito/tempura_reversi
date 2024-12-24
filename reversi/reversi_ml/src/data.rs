@@ -7,6 +7,7 @@ use burn::{
     tensor::Tensor,
 };
 use csv;
+use reversi::{BitBoard, Game, GameRecord};
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct ReversiItem {

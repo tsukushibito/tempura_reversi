@@ -36,7 +36,7 @@ impl Pattern {
     }
 
     pub fn state_count(&self) -> usize {
-        self.masks[0].count_ones() as usize
+        (self.masks[0].count_ones() as usize).pow(3)
     }
 
     pub fn state_indices(&self, board: &BitBoard) -> [usize; 4] {

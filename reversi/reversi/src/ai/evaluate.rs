@@ -7,6 +7,7 @@ mod simple_evaluate;
 mod test_evaluate;
 
 pub use mobility_evaluate::MobilityEvaluator;
+pub use model::*;
 pub use pattern::*;
 pub use pattern_evaluate::*;
 pub use positional_evaluate::PositionalEvaluator;
