@@ -1,4 +1,4 @@
-use std::fs::File;
+use std::{fs::File, task::Wake};
 
 use burn::{
     backend::{Autodiff, Wgpu},
@@ -69,6 +69,8 @@ fn make_training_data(game_count: u64, artifact_dir: &str, file_name: &str) -> D
     let patterns = model.patterns();
 
     let items = extract_training_data(&records, patterns);
+
+    std::fs::create_dir_all(artifact_dir)?;
 
     let file = File::create(format!("{artifact_dir}/{file_name}"))?;
     let mut wtr = csv::Writer::from_writer(file);

@@ -30,13 +30,13 @@ impl Pattern {
             positions.iter_mut().for_each(|p| p.rotate_90());
         });
 
-        let values = vec![0.0; masks[0].count_ones() as usize];
+        let values = vec![0.0; 3usize.pow(masks[0].count_ones())];
 
         Self { id, masks, values }
     }
 
     pub fn state_count(&self) -> usize {
-        (self.masks[0].count_ones() as usize).pow(3)
+        3usize.pow(self.masks[0].count_ones())
     }
 
     pub fn state_indices(&self, board: &BitBoard) -> [usize; 4] {
