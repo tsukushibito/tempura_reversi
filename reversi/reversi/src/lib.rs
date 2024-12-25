@@ -9,6 +9,8 @@ pub use bit_board::*;
 pub use board::*;
 pub use game::*;
 
+pub type DynResult<T> = Result<T, Box<dyn std::error::Error>>;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Position {
     pub x: u8,

@@ -44,34 +44,34 @@ struct TrainingExample {
 fn extract_training_data(records: &[GameRecord], patterns: &[Pattern]) -> Vec<TrainingExample> {
     let mut training_data = Vec::new();
 
-    for record in records {
-        let diff = record.black_score as i32 - record.white_score as i32;
-        let label = diff as f32;
+    // for record in records {
+    //     let diff = record.black_score as i32 - record.white_score as i32;
+    //     let label = diff as f32;
 
-        let mut game = Game::initial();
+    //     let mut game = Game::initial();
 
-        for i in 0..=record.moves.len() {
-            let board = BitBoard::from_board(game.board());
+    //     for i in 0..=record.moves.len() {
+    //         let board = BitBoard::from_board(game.board());
 
-            let features: Vec<f32> = patterns
-                .iter()
-                .flat_map(|pattern| pattern.feature(&board).into_iter())
-                .collect();
+    //         let features: Vec<f32> = patterns
+    //             .iter()
+    //             .flat_map(|pattern| pattern.feature(&board).into_iter())
+    //             .collect();
 
-            training_data.push(TrainingExample {
-                board,
-                label,
-                features,
-            });
+    //         training_data.push(TrainingExample {
+    //             board,
+    //             label,
+    //             features,
+    //         });
 
-            if i >= record.moves.len() {
-                break;
-            }
+    //         if i >= record.moves.len() {
+    //             break;
+    //         }
 
-            let pos = Position::from_index(record.moves[i].into());
-            let _ = game.progress(game.current_player(), pos);
-        }
-    }
+    //         let pos = Position::from_index(record.moves[i].into());
+    //         let _ = game.progress(game.current_player(), pos);
+    //     }
+    // }
 
     training_data
 }

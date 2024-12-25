@@ -5,35 +5,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::{bit_board::BitBoard, Position};
 
+use super::sparse_feature::SparseFeature;
+
 pub const PATTERN_ROTATION_0: usize = 0;
 pub const PATTERN_ROTATION_90: usize = 1;
 pub const PATTERN_ROTATION_180: usize = 2;
 pub const PATTERN_ROTATION_270: usize = 3;
-
-#[derive(Debug, Clone)]
-pub struct SparseFeature {
-    indices: Vec<usize>, // 非ゼロ要素のインデックス
-    values: Vec<f32>,    // 非ゼロ要素の値
-}
-
-impl SparseFeature {
-    pub fn new(indices: Vec<usize>, values: Vec<f32>) -> Self {
-        assert_eq!(
-            indices.len(),
-            values.len(),
-            "Indices and values must have the same length"
-        );
-        SparseFeature { indices, values }
-    }
-
-    pub fn linear_combination(&self, weights: &[f32]) -> f32 {
-        self.indices
-            .iter()
-            .zip(&self.values)
-            .map(|(&i, &v)| weights[i] * v)
-            .sum()
-    }
-}
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Pattern {
@@ -108,7 +85,7 @@ impl Pattern {
             values.push(value);
         }
 
-        SparseFeature { indices, values }
+        SparseFeature::new(indices, values, self.state_count()).unwrap_or_default()
     }
 
     pub fn value(&self, board: &BitBoard) -> f32 {

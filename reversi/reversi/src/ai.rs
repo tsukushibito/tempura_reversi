@@ -1,11 +1,18 @@
 use crate::{bit_board::BitBoard, board::BOARD_SIZE, Color, Move, Position};
 
 mod evaluate;
+mod learner;
+mod model;
+mod pattern;
 mod search;
 mod self_play;
+mod sparse_feature;
 mod training;
 
 pub use evaluate::*;
+pub use learner::*;
+pub use model::*;
+pub use pattern::*;
 pub use search::*;
 pub use self_play::*;
 pub use training::*;

@@ -1,6 +1,6 @@
-use crate::{bit_board::BitBoard, Color};
+use crate::{bit_board::BitBoard, Color, PatternTable};
 
-use super::{Evaluator, PatternTable};
+use super::Evaluator;
 
 pub struct PatternEvaluator {
     pub pattern_table: PatternTable,

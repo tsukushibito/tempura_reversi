@@ -1,8 +1,13 @@
-use std::{fs::File, io::Read};
+use std::{
+    fs::File,
+    io::{Read, Write},
+};
 
-use crate::{BitBoard, Pattern, Position};
+use crate::{BitBoard, DynResult, Pattern, Position};
 
 use serde::{Deserialize, Serialize};
+
+use super::sparse_feature::SparseFeature;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Model {
@@ -24,7 +29,7 @@ impl Model {
         }
     }
 
-    pub fn load(file_path: &str) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn load(file_path: &str) -> DynResult<Self> {
         let mut file = File::open(file_path)?;
         let mut buf = vec![];
         file.read_to_end(&mut buf)?;
@@ -33,14 +38,30 @@ impl Model {
         Ok(model)
     }
 
+    pub fn save(&self, file_path: &str) -> DynResult<()> {
+        let mut file = File::open(file_path)?;
+        let serialized = bincode::serialize(self)?;
+        file.write_all(&serialized)?;
+        file.flush()?;
+        Ok(())
+    }
+
     pub fn patterns(&self) -> &Vec<Pattern> {
         &self.patterns
     }
 
-    pub fn features(&self, board: &BitBoard) -> Vec<f32> {
+    pub fn features(&self, board: &BitBoard) -> SparseFeature {
         self.patterns
             .iter()
-            .flat_map(|pattern| pattern.feature(board).into_iter())
+            .fold(SparseFeature::default(), |acc, pattern| {
+                acc.concat(&pattern.feature(board)).unwrap_or_default()
+            })
+    }
+
+    pub fn values(&self) -> Vec<f32> {
+        self.patterns
+            .iter()
+            .flat_map(|pattern| pattern.values.iter().copied())
             .collect()
     }
 
