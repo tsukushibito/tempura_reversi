@@ -10,7 +10,7 @@ use burn::{
 
 use crate::{
     data::{ReversiBatcher, ReversiDataset},
-    model::{ReversiModel, ReversiModelConfig},
+    model::ReversiModelConfig,
 };
 
 #[derive(Config)]
@@ -39,17 +39,18 @@ fn create_artifact_dir(artifact_dir: &str) {
     std::fs::create_dir_all(artifact_dir).ok();
 }
 
-pub fn train<B: AutodiffBackend>(artifact_dir: &str, config: TrainingConfig, device: B::Device) {
+pub fn train<B: AutodiffBackend>(
+    artifact_dir: &str,
+    game_records_dir: &str,
+    config: TrainingConfig,
+    device: B::Device,
+) {
     create_artifact_dir(artifact_dir);
 
-    // Config
-    let optimizer = AdamConfig::new();
-    let config = TrainingConfig::new(optimizer);
     B::seed(config.seed);
 
-    // Define train/valid datasets and dataloaders
-    let train_dataset = ReversiDataset::train().unwrap();
-    let valid_dataset = ReversiDataset::validation().unwrap();
+    let train_dataset = ReversiDataset::train(game_records_dir).unwrap();
+    let valid_dataset = ReversiDataset::validation(game_records_dir).unwrap();
 
     println!("Train Dataset Size: {}", train_dataset.len());
     println!("Valid Dataset Size: {}", valid_dataset.len());

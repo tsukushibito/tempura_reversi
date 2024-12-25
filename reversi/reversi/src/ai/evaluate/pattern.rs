@@ -1,4 +1,4 @@
-use std::{fs::File, io::Read};
+use std::{collections::HashMap, fs::File, io::Read};
 
 use rand::Rng;
 use serde::{Deserialize, Serialize};
@@ -9,6 +9,31 @@ pub const PATTERN_ROTATION_0: usize = 0;
 pub const PATTERN_ROTATION_90: usize = 1;
 pub const PATTERN_ROTATION_180: usize = 2;
 pub const PATTERN_ROTATION_270: usize = 3;
+
+#[derive(Debug, Clone)]
+pub struct SparseFeature {
+    indices: Vec<usize>, // 非ゼロ要素のインデックス
+    values: Vec<f32>,    // 非ゼロ要素の値
+}
+
+impl SparseFeature {
+    pub fn new(indices: Vec<usize>, values: Vec<f32>) -> Self {
+        assert_eq!(
+            indices.len(),
+            values.len(),
+            "Indices and values must have the same length"
+        );
+        SparseFeature { indices, values }
+    }
+
+    pub fn linear_combination(&self, weights: &[f32]) -> f32 {
+        self.indices
+            .iter()
+            .zip(&self.values)
+            .map(|(&i, &v)| weights[i] * v)
+            .sum()
+    }
+}
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Pattern {
@@ -68,14 +93,22 @@ impl Pattern {
         indices
     }
 
-    pub fn feature(&self, board: &BitBoard) -> Vec<f32> {
-        let mut feature = vec![0.0; self.state_count()];
+    pub fn feature(&self, board: &BitBoard) -> SparseFeature {
+        let mut index_count: HashMap<usize, f32> = HashMap::new();
 
-        for i in self.state_indices(board) {
-            feature[i] += 1.0;
+        for index in self.state_indices(board) {
+            *index_count.entry(index).or_insert(0.0) += 1.0;
         }
 
-        feature
+        let mut indices = Vec::new();
+        let mut values = Vec::new();
+
+        for (index, value) in index_count {
+            indices.push(index);
+            values.push(value);
+        }
+
+        SparseFeature { indices, values }
     }
 
     pub fn value(&self, board: &BitBoard) -> f32 {
