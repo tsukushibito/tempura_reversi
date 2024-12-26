@@ -15,6 +15,7 @@ pub use model::*;
 pub use pattern::*;
 pub use search::*;
 pub use self_play::*;
+pub use sparse_feature::*;
 pub use training::*;
 
 pub struct SearchResult {

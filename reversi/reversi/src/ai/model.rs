@@ -50,7 +50,7 @@ impl Model {
         &self.patterns
     }
 
-    pub fn features(&self, board: &BitBoard) -> SparseFeature {
+    pub fn feature(&self, board: &BitBoard) -> SparseFeature {
         self.patterns
             .iter()
             .fold(SparseFeature::default(), |acc, pattern| {

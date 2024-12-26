@@ -4,5 +4,6 @@ members = [
     "reversi",
     "reversi_gui",
     "reversi_ml",
+    "reversi_ml_burn",
 ]
 
