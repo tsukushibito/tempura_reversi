@@ -1,7 +1,5 @@
-use reversi::Model;
-
 use crate::{
-    dataloader::Dataloader, loss_function::LossFunction, lr_scheduler::LRScheduler,
+    dataloader::Dataloader, loss_function::LossFunction, lr_scheduler::LRScheduler, model::Model,
     optimizer::Optimizer,
 };
 

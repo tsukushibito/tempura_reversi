@@ -29,7 +29,7 @@ impl Adam {
 impl Optimizer for Adam {
     fn step(&mut self, params: &mut [f32], grads: &[f32]) {
         self.t += 1;
-        for (i, (&p, &g)) in params.iter_mut().zip(grads.iter()).enumerate() {
+        for (i, (p, &g)) in params.iter_mut().zip(grads.iter()).enumerate() {
             // 第1モーメントの更新
             let m = self.m.entry(i).or_insert(0.0);
             *m = self.beta1 * (*m) + (1.0 - self.beta1) * g;
