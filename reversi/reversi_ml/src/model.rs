@@ -40,17 +40,22 @@ impl Model {
         Ok(())
     }
 
-    pub fn forward(&self, input: SparseVector) -> f32 {
-        input.dot(&self.weights).unwrap()
+    pub fn forward(&self, inputs: &[SparseVector]) -> Vec<f32> {
+        inputs
+            .iter()
+            .map(|input| input.dot(&self.weights).unwrap())
+            .collect()
     }
 
-    pub fn backward(&mut self, grad_output: f32, input: &SparseVector) -> Gradients {
-        let mut grad_weights = SparseVector::new(vec![], vec![], self.weights.len()).unwrap();
+    pub fn backward(&mut self, grad_outputs: &[f32], inputs: &[SparseVector]) -> Gradients {
+        let mut grad_weights = grad_outputs
+            .iter()
+            .zip(inputs.iter())
+            .map(|(&grad_output, input)| input.clone() * grad_output)
+            .reduce(|g1, g2| g1 + g2)
+            .unwrap();
 
-        for (index, value) in input.iter() {
-            let grad = grad_output * value;
-            grad_weights.assign(index, grad);
-        }
+        grad_weights = grad_weights / grad_outputs.len() as f32;
 
         Gradients {
             weights: grad_weights,
