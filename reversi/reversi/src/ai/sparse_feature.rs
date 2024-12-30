@@ -2,9 +2,9 @@ use std::ops::Index;
 
 #[derive(Debug, Clone, Default)]
 pub struct SparseFeature {
-    indices: Vec<usize>,
-    values: Vec<f32>,
-    length: usize,
+    pub indices: Vec<usize>,
+    pub values: Vec<f32>,
+    pub length: usize,
 }
 
 #[derive(Debug, Clone)]

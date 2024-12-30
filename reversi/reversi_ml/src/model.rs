@@ -46,19 +46,29 @@ impl Model {
             .map(|input| input.dot(&self.weights).unwrap())
             .collect()
     }
+}
 
-    pub fn backward(&mut self, grad_outputs: &[f32], inputs: &[SparseVector]) -> Gradients {
-        let mut grad_weights = grad_outputs
-            .iter()
-            .zip(inputs.iter())
-            .map(|(&grad_output, input)| input.clone() * grad_output)
-            .reduce(|g1, g2| g1 + g2)
-            .unwrap();
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::sparse_vector::SparseVector;
 
-        grad_weights = grad_weights / grad_outputs.len() as f32;
+    #[test]
+    fn test_forward() {
+        let mut model = Model::new(3);
+        model.weights[0] = 1.0;
+        model.weights[1] = 2.0;
+        model.weights[2] = 3.0;
 
-        Gradients {
-            weights: grad_weights,
-        }
+        let input1 = SparseVector::new(vec![0, 1], vec![1.0, 2.0], 3).unwrap();
+        let input2 = SparseVector::new(vec![1, 2], vec![3.0, 4.0], 3).unwrap();
+
+        let inputs = vec![input1, input2];
+
+        let outputs = model.forward(&inputs);
+
+        assert_eq!(outputs.len(), 2);
+        assert_eq!(outputs[0], 5.0);
+        assert_eq!(outputs[1], 18.0);
     }
 }

@@ -1,11 +1,13 @@
 use std::{fs::File, io::Read};
 
 use rand::{seq::SliceRandom, thread_rng};
-use reversi::{BitBoard, DynResult, Game, GameRecord, Position, SparseFeature};
+use reversi::{BitBoard, DynResult, Game, GameRecord, Position};
+
+use crate::sparse_vector::SparseVector;
 
 #[derive(Debug, Clone, Default)]
 pub struct Item {
-    feature: SparseFeature,
+    input: SparseVector,
     target: f32,
 }
 
@@ -103,7 +105,10 @@ fn make_items_from_game_records(records: &[GameRecord]) -> Vec<Item> {
 
             let feature = model.feature(&board);
 
-            items.push(Item { feature, target });
+            items.push(Item {
+                input: SparseVector::new(feature.indices, feature.values, feature.length).unwrap(),
+                target,
+            });
 
             if i >= record.moves.len() {
                 break;
