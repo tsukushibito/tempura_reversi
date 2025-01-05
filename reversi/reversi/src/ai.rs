@@ -6,7 +6,6 @@ mod model;
 mod pattern;
 mod search;
 mod self_play;
-mod sparse_feature;
 mod training;
 
 pub use evaluate::*;
@@ -15,7 +14,6 @@ pub use model::*;
 pub use pattern::*;
 pub use search::*;
 pub use self_play::*;
-pub use sparse_feature::*;
 pub use training::*;
 
 pub struct SearchResult {

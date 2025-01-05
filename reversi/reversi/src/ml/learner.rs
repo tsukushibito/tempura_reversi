@@ -1,7 +1,6 @@
-use crate::{
-    dataloader::Dataloader, loss_function::LossFunction, lr_scheduler::LRScheduler, model::Model,
-    optimizer::Optimizer, sparse_vector::SparseVector, DynResult,
-};
+use crate::LossFunction;
+
+use super::{dataloader::Dataloader, lr_scheduler::LRScheduler, optimizer::Optimizer, Model};
 
 #[derive(Debug, Clone)]
 pub struct EarlyStoppingConfig {

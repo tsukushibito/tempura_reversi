@@ -7,8 +7,6 @@ use crate::{BitBoard, DynResult, Pattern, Position};
 
 use serde::{Deserialize, Serialize};
 
-use super::sparse_feature::SparseFeature;
-
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Model {
     patterns: Vec<Pattern>,
@@ -50,10 +48,10 @@ impl Model {
         &self.patterns
     }
 
-    pub fn feature(&self, board: &BitBoard) -> SparseFeature {
+    pub fn feature(&self, board: &BitBoard) -> SparseVector {
         self.patterns
             .iter()
-            .fold(SparseFeature::default(), |acc, pattern| {
+            .fold(SparseVector::default(), |acc, pattern| {
                 acc.concat(&pattern.feature(board)).unwrap_or_default()
             })
     }

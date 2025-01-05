@@ -3,11 +3,14 @@ mod array_board;
 mod bit_board;
 mod board;
 mod game;
+pub mod ml;
+mod sparse_vector;
 
 pub use ai::*;
 pub use bit_board::*;
 pub use board::*;
 pub use game::*;
+pub use sparse_vector::*;
 
 pub type DynResult<T> = Result<T, Box<dyn std::error::Error>>;
 

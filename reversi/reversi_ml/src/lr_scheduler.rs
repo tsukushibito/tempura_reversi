@@ -1,10 +1,9 @@
 mod exponential_lr;
 mod step_lr;
 
+pub use exponential_lr::ExponentialLR;
 pub use step_lr::StepLR;
 
-use crate::optimizer::Optimizer;
-
 pub trait LRScheduler {
-    fn step(&mut self, optimizer: &mut dyn Optimizer);
+    fn step(&mut self, now_lr: f32) -> f32;
 }

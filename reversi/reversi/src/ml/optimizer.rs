@@ -1,8 +1,8 @@
 mod adam;
 
-pub use adam::Adam;
+pub use adam::*;
 
-use crate::sparse_vector::SparseVector;
+use crate::SparseVector;
 
 pub trait Optimizer {
     fn step(&mut self, params: &mut [f32], grads: &SparseVector);
