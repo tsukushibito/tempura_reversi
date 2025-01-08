@@ -1,6 +1,9 @@
-use crate::LossFunction;
+use crate::{ResultBoxErr, SparseVector};
 
-use super::{dataloader::Dataloader, lr_scheduler::LRScheduler, optimizer::Optimizer, Model};
+use super::{
+    dataloader::Dataloader, loss_function::LossFunction, lr_scheduler::LRScheduler,
+    optimizer::Optimizer, Model,
+};
 
 #[derive(Debug, Clone)]
 pub struct EarlyStoppingConfig {
@@ -39,7 +42,7 @@ where
     S: LRScheduler,
     L: LossFunction,
 {
-    pub fn fit(&mut self) -> DynResult<()> {
+    pub fn fit(&mut self) -> ResultBoxErr<()> {
         for epoch in 0..self.num_epochs {
             println!("Epoch {}", epoch + 1);
             self.train_dataloader.reset();
@@ -93,7 +96,7 @@ where
         Ok(())
     }
 
-    pub fn evaluate(&self, dataloader: &Dataloader) -> DynResult<f32> {
+    pub fn evaluate(&self, dataloader: &Dataloader) -> ResultBoxErr<f32> {
         let mut total_loss = 0.0;
         let mut count = 0.0;
 

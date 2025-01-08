@@ -3,7 +3,7 @@ use std::{
     io::{Read, Write},
 };
 
-use crate::{sparse_vector::SparseVector, DynResult};
+use crate::{sparse_vector::SparseVector, ResultBoxErr};
 
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub struct Model {
@@ -23,7 +23,7 @@ impl Model {
         Self { weights }
     }
 
-    pub fn load(file_path: &str) -> DynResult<Self> {
+    pub fn load(file_path: &str) -> ResultBoxErr<Self> {
         let mut file = File::open(file_path)?;
         let mut buf = vec![];
         file.read_to_end(&mut buf)?;
@@ -32,7 +32,7 @@ impl Model {
         Ok(model)
     }
 
-    pub fn save(&self, file_path: &str) -> DynResult<()> {
+    pub fn save(&self, file_path: &str) -> ResultBoxErr<()> {
         let mut file = File::open(file_path)?;
         let serialized = bincode::serialize(self)?;
         file.write_all(&serialized)?;

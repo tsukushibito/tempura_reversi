@@ -3,9 +3,7 @@ use std::{collections::HashMap, fs::File, io::Read};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 
-use crate::{bit_board::BitBoard, Position};
-
-use super::sparse_feature::SparseFeature;
+use crate::{bit_board::BitBoard, Position, SparseVector};
 
 pub const PATTERN_ROTATION_0: usize = 0;
 pub const PATTERN_ROTATION_90: usize = 1;
@@ -70,7 +68,7 @@ impl Pattern {
         indices
     }
 
-    pub fn feature(&self, board: &BitBoard) -> SparseFeature {
+    pub fn feature(&self, board: &BitBoard) -> SparseVector {
         let mut index_count: HashMap<usize, f32> = HashMap::new();
 
         for index in self.state_indices(board) {
@@ -85,7 +83,7 @@ impl Pattern {
             values.push(value);
         }
 
-        SparseFeature::new(indices, values, self.state_count()).unwrap_or_default()
+        SparseVector::new(indices, values, self.state_count()).unwrap_or_default()
     }
 
     pub fn value(&self, board: &BitBoard) -> f32 {

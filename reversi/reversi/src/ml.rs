@@ -6,4 +6,5 @@ mod model;
 mod optimizer;
 
 pub use learner::*;
+pub use loss_function::*;
 pub use model::*;

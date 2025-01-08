@@ -1,4 +1,4 @@
-use crate::optimizer::Optimizer;
+use crate::ml::optimizer::Optimizer;
 
 use super::LRScheduler;
 

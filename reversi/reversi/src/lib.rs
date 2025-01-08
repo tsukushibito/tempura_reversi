@@ -12,7 +12,7 @@ pub use board::*;
 pub use game::*;
 pub use sparse_vector::*;
 
-pub type DynResult<T> = Result<T, Box<dyn std::error::Error>>;
+pub type ResultBoxErr<T> = Result<T, Box<dyn std::error::Error>>;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Position {
