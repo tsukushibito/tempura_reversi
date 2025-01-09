@@ -1,7 +1,7 @@
 use crate::{board::Board, CellState, Color};
 
 use super::{
-    mobility_evaluate::MobilityEvaluator, simple_evaluate::SimpleEvaluator, Evaluator,
+    mobility_evaluator::MobilityEvaluator, simple_evaluator::SimpleEvaluator, Evaluator,
     PositionalEvaluator,
 };
 

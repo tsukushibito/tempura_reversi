@@ -1,7 +1,7 @@
 use rand::rngs::StdRng;
 use rand::{self, Rng, SeedableRng};
 
-use crate::ai::evaluate::Evaluator;
+use crate::ai::evaluator::Evaluator;
 use crate::ai::SearchResult;
 use crate::bit_board::BitBoard;
 use crate::board::{Board, BOARD_SIZE};
@@ -152,7 +152,7 @@ impl<E: Evaluator> Negaalpha<E> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{ai::evaluate::SimpleEvaluator, bit_board::BitBoard, Position};
+    use crate::{ai::evaluator::SimpleEvaluator, bit_board::BitBoard, Position};
 
     use super::*;
 

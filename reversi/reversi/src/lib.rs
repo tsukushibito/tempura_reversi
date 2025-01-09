@@ -3,6 +3,7 @@ mod array_board;
 mod bit_board;
 mod board;
 mod game;
+mod generate_game_records;
 pub mod ml;
 mod sparse_vector;
 
@@ -10,6 +11,7 @@ pub use ai::*;
 pub use bit_board::*;
 pub use board::*;
 pub use game::*;
+pub use generate_game_records::*;
 pub use sparse_vector::*;
 
 pub type ResultBoxErr<T> = Result<T, Box<dyn std::error::Error>>;
@@ -104,12 +106,14 @@ impl Position {
         self.y as usize * BOARD_SIZE + self.x as usize
     }
 
+    /// Rotate 90 degrees CCW
     pub fn rotated_90(&self) -> Self {
         let mut rotated = *self;
         rotated.rotate_90();
         rotated
     }
 
+    /// Rotate 90 degrees CCW
     pub fn rotate_90(&mut self) {
         let x = self.y;
         let y = 7 - self.x;

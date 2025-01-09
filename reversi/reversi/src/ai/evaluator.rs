@@ -1,14 +1,15 @@
-mod mobility_evaluate;
-mod pattern_evaluate;
-mod positional_evaluate;
-mod simple_evaluate;
-mod test_evaluate;
+mod mobility_evaluator;
+mod pattern_evaluator;
+mod positional_evaluator;
+mod simple_evaluator;
+mod tempura_evaluator;
+mod test_evaluator;
 
-pub use mobility_evaluate::MobilityEvaluator;
-pub use pattern_evaluate::*;
-pub use positional_evaluate::PositionalEvaluator;
-pub use simple_evaluate::SimpleEvaluator;
-pub use test_evaluate::TestEvaluator;
+pub use mobility_evaluator::MobilityEvaluator;
+pub use pattern_evaluator::PatternEvaluator;
+pub use positional_evaluator::PositionalEvaluator;
+pub use simple_evaluator::SimpleEvaluator;
+pub use test_evaluator::TestEvaluator;
 
 use crate::{bit_board::BitBoard, Color};
 

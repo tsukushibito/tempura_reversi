@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{BitBoard, Game};
 
-use super::{evaluate::TestEvaluator, search::Negaalpha, Ai, Searcher};
+use super::{evaluator::TestEvaluator, search::Negaalpha, Ai, Searcher};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Winner {
@@ -20,6 +20,7 @@ pub struct GameRecord {
     pub white_score: u8,
 }
 
+#[derive(Debug)]
 pub struct SelfPlaySetting {
     // black_ai_setting: AiSetting,
     // white_ai_setting: AiSetting,
