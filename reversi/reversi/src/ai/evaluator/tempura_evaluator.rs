@@ -1,9 +1,73 @@
-use crate::{bit_board::BitBoard, Color, Pattern, Position};
+use std::{
+    fs::File,
+    io::{Read, Write},
+};
+
+use serde::{Deserialize, Serialize};
+
+use crate::{bit_board::BitBoard, ml::Model, Color, Pattern, Position, ResultBoxErr, SparseVector};
 
 use super::Evaluator;
 
+#[derive(Serialize, Deserialize, Debug)]
 pub struct TempuraEvaluator {
     pub patterns: Vec<Pattern>,
+    pub model: Model,
+}
+
+impl Default for TempuraEvaluator {
+    fn default() -> Self {
+        let patterns = generate_patterns();
+        let input_size = patterns.iter().map(|p| p.state_count()).sum();
+        let model = Model::new(input_size);
+        Self { patterns, model }
+    }
+}
+
+impl TempuraEvaluator {
+    pub fn load(file_path: &str) -> ResultBoxErr<Self> {
+        let mut file = File::open(file_path)?;
+        let mut buf = vec![];
+        file.read_to_end(&mut buf)?;
+        let model: Model = bincode::deserialize(&buf)?;
+        let patterns = generate_patterns();
+
+        Ok(Self { model, patterns })
+    }
+
+    pub fn save(&self, file_path: &str) -> ResultBoxErr<()> {
+        let mut file = File::open(file_path)?;
+        let serialized = bincode::serialize(&self.model)?;
+        file.write_all(&serialized)?;
+        file.flush()?;
+        Ok(())
+    }
+
+    pub fn patterns(&self) -> &Vec<Pattern> {
+        &self.patterns
+    }
+
+    pub fn feature(&self, board: &BitBoard) -> SparseVector {
+        self.patterns
+            .iter()
+            .fold(SparseVector::default(), |acc, pattern| {
+                acc.concat(&pattern.feature(board)).unwrap_or_default()
+            })
+    }
+
+    pub fn values(&self) -> Vec<f32> {
+        self.patterns
+            .iter()
+            .flat_map(|pattern| pattern.values.iter().copied())
+            .collect()
+    }
+
+    pub fn evaluate(&self, board: &BitBoard) -> f32 {
+        self.patterns
+            .iter()
+            .map(|pattern| pattern.value(board))
+            .sum()
+    }
 }
 
 impl Evaluator for TempuraEvaluator {

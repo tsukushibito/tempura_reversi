@@ -45,15 +45,16 @@ impl Pattern {
             let mask = &self.masks[i];
             let black_pattern = board.black & mask;
             let white_pattern = board.white & mask;
-            println!("black={:b}", black_pattern);
-            println!("white={:b}", white_pattern);
+            // println!("black={:b}", black_pattern);
+            // println!("white={:b}", white_pattern);
 
             let mut idx = 0;
             let mut mask_copy = *mask;
 
             let mut i = 0;
             while mask_copy != 0 {
-                println!("i={}, mask_copy={:b}", i, mask_copy);
+                // println!("i={}, mask_copy={:b}", i, mask_copy);
+
                 // 最下位のセットビットの抽出
                 let bit = mask_copy & (!mask_copy + 1);
 
@@ -65,7 +66,7 @@ impl Pattern {
                     0
                 };
 
-                idx += 3usize.pow(i) - 1 + val;
+                idx += 3usize.pow(i) * val;
                 i += 1;
 
                 // 最下位のセットビットを除去
@@ -569,12 +570,15 @@ mod tests {
         let pattern = Pattern::from_positions(1, &positions);
 
         let board = BitBoard {
-            black: 0b0000_0000_0000_0000,
-            white: 0b0000_0000_0000_0001,
+            black: 0b0000_0001_0000_0010,
+            white: 0b0011_0000_0000_0001,
         };
 
         let indices = pattern.state_indices(&board);
-        assert_eq!(indices[0], 2);
+        assert_eq!(
+            indices[0],
+            2 * 3usize.pow(0) + 3usize.pow(1) + 3usize.pow(2)
+        );
         assert_eq!(indices[1], 0);
         assert_eq!(indices[2], 0);
         assert_eq!(indices[3], 0);
@@ -590,22 +594,22 @@ mod tests {
         let pattern = Pattern::from_positions(1, &positions);
 
         let board = BitBoard {
-            black: 0b0000_0011_0000_0001,
-            white: 0b0000_0100_0000_0010,
+            black: 0b0000_0001_0000_0010,
+            white: 0b0011_0000_0000_0001,
         };
 
         let feature = pattern.feature(&board);
+        println!("feature.indices[0]={}", feature.indices()[0]);
+        println!("feature.indices[1]={}", feature.indices()[1]);
 
-        // インデックスが正しくカウントされているか確認
-        // 例えば、各回転で同じインデックスがカウントされているか
-        // ここではインデックスの総数が4であることを確認
-        assert_eq!(feature.indices().len(), 4);
-        assert_eq!(feature.values().len(), 4);
+        assert_eq!(feature.indices().len(), 2);
+        assert_eq!(feature.values().len(), 2);
 
-        // 各インデックスの値が1.0であることを確認
-        for &v in feature.values() {
-            assert_eq!(v, 1.0);
-        }
+        assert_eq!(feature.indices()[0], 0);
+        assert_eq!(feature.values()[0], 3.0);
+
+        assert_eq!(feature.indices()[1], 14);
+        assert_eq!(feature.values()[1], 1.0);
     }
 
     #[test]
@@ -617,7 +621,6 @@ mod tests {
         ];
         let mut pattern = Pattern::from_positions(1, &positions);
 
-        // 値を設定
         pattern.values = vec![1.0; pattern.state_count()];
 
         let board = BitBoard {
@@ -627,7 +630,6 @@ mod tests {
 
         let total_value = pattern.value(&board);
 
-        // インデックスの数が4で、それぞれの値が1.0なので合計は4.0になるはず
         assert_eq!(total_value, 4.0);
     }
 }
