@@ -1,20 +1,14 @@
 use crate::{bit_board::BitBoard, board::BOARD_SIZE, Color, Move, Position};
 
 mod evaluator;
-mod learner;
-mod model;
 mod pattern;
 mod search;
 mod self_play;
-mod training;
 
 pub use evaluator::*;
-pub use learner::*;
-pub use model::*;
 pub use pattern::*;
 pub use search::*;
 pub use self_play::*;
-pub use training::*;
 
 pub struct SearchResult {
     pub best_move: Option<Move>,
@@ -26,7 +20,6 @@ pub struct SearchResult {
 
 pub enum Searcher {
     TestNegaalpha(Negaalpha<TestEvaluator>),
-    PatternNegaalpha(Negaalpha<PatternEvaluator>),
 }
 
 impl Searcher {
@@ -40,7 +33,6 @@ impl Searcher {
     ) -> SearchResult {
         match self {
             Searcher::TestNegaalpha(s) => s.search(board, player, depth, alpha, beta),
-            Searcher::PatternNegaalpha(s) => s.search(board, player, depth, alpha, beta),
         }
     }
 }
@@ -52,11 +44,8 @@ pub struct Ai {
 
 impl Default for Ai {
     fn default() -> Self {
-        let pattern_table = PatternTable::load("model.bin").unwrap();
-        let searcher =
-            Searcher::PatternNegaalpha(Negaalpha::new(PatternEvaluator { pattern_table }));
+        let searcher = Searcher::TestNegaalpha(Negaalpha::new(TestEvaluator::default()));
         Self {
-            // searcher: Searcher::TestNegaalpha(Negaalpha::new(TestEvaluator::default())),
             searcher,
             search_depth: 8,
         }

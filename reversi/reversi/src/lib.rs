@@ -6,6 +6,7 @@ mod game;
 mod generate_game_records;
 pub mod ml;
 mod sparse_vector;
+mod training;
 
 pub use ai::*;
 pub use bit_board::*;
@@ -13,6 +14,7 @@ pub use board::*;
 pub use game::*;
 pub use generate_game_records::*;
 pub use sparse_vector::*;
+pub use training::*;
 
 pub type ResultBoxErr<T> = Result<T, Box<dyn std::error::Error>>;
 

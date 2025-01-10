@@ -1,12 +1,10 @@
 mod mobility_evaluator;
-mod pattern_evaluator;
 mod positional_evaluator;
 mod simple_evaluator;
 mod tempura_evaluator;
 mod test_evaluator;
 
 pub use mobility_evaluator::MobilityEvaluator;
-pub use pattern_evaluator::PatternEvaluator;
 pub use positional_evaluator::PositionalEvaluator;
 pub use simple_evaluator::SimpleEvaluator;
 pub use test_evaluator::TestEvaluator;

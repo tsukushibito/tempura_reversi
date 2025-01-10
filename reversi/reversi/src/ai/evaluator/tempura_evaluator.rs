@@ -35,14 +35,6 @@ impl TempuraEvaluator {
         Ok(Self { model, patterns })
     }
 
-    pub fn save(&self, file_path: &str) -> ResultBoxErr<()> {
-        let mut file = File::open(file_path)?;
-        let serialized = bincode::serialize(&self.model)?;
-        file.write_all(&serialized)?;
-        file.flush()?;
-        Ok(())
-    }
-
     pub fn patterns(&self) -> &Vec<Pattern> {
         &self.patterns
     }
@@ -61,18 +53,17 @@ impl TempuraEvaluator {
             .flat_map(|pattern| pattern.values.iter().copied())
             .collect()
     }
-
-    pub fn evaluate(&self, board: &BitBoard) -> f32 {
-        self.patterns
-            .iter()
-            .map(|pattern| pattern.value(board))
-            .sum()
-    }
 }
 
 impl Evaluator for TempuraEvaluator {
     fn evaluate(&self, board: &BitBoard, color: Color) -> i32 {
-        0
+        let feature = self.feature(board);
+        let output = self.model.forward(&[feature]);
+        let value = output[0] as i32;
+        match color {
+            Color::Black => value,
+            Color::White => -value,
+        }
     }
 }
 

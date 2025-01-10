@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use reversi::{generate_game_records, ResultBoxErr};
+use reversi::{generate_game_records, training, ResultBoxErr};
 
 #[derive(Parser)]
 #[command(name = "Tempura Reversi")]
@@ -14,15 +14,11 @@ enum Commands {
     /// Generate game record
     Generate {
         /// Output file or directory for generated data
-        #[arg(short, long, default_value = "output.bin")]
+        #[arg(short, long, default_value = "records.bin")]
         output: String,
     },
     /// Train the AI model
     Train {
-        /// Number of training iterations
-        #[arg(short, long, default_value_t = 1000)]
-        iterations: u32,
-
         /// Path to the configuration file
         #[arg(short, long, default_value = "config.json")]
         config: String,
@@ -37,12 +33,8 @@ fn main() -> ResultBoxErr<()> {
             println!("Generating game record to: {}", output);
             generate_game_records(&output)?;
         }
-        Commands::Train { iterations, config } => {
-            println!(
-                "Training AI with {} iterations using config: {}",
-                iterations, config
-            );
-            // 学習処理
+        Commands::Train { config } => {
+            training(&config)?;
         }
     };
 
