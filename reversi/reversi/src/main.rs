@@ -13,13 +13,11 @@ struct Cli {
 enum Commands {
     /// Generate game record
     Generate {
-        /// Output file or directory for generated data
-        #[arg(short, long, default_value = "records.bin")]
-        output: String,
+        #[arg(short, long, default_value = "config.json")]
+        config: String,
     },
     /// Train the AI model
     Train {
-        /// Path to the configuration file
         #[arg(short, long, default_value = "config.json")]
         config: String,
     },
@@ -29,9 +27,8 @@ fn main() -> ResultBoxErr<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Generate { output } => {
-            println!("Generating game record to: {}", output);
-            generate_game_records(&output)?;
+        Commands::Generate { config } => {
+            generate_game_records(&config)?;
         }
         Commands::Train { config } => {
             training(&config)?;

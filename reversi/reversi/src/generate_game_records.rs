@@ -7,11 +7,14 @@ use std::{
 use indicatif::ProgressBar;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
-use crate::{self_play, GameRecord, ResultBoxErr, SelfPlaySetting};
+use crate::{self_play, Config, GameRecord, ResultBoxErr, SelfPlaySetting};
 
-pub fn generate_game_records(output: &str) -> ResultBoxErr<()> {
-    let game_count = 1000;
-    let pb = ProgressBar::new(game_count);
+pub fn generate_game_records(config: &str) -> ResultBoxErr<()> {
+    let config = Config::from_file(config)?;
+    let output = config.self_play_output_path();
+
+    let game_count = config.self_play.num_games;
+    let pb = ProgressBar::new(game_count.try_into().unwrap());
     let records: Vec<GameRecord> = (0..game_count)
         .into_par_iter()
         .map(|_| {
@@ -30,7 +33,7 @@ pub fn generate_game_records(output: &str) -> ResultBoxErr<()> {
     if path.exists() {
         println!(
             "ファイル '{}' は既に存在します。上書きしますか？ (y/n): ",
-            output
+            output.display()
         );
 
         // ユーザー入力を受け取る

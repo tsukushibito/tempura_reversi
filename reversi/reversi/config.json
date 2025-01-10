@@ -1,0 +1,16 @@
+{
+  "base_path": "data",
+  "training": {
+    "game_records_file": "records.bin",
+    "epochs": 100,
+    "batch_size": 32,
+    "early_stopping": {
+      "patience": 10,
+      "min_delta": 0.001
+    }
+  },
+  "self_play": {
+    "num_games": 10000,
+    "output_file": "records.bin"
+  }
+}

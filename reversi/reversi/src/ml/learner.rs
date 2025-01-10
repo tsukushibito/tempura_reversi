@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 use crate::{ResultBoxErr, SparseVector};
 
 use super::{
@@ -5,7 +7,7 @@ use super::{
     optimizer::Optimizer, Model,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EarlyStoppingConfig {
     pub patience: usize,
     pub min_delta: f32,
