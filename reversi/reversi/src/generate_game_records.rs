@@ -7,7 +7,10 @@ use std::{
 use indicatif::ProgressBar;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
-use crate::{self_play, Config, GameRecord, ResultBoxErr, SelfPlaySetting};
+use crate::{
+    ml::{self_play, GameRecord, SelfPlaySetting},
+    Config, ResultBoxErr,
+};
 
 pub fn generate_game_records(config: &str) -> ResultBoxErr<()> {
     let config = Config::from_file(config)?;

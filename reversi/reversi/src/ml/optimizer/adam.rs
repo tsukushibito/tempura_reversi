@@ -4,6 +4,7 @@ use crate::sparse_vector::SparseVector;
 
 use super::Optimizer;
 
+#[derive(Debug, Clone)]
 pub struct Adam {
     learning_rate: f32,
     beta1: f32,

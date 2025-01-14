@@ -1,9 +1,10 @@
 use rand::{seq::SliceRandom, Rng};
 use serde::{Deserialize, Serialize};
 
-use crate::{BitBoard, Game};
-
-use super::{evaluator::TestEvaluator, search::Negaalpha, Ai, Searcher};
+use crate::{
+    Ai, BitBoard, Game, Negaalpha, Position, Searcher, SparseVector, TempuraEvaluator,
+    TestEvaluator,
+};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Winner {
@@ -18,6 +19,30 @@ pub struct GameRecord {
     pub winner: Winner,
     pub black_score: u8,
     pub white_score: u8,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct DataItem {
+    pub input: SparseVector,
+    pub target: f32,
+}
+
+pub fn get_data_items_from_record(record: &GameRecord) -> Vec<DataItem> {
+    let evaluator = TempuraEvaluator::default();
+    let mut game = Game::initial();
+    let mut items = vec![];
+
+    for &mov in &record.moves {
+        let player = game.current_player();
+        game.progress(player, Position::from_index(mov.into()));
+        let board = game.board();
+        let bit_board = BitBoard::from_board(board);
+        let input = evaluator.feature(&bit_board);
+        let target = record.black_score as f32 - record.white_score as f32;
+        items.push(DataItem { input, target });
+    }
+
+    items
 }
 
 #[derive(Debug)]

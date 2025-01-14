@@ -1,9 +1,10 @@
+use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 
 use crate::{ResultBoxErr, SparseVector};
 
 use super::{
-    dataloader::Dataloader, loss_function::LossFunction, lr_scheduler::LRScheduler,
+    dataloader::Dataloader, loss_function::LossFunction, lr_scheduler::LrScheduler,
     optimizer::Optimizer, Model,
 };
 
@@ -13,38 +14,48 @@ pub struct EarlyStoppingConfig {
     pub min_delta: f32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Builder)]
 pub struct Learner<O, S, L>
 where
     O: Optimizer,
-    S: LRScheduler,
+    S: LrScheduler,
     L: LossFunction,
 {
-    model: Model,
+    pub model: Model,
+    train_dataloader: Dataloader,
 
     optimizer: O,
-    lr_scheduler: Option<S>,
-    train_dataloader: Dataloader,
-    valid_dataloader: Option<Dataloader>,
-
     num_epochs: usize,
-
     loss_function: L,
 
+    #[builder(default = "None")]
+    lr_scheduler: Option<S>,
+
+    #[builder(default = "None")]
+    valid_dataloader: Option<Dataloader>,
+
+    #[builder(default = "None")]
+    early_stopping: Option<EarlyStoppingConfig>,
+
+    #[builder(default, setter(skip))]
     current_epoch: usize,
+
+    #[builder(default, setter(skip))]
     best_loss: f32,
 
-    early_stopping: Option<EarlyStoppingConfig>,
+    #[builder(default, setter(skip))]
     patience_counter: usize,
 }
 
 impl<O, S, L> Learner<O, S, L>
 where
     O: Optimizer,
-    S: LRScheduler,
+    S: LrScheduler,
     L: LossFunction,
 {
     pub fn fit(&mut self) -> ResultBoxErr<()> {
+        self.best_loss = f32::MAX;
+
         for epoch in 0..self.num_epochs {
             println!("Epoch {}", epoch + 1);
             self.train_dataloader.reset();

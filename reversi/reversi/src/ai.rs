@@ -3,12 +3,10 @@ use crate::{bit_board::BitBoard, board::BOARD_SIZE, Color, Move, Position};
 mod evaluator;
 mod pattern;
 mod search;
-mod self_play;
 
 pub use evaluator::*;
 pub use pattern::*;
 pub use search::*;
-pub use self_play::*;
 
 pub struct SearchResult {
     pub best_move: Option<Move>,

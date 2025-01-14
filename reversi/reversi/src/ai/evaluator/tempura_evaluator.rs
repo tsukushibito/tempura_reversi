@@ -47,11 +47,8 @@ impl TempuraEvaluator {
             })
     }
 
-    pub fn values(&self) -> Vec<f32> {
-        self.patterns
-            .iter()
-            .flat_map(|pattern| pattern.values.iter().copied())
-            .collect()
+    pub fn feature_size(&self) -> usize {
+        self.patterns.iter().map(|p| p.state_count()).sum()
     }
 }
 

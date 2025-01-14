@@ -14,7 +14,6 @@ pub const PATTERN_ROTATION_270: usize = 3;
 pub struct Pattern {
     pub id: usize,
     pub masks: [u64; 4],
-    pub values: Vec<f32>,
 }
 
 impl Pattern {
@@ -30,9 +29,7 @@ impl Pattern {
             positions.iter_mut().for_each(|p| p.rotate_90());
         });
 
-        let values = vec![0.0; 3usize.pow(masks[0].count_ones())];
-
-        Self { id, masks, values }
+        Self { id, masks }
     }
 
     pub fn state_count(&self) -> usize {
@@ -94,16 +91,6 @@ impl Pattern {
         }
 
         SparseVector::new(indices, values, self.state_count()).unwrap_or_default()
-    }
-
-    pub fn value(&self, board: &BitBoard) -> f32 {
-        let mut value = 0.0;
-
-        for i in self.state_indices(board) {
-            value += self.values[i];
-        }
-
-        value
     }
 }
 
@@ -197,26 +184,5 @@ mod tests {
 
         assert_eq!(feature.indices()[1], 14);
         assert_eq!(feature.values()[1], 1.0);
-    }
-
-    #[test]
-    fn test_value() {
-        let positions = vec![
-            Position { x: 0, y: 0 },
-            Position { x: 1, y: 0 },
-            Position { x: 0, y: 1 },
-        ];
-        let mut pattern = Pattern::from_positions(1, &positions);
-
-        pattern.values = vec![1.0; pattern.state_count()];
-
-        let board = BitBoard {
-            black: 0b0000_0011_0000_0001,
-            white: 0b0000_0100_0000_0010,
-        };
-
-        let total_value = pattern.value(&board);
-
-        assert_eq!(total_value, 4.0);
     }
 }

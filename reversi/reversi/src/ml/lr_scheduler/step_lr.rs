@@ -1,16 +1,17 @@
 use crate::ml::optimizer::Optimizer;
 
-use super::LRScheduler;
+use super::LrScheduler;
 
-pub struct StepLR {
+#[derive(Debug, Clone)]
+pub struct StepLr {
     step_size: usize, // 学習率を減衰させるステップ数
     gamma: f32,       // 減衰率
     current_step: usize,
 }
 
-impl StepLR {
+impl StepLr {
     pub fn new(step_size: usize, gamma: f32) -> Self {
-        StepLR {
+        StepLr {
             step_size,
             gamma,
             current_step: 0,
@@ -18,7 +19,7 @@ impl StepLR {
     }
 }
 
-impl LRScheduler for StepLR {
+impl LrScheduler for StepLr {
     fn step(&mut self, optimizer: &mut dyn Optimizer) {
         self.current_step += 1;
         if self.current_step % self.step_size == 0 {

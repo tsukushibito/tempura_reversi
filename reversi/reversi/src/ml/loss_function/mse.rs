@@ -1,14 +1,15 @@
 use super::{Loss, LossFunction};
 
-pub struct MSE;
+#[derive(Debug, Default, Clone)]
+pub struct Mse;
 
-impl MSE {
+impl Mse {
     pub fn new() -> Self {
-        MSE
+        Mse
     }
 }
 
-impl LossFunction for MSE {
+impl LossFunction for Mse {
     fn compute(&self, outputs: &[f32], targets: &[f32]) -> Loss {
         assert_eq!(
             outputs.len(),

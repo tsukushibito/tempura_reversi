@@ -11,7 +11,7 @@
     "output_file": "model.bin"
   },
   "self_play": {
-    "num_games": 10000,
+    "num_games": 1000,
     "output_file": "records.bin"
   }
 }

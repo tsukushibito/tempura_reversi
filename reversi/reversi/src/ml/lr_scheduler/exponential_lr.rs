@@ -1,22 +1,22 @@
 use crate::ml::optimizer::Optimizer;
 
-use super::LRScheduler;
+use super::LrScheduler;
 
-pub struct ExponentialLR {
+pub struct ExponentialLr {
     gamma: f32, // 減衰率
     current_step: usize,
 }
 
-impl ExponentialLR {
+impl ExponentialLr {
     pub fn new(gamma: f32) -> Self {
-        ExponentialLR {
+        ExponentialLr {
             gamma,
             current_step: 0,
         }
     }
 }
 
-impl LRScheduler for ExponentialLR {
+impl LrScheduler for ExponentialLr {
     fn step(&mut self, optimizer: &mut dyn Optimizer) {
         self.current_step += 1;
         let old_lr = optimizer.get_learning_rate();

@@ -1,11 +1,12 @@
 use std::{
     fs::File,
     io::{Read, Write},
+    path::Path,
 };
 
 use crate::{sparse_vector::SparseVector, ResultBoxErr};
 
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct Model {
     pub weights: Vec<f32>,
 }
@@ -32,7 +33,7 @@ impl Model {
         Ok(model)
     }
 
-    pub fn save(&self, file_path: &str) -> ResultBoxErr<()> {
+    pub fn save<P: AsRef<Path>>(&self, file_path: P) -> ResultBoxErr<()> {
         let mut file = File::open(file_path)?;
         let serialized = bincode::serialize(self)?;
         file.write_all(&serialized)?;

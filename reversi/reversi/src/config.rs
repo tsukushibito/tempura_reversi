@@ -14,6 +14,7 @@ pub struct TrainingConfig {
     pub epochs: usize,
     pub batch_size: usize,
     pub early_stopping: EarlyStoppingConfig,
+    pub output_file: String,
 }
 
 impl Default for TrainingConfig {
@@ -26,6 +27,7 @@ impl Default for TrainingConfig {
                 patience: 10,
                 min_delta: 0.001,
             },
+            output_file: "model.bin".to_string(),
         }
     }
 }
@@ -89,6 +91,10 @@ impl Config {
 
     pub fn training_game_records_path(&self) -> PathBuf {
         Path::new(&self.base_path).join(&self.training.game_records_file)
+    }
+
+    pub fn training_output_path(&self) -> PathBuf {
+        Path::new(&self.base_path).join(&self.training.output_file)
     }
 
     pub fn self_play_output_path(&self) -> PathBuf {

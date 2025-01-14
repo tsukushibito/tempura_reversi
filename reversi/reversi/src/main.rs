@@ -37,3 +37,17 @@ fn main() -> ResultBoxErr<()> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test() -> ResultBoxErr<()> {
+        let config = "config.json";
+
+        training(config)?;
+
+        Ok(())
+    }
+}

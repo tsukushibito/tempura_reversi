@@ -1,43 +1,67 @@
+use std::{fs::File, io::Read, path::Path, rc::Rc};
+
+use indicatif::ProgressBar;
 use rand::{seq::SliceRandom, thread_rng};
+use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 
-use crate::sparse_vector::SparseVector;
+use crate::ResultBoxErr;
 
-#[derive(Debug, Clone, Default)]
-pub struct Item {
-    pub input: SparseVector,
-    pub target: f32,
-}
+use super::{get_data_items_from_record, DataItem, GameRecord};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Dataloader {
-    items: Vec<Item>,
+    records_file_path: String,
+    items: Rc<Vec<DataItem>>,
     batch_size: usize,
-    shuffle: bool,
     current_index: usize,
 }
 
 impl Dataloader {
-    pub fn new(
-        items: &[Item],
+    pub fn new<P: AsRef<Path>>(
+        records_file_path: P,
         batch_size: usize,
         shuffle: bool,
-    ) -> Result<Self, Box<dyn std::error::Error>> {
-        let mut items = items.to_vec();
+    ) -> ResultBoxErr<Self> {
+        println!(
+            "[Dataloader::new()] records_file_path={:?}",
+            records_file_path.as_ref().to_str().unwrap()
+        );
+        let mut file = File::open(&records_file_path)?;
+        let mut buffer = Vec::new();
+        file.read_to_end(&mut buffer)?;
+        let records: Vec<GameRecord> = bincode::deserialize(&buffer)?;
+
+        println!("Converting game records to data items...");
+        let pb = ProgressBar::new(records.len() as u64);
+        let mut items: Vec<DataItem> = records
+            .par_iter()
+            .flat_map(|record| {
+                let items = get_data_items_from_record(record);
+                pb.inc(1);
+                items
+            })
+            .collect();
 
         if shuffle {
             let mut rng = thread_rng();
             items.shuffle(&mut rng);
         }
 
+        let records_file_path: String = records_file_path
+            .as_ref()
+            .to_str()
+            .ok_or("invalid path")?
+            .to_string();
+
         Ok(Dataloader {
-            items,
+            records_file_path,
+            items: Rc::new(items),
             batch_size,
-            shuffle,
             current_index: 0,
         })
     }
 
-    pub fn next_batch(&mut self) -> Option<&[Item]> {
+    pub fn next_batch(&mut self) -> Option<&[DataItem]> {
         if self.current_index >= self.items.len() {
             return None;
         }
@@ -50,10 +74,6 @@ impl Dataloader {
 
     pub fn reset(&mut self) {
         self.current_index = 0;
-        if self.shuffle {
-            let mut rng = thread_rng();
-            self.items.shuffle(&mut rng);
-        }
     }
 
     pub fn iter_batches(&self) -> DataloaderIterator {
@@ -66,13 +86,13 @@ impl Dataloader {
 }
 
 pub struct DataloaderIterator<'a> {
-    items: &'a [Item],
+    items: &'a [DataItem],
     batch_size: usize,
     current_index: usize,
 }
 
 impl<'a> Iterator for DataloaderIterator<'a> {
-    type Item = &'a [Item];
+    type Item = &'a [DataItem];
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.current_index >= self.items.len() {
@@ -85,38 +105,3 @@ impl<'a> Iterator for DataloaderIterator<'a> {
         Some(batch)
     }
 }
-
-/*
-fn make_items_from_game_records(records: &[GameRecord]) -> Vec<Item> {
-    let model = reversi::Model::default();
-
-    let mut items = Vec::new();
-
-    for record in records {
-        let diff = record.black_score as i32 - record.white_score as i32;
-        let target = diff as f32;
-
-        let mut game = Game::initial();
-
-        for i in 0..=record.moves.len() {
-            let board = BitBoard::from_board(game.board());
-
-            let feature = model.feature(&board);
-
-            items.push(Item {
-                input: SparseVector::new(feature.indices, feature.values, feature.length).unwrap(),
-                target,
-            });
-
-            if i >= record.moves.len() {
-                break;
-            }
-
-            let pos = Position::from_index(record.moves[i].into());
-            let _ = game.progress(game.current_player(), pos);
-        }
-    }
-
-    items
-}
-*/
