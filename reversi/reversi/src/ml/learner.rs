@@ -67,7 +67,7 @@ where
 
                 let predictions = self.model.forward(&inputs);
 
-                let loss = self.loss_function.compute(targets.as_slice(), &predictions);
+                let loss = self.loss_function.compute(&predictions, targets.as_slice());
 
                 let grad_outputs = loss.grad;
                 let grads = compute_gradients(&grad_outputs, &inputs);
