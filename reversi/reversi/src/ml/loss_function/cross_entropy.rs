@@ -11,19 +11,19 @@ impl CrossEntropy {
 }
 
 impl LossFunction for CrossEntropy {
-    fn compute(&self, outputs: &[f32], targets: &[f32]) -> Loss {
+    fn compute(&self, pred: &[f32], targets: &[f32]) -> Loss {
         assert_eq!(
-            outputs.len(),
+            pred.len(),
             targets.len(),
             "Outputs and targets must have the same length."
         );
 
         // ソフトマックスの計算
-        let max_output = outputs.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
-        let mut exp_outputs = Vec::with_capacity(outputs.len());
+        let max_output = pred.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
+        let mut exp_outputs = Vec::with_capacity(pred.len());
         let mut sum_exp = 0.0;
 
-        for &output in outputs.iter() {
+        for &output in pred.iter() {
             let exp_val = (output - max_output).exp();
             exp_outputs.push(exp_val);
             sum_exp += exp_val;
@@ -34,7 +34,7 @@ impl LossFunction for CrossEntropy {
 
         // クロスエントロピー損失の計算
         let mut loss_value = 0.0;
-        let mut grad = Vec::with_capacity(outputs.len());
+        let mut grad = Vec::with_capacity(pred.len());
 
         for (&s, &t) in softmax.iter().zip(targets.iter()) {
             loss_value -= t * (s + EPSILON).ln();

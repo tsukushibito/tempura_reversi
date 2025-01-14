@@ -3,7 +3,7 @@
   "training": {
     "game_records_file": "records.bin",
     "epochs": 100,
-    "batch_size": 32,
+    "batch_size": 64,
     "early_stopping": {
       "patience": 10,
       "min_delta": 0.001

@@ -1,9 +1,9 @@
 {
-  "base_path": "data",
+  "base_path": "test_data",
   "training": {
     "game_records_file": "records.bin",
-    "epochs": 100,
-    "batch_size": 32,
+    "epochs": 2,
+    "batch_size": 128,
     "early_stopping": {
       "patience": 10,
       "min_delta": 0.001
@@ -11,7 +11,7 @@
     "output_file": "model.bin"
   },
   "self_play": {
-    "num_games": 1000,
+    "num_games": 100,
     "output_file": "records.bin"
   }
 }

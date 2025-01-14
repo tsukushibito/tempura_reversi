@@ -34,7 +34,7 @@ pub fn get_data_items_from_record(record: &GameRecord) -> Vec<DataItem> {
 
     for &mov in &record.moves {
         let player = game.current_player();
-        game.progress(player, Position::from_index(mov.into()));
+        let _ = game.progress(player, Position::from_index(mov.into()));
         let board = game.board();
         let bit_board = BitBoard::from_board(board);
         let input = evaluator.feature(&bit_board);

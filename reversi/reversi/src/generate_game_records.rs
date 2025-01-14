@@ -16,6 +16,7 @@ pub fn generate_game_records(config: &str) -> ResultBoxErr<()> {
     let config = Config::from_file(config)?;
     let output = config.self_play_output_path();
 
+    println!("Generating game records...");
     let game_count = config.self_play.num_games;
     let pb = ProgressBar::new(game_count.try_into().unwrap());
     let records: Vec<GameRecord> = (0..game_count)
@@ -56,4 +57,26 @@ pub fn generate_game_records(config: &str) -> ResultBoxErr<()> {
     file.flush()?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_generate_game_records() -> ResultBoxErr<()> {
+        let cwd = std::env::current_dir().unwrap();
+        println!("Current working directory: {:?}", cwd);
+
+        let new_dir = std::path::Path::new("reversi");
+        if let Err(e) = std::env::set_current_dir(new_dir) {
+            eprintln!("Failed to change directory: {}", e);
+        }
+
+        let config = "test_config.json";
+
+        generate_game_records(config)?;
+
+        Ok(())
+    }
 }
