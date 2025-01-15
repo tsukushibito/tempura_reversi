@@ -5,7 +5,7 @@ pub use cross_entropy::*;
 pub use mse::*;
 
 pub trait LossFunction {
-    fn compute(&self, pred: &[f32], targets: &[f32]) -> Loss;
+    fn compute(&self, preds: &[f32], targets: &[f32]) -> Loss;
 }
 
 #[derive(Debug)]

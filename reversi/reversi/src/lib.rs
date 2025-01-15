@@ -4,7 +4,7 @@ mod bit_board;
 mod board;
 mod config;
 mod game;
-mod generate_game_records;
+mod gen_data;
 pub mod ml;
 mod sparse_vector;
 mod training;
@@ -14,7 +14,7 @@ pub use bit_board::*;
 pub use board::*;
 pub use config::*;
 pub use game::*;
-pub use generate_game_records::*;
+pub use gen_data::*;
 pub use sparse_vector::*;
 pub use training::*;
 

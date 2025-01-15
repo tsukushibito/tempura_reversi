@@ -1,7 +1,7 @@
 use std::{
     fs::File,
     io::{stdin, Write},
-    path::Path,
+    path::{Path, PathBuf},
 };
 
 use indicatif::ProgressBar;
@@ -12,14 +12,9 @@ use crate::{
     Config, ResultBoxErr,
 };
 
-pub fn generate_game_records(config: &str) -> ResultBoxErr<()> {
-    let config = Config::from_file(config)?;
-    let output = config.self_play_output_path();
-
-    println!("Generating game records...");
-    let game_count = config.self_play.num_games;
-    let pb = ProgressBar::new(game_count.try_into().unwrap());
-    let records: Vec<GameRecord> = (0..game_count)
+fn gen_data(output: &PathBuf, num_games: usize) -> ResultBoxErr<()> {
+    let pb = ProgressBar::new(num_games.try_into().unwrap());
+    let records: Vec<GameRecord> = (0..num_games)
         .into_par_iter()
         .map(|_| {
             let setting = SelfPlaySetting {
@@ -57,6 +52,22 @@ pub fn generate_game_records(config: &str) -> ResultBoxErr<()> {
     file.flush()?;
 
     Ok(())
+}
+
+pub fn gen_data_for_training(config: &str) -> ResultBoxErr<()> {
+    let config = Config::from_file(config)?;
+    let output = config.gen_data_for_training_output_path();
+
+    println!("Generating data for training...");
+    gen_data(&output, config.gen_data_for_training.num_games)
+}
+
+pub fn gen_data_for_validation(config: &str) -> ResultBoxErr<()> {
+    let config = Config::from_file(config)?;
+    let output = config.gen_data_for_validation_output_path();
+
+    println!("Generating data for validation...");
+    gen_data(&output, config.gen_data_for_validation.num_games)
 }
 
 #[cfg(test)]

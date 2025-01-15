@@ -14,7 +14,7 @@ pub fn training(config: &str) -> ResultBoxErr<()> {
     println!("base_path: {}", config.base_path);
 
     let data_loader = Dataloader::new(
-        config.training_game_records_path(),
+        config.training_data_for_training_path(),
         config.training.batch_size,
         true,
     )?;

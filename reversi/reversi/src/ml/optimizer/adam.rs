@@ -64,3 +64,52 @@ impl Optimizer for Adam {
         self.t = 0;
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{sparse_vector::SparseVector, ResultBoxErr};
+
+    #[test]
+    fn test_adam_step() -> ResultBoxErr<()> {
+        let mut optimizer = Adam::new(0.001, 0.9, 0.999, 1e-8);
+        let mut params = vec![1.0, 2.0, 3.0];
+        let grads = SparseVector::from(&[(0, 0.5), (1, 0.2), (2, 0.1)], 3)?;
+
+        optimizer.step(&mut params, &grads);
+
+        // 確実な数値をチェックするには計算結果に基づいた期待値が必要です。
+        // とりあえず結果が適切に更新されていることを確認します。
+        assert!(params[0] < 1.0);
+        assert!(params[1] < 2.0);
+        assert!(params[2] < 3.0);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_adam_learning_rate() {
+        let mut optimizer = Adam::new(0.001, 0.9, 0.999, 1e-8);
+
+        assert_eq!(optimizer.get_learning_rate(), 0.001);
+
+        optimizer.set_learning_rate(0.01);
+        assert_eq!(optimizer.get_learning_rate(), 0.01);
+    }
+
+    #[test]
+    fn test_adam_reset() -> ResultBoxErr<()> {
+        let mut optimizer = Adam::new(0.001, 0.9, 0.999, 1e-8);
+        let grads = SparseVector::from(&[(0, 0.5), (1, 0.2), (2, 0.1)], 3)?;
+        let mut params = vec![1.0, 2.0, 3.0];
+
+        optimizer.step(&mut params, &grads);
+        optimizer.reset();
+
+        assert!(optimizer.m.is_empty());
+        assert!(optimizer.v.is_empty());
+        assert_eq!(optimizer.t, 0);
+
+        Ok(())
+    }
+}

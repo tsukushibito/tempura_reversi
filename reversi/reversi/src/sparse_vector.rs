@@ -1,3 +1,4 @@
+use core::fmt;
 use std::ops::{Add, Div, Index, Mul};
 
 #[derive(Debug, Clone, Default)]
@@ -13,6 +14,20 @@ pub enum SparseVectorError {
     IndexOutOfBounds,
     DuplicateIndices,
 }
+
+impl fmt::Display for SparseVectorError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            SparseVectorError::LengthMismatch => write!(f, "Sparse vector length mismatch"),
+            SparseVectorError::IndexOutOfBounds => write!(f, "Sparse vector index out of bounds"),
+            SparseVectorError::DuplicateIndices => {
+                write!(f, "Sparse vector contains duplicate indices")
+            }
+        }
+    }
+}
+
+impl std::error::Error for SparseVectorError {}
 
 impl SparseVector {
     pub fn new(
@@ -41,6 +56,12 @@ impl SparseVector {
             values: sorted_values,
             length,
         })
+    }
+
+    pub fn from(elements: &[(usize, f32)], length: usize) -> Result<Self, SparseVectorError> {
+        let indices: Vec<usize> = elements.iter().map(|(i, _)| *i).collect();
+        let values: Vec<f32> = elements.iter().map(|(_, v)| *v).collect();
+        Self::new(indices, values, length)
     }
 
     pub fn len(&self) -> usize {

@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use reversi::{generate_game_records, training, ResultBoxErr};
+use reversi::{gen_data_for_training, gen_data_for_validation, training, ResultBoxErr};
 
 #[derive(Parser)]
 #[command(name = "Tempura Reversi")]
@@ -11,12 +11,14 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Generate game record
-    Generate {
+    GenTrainData {
         #[arg(short, long, default_value = "config.json")]
         config: String,
     },
-    /// Train the AI model
+    GenValidData {
+        #[arg(short, long, default_value = "config.json")]
+        config: String,
+    },
     Train {
         #[arg(short, long, default_value = "config.json")]
         config: String,
@@ -27,8 +29,11 @@ fn main() -> ResultBoxErr<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Generate { config } => {
-            generate_game_records(&config)?;
+        Commands::GenTrainData { config } => {
+            gen_data_for_training(&config)?;
+        }
+        Commands::GenValidData { config } => {
+            gen_data_for_validation(&config)?;
         }
         Commands::Train { config } => {
             training(&config)?;

@@ -34,7 +34,7 @@ impl Model {
     }
 
     pub fn save<P: AsRef<Path>>(&self, file_path: P) -> ResultBoxErr<()> {
-        let mut file = File::open(file_path)?;
+        let mut file = File::create(file_path)?;
         let serialized = bincode::serialize(self)?;
         file.write_all(&serialized)?;
         file.flush()?;

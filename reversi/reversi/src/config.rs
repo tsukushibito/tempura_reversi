@@ -10,7 +10,8 @@ use crate::{ml::EarlyStoppingConfig, ResultBoxErr};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TrainingConfig {
-    pub game_records_file: String,
+    pub data_for_training: String,
+    pub data_for_validation: String,
     pub epochs: usize,
     pub batch_size: usize,
     pub early_stopping: EarlyStoppingConfig,
@@ -20,7 +21,8 @@ pub struct TrainingConfig {
 impl Default for TrainingConfig {
     fn default() -> Self {
         Self {
-            game_records_file: "records.bin".to_string(),
+            data_for_training: "train.bin".to_string(),
+            data_for_validation: "valid.bin".to_string(),
             epochs: 100,
             batch_size: 32,
             early_stopping: EarlyStoppingConfig {
@@ -51,7 +53,8 @@ impl Default for SelfPlayConfig {
 pub struct Config {
     pub base_path: String,
     pub training: TrainingConfig,
-    pub self_play: SelfPlayConfig,
+    pub gen_data_for_training: SelfPlayConfig,
+    pub gen_data_for_validation: SelfPlayConfig,
 }
 
 impl Default for Config {
@@ -59,7 +62,14 @@ impl Default for Config {
         Self {
             base_path: "data".to_string(),
             training: Default::default(),
-            self_play: Default::default(),
+            gen_data_for_training: SelfPlayConfig {
+                num_games: 1000,
+                output_file: "train.bin".to_string(),
+            },
+            gen_data_for_validation: SelfPlayConfig {
+                num_games: 300,
+                output_file: "valid.bin".to_string(),
+            },
         }
     }
 }
@@ -89,16 +99,24 @@ impl Config {
         Ok(())
     }
 
-    pub fn training_game_records_path(&self) -> PathBuf {
-        Path::new(&self.base_path).join(&self.training.game_records_file)
+    pub fn training_data_for_training_path(&self) -> PathBuf {
+        Path::new(&self.base_path).join(&self.training.data_for_training)
+    }
+
+    pub fn training_data_for_validation_path(&self) -> PathBuf {
+        Path::new(&self.base_path).join(&self.training.data_for_validation)
     }
 
     pub fn training_output_path(&self) -> PathBuf {
         Path::new(&self.base_path).join(&self.training.output_file)
     }
 
-    pub fn self_play_output_path(&self) -> PathBuf {
-        Path::new(&self.base_path).join(&self.self_play.output_file)
+    pub fn gen_data_for_training_output_path(&self) -> PathBuf {
+        Path::new(&self.base_path).join(&self.gen_data_for_training.output_file)
+    }
+
+    pub fn gen_data_for_validation_output_path(&self) -> PathBuf {
+        Path::new(&self.base_path).join(&self.gen_data_for_validation.output_file)
     }
 
     pub fn validate(&self) -> Result<(), String> {
@@ -108,14 +126,21 @@ impl Config {
         if self.training.batch_size == 0 {
             return Err("バッチサイズは0より大きくなければなりません。".to_string());
         }
-        if self.self_play.num_games == 0 {
+        if self.gen_data_for_validation.num_games == 0 {
             return Err("対局数は0より大きくなければなりません。".to_string());
         }
         if !Path::new(&self.base_path).exists() {
             return Err(format!("base_path が存在しません: {}", self.base_path));
         }
 
-        if let Some(parent) = self.self_play_output_path().parent() {
+        if let Some(parent) = self.gen_data_for_training_output_path().parent() {
+            if !parent.exists() {
+                fs::create_dir_all(parent)
+                    .map_err(|e| format!("出力ディレクトリの作成に失敗しました: {}", e))?;
+            }
+        }
+
+        if let Some(parent) = self.gen_data_for_validation_output_path().parent() {
             if !parent.exists() {
                 fs::create_dir_all(parent)
                     .map_err(|e| format!("出力ディレクトリの作成に失敗しました: {}", e))?;
