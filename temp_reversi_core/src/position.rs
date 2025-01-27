@@ -1,81 +1,122 @@
-use std::{fmt, str::FromStr};
+use std::fmt;
+use std::ops::BitOr;
+use std::str::FromStr;
 
-/// Represents a position on the board with a row and column index.
-/// Both `row` and `col` are 0-based indices, ranging from 0 to 7.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Represents a position on the board with an internal bitboard representation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Position {
-    pub row: usize, // Row index (0-7)
-    pub col: usize, // Column index (0-7)
+    bit: u64, // Internal representation as a bitboard
 }
 
 impl Position {
-    /// Converts a `Position` into a `u64` bitmask representation for the bitboard.
-    ///
-    /// # Returns
-    /// A `u64` value where a single bit represents the position.
-    ///
-    /// # Examples
-    /// ```
-    /// let pos = Position { row: 0, col: 0 };
-    /// assert_eq!(pos.to_bit(), 1); // A1
-    /// ```
-    pub fn to_bit(&self) -> u64 {
-        1 << (self.row * 8 + self.col)
-    }
-
-    /// Converts a `u64` bitmask back into a `Position`.
+    /// Creates a new `Position` from the given row and column.
     ///
     /// # Arguments
-    /// * `bit` - A `u64` value with exactly one bit set.
+    ///
+    /// * `row` - The row index (0-based, must be less than 8).
+    /// * `col` - The column index (0-based, must be less than 8).
+    ///
+    /// # Panics
+    ///
+    /// Panics if `row` or `col` is not within the range 0..8.
+    pub fn new(row: usize, col: usize) -> Self {
+        assert!(row < 8 && col < 8, "row and col must be within 0..8");
+        Self {
+            bit: 1u64 << (row * 8 + col),
+        }
+    }
+
+    /// Creates a `Position` from a given bitboard representation.
+    ///
+    /// # Arguments
+    ///
+    /// * `bit` - A `u64` representing the bitboard, where exactly one bit is set.
     ///
     /// # Returns
-    /// Returns `Some(Position)` if the bitmask contains exactly one bit.
-    /// Returns `None` if the bitmask is invalid (e.g., multiple bits are set or no bits are set).
     ///
-    /// # Examples
-    /// ```
-    /// let bit = 1 << 28; // E5
-    /// let pos = Position::from_bit(bit).unwrap();
-    /// assert_eq!(pos, Position { row: 3, col: 4 });
-    /// ```
+    /// Returns `Some(Position)` if the bitboard has exactly one bit set, otherwise `None`.
     pub fn from_bit(bit: u64) -> Option<Self> {
-        if bit.count_ones() != 1 {
-            return None; // Invalid if not exactly one bit is set
+        if bit.count_ones() == 1 {
+            Some(Self { bit })
+        } else {
+            None // Invalid if more than one bit is set
         }
-        let index = bit.trailing_zeros() as usize;
-        Some(Position {
-            row: index / 8,
-            col: index % 8,
-        })
     }
 
-    /// Rotates the position 90 degrees clockwise.
+    /// Returns the row and column indices of the position.
     ///
-    /// # Examples
-    /// ```
-    /// let mut pos = Position { row: 0, col: 0 }; // A1
-    /// pos.rotate_90();
-    /// assert_eq!(pos, Position { row: 0, col: 7 }); // H1
-    /// ```
-    pub fn rotate_90(&mut self) {
-        let rotated = self.rotated_90();
-        self.row = rotated.row;
-        self.col = rotated.col;
+    /// # Returns
+    ///
+    /// A tuple `(row, col)` where `row` and `col` are 0-based indices.
+    pub fn to_row_col(&self) -> (usize, usize) {
+        let index = self.bit.trailing_zeros() as usize;
+        (index / 8, index % 8)
     }
 
-    /// Returns a new position rotated 90 degrees clockwise.
+    /// Returns the internal bitboard representation of the position.
     ///
-    /// # Examples
-    /// ```
-    /// let pos = Position { row: 0, col: 0 }; // A1
-    /// let rotated_pos = pos.rotated_90();
-    /// assert_eq!(rotated_pos, Position { row: 0, col: 7 }); // H1
-    /// ```
-    pub fn rotated_90(&self) -> Self {
-        Position {
-            row: self.col,
-            col: 7 - self.row,
-        }
+    /// # Returns
+    ///
+    /// A `u64` representing the position as a single bit in a bitboard.
+    pub fn to_bit(&self) -> u64 {
+        self.bit
+    }
+}
+
+/// Implements the `BitOr` trait to allow combining multiple positions.
+impl BitOr for Position {
+    type Output = u64;
+
+    /// Combines two `Position` instances into a single bitboard by performing a bitwise OR operation.
+    ///
+    /// # Arguments
+    ///
+    /// * `self` - The first position.
+    /// * `rhs` - The second position.
+    ///
+    /// # Returns
+    ///
+    /// A `u64` representing the combined bitboard of the two positions.
+    fn bitor(self, rhs: Self) -> Self::Output {
+        self.bit | rhs.bit
+    }
+}
+
+/// Implements the `BitOr` trait to allow combining `u64` with `Position`.
+impl BitOr<Position> for u64 {
+    type Output = u64;
+
+    /// Combines a `u64` bitboard with a `Position` by performing a bitwise OR operation.
+    ///
+    /// # Arguments
+    ///
+    /// * `self` - The first bitboard (`u64`).
+    /// * `rhs` - The `Position` to combine.
+    ///
+    /// # Returns
+    ///
+    /// A `u64` representing the combined bitboard.
+    fn bitor(self, rhs: Position) -> Self::Output {
+        self | rhs.bit
+    }
+}
+
+/// Implements the `BitOr` trait to allow combining `Position` with `u64`.
+impl BitOr<u64> for Position {
+    type Output = u64;
+
+    /// Combines a `Position` with a `u64` bitboard by performing a bitwise OR operation.
+    ///
+    /// # Arguments
+    ///
+    /// * `self` - The `Position` to combine.
+    /// * `rhs` - The `u64` bitboard.
+    ///
+    /// # Returns
+    ///
+    /// A `u64` representing the combined bitboard.
+    fn bitor(self, rhs: u64) -> Self::Output {
+        self.bit | rhs
     }
 }
 
@@ -102,8 +143,7 @@ impl FromStr for Position {
     /// use std::str::FromStr;
     ///
     /// let position = Position::from_str("A1").unwrap();
-    /// assert_eq!(position.row, 0);
-    /// assert_eq!(position.col, 0);
+    /// assert_eq!(position.to_row_col(), (0, 0));
     ///
     /// let invalid_position = Position::from_str("Z9");
     /// assert!(invalid_position.is_err());
@@ -124,150 +164,291 @@ impl FromStr for Position {
         }
 
         // Convert the column and row to indices
-        Ok(Position {
-            row: (row as u8 - b'1') as usize,
-            col: (col as u8 - b'A') as usize,
-        })
+        let row_index = (row as u8 - b'1') as usize;
+        let col_index = (col as u8 - b'A') as usize;
+
+        Ok(Position::new(row_index, col_index))
     }
 }
+
 impl fmt::Display for Position {
     /// Formats a `Position` as a string in the format "A1".
     ///
     /// # Examples
     /// ```
-    /// let pos = Position { row: 0, col: 0 };
+    /// use temp_reversi_core::Position;
+    ///
+    /// let pos = Position::new(0, 0);
     /// assert_eq!(format!("{}", pos), "A1");
-    /// let pos = Position { row: 7, col: 7 };
+    ///
+    /// let pos = Position::new(7, 7);
     /// assert_eq!(format!("{}", pos), "H8");
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let col = (self.col as u8 + b'A') as char; // Convert column to 'A'-'H'
-        let row = (self.row as u8 + b'1') as char; // Convert row to '1'-'8'
-        write!(f, "{}{}", col, row)
+        let (row, col) = self.to_row_col();
+        let col_char = (col as u8 + b'A') as char; // Convert column to 'A'-'H'
+        let row_char = (row as u8 + b'1') as char; // Convert row to '1'-'8'
+        write!(f, "{}{}", col_char, row_char)
     }
 }
 
 /// Constants representing all positions on the board.
 /// Each constant corresponds to a unique position indexed by row and column.
-pub const A1: Position = Position { row: 0, col: 0 };
-pub const A2: Position = Position { row: 1, col: 0 };
-pub const A3: Position = Position { row: 2, col: 0 };
-pub const A4: Position = Position { row: 3, col: 0 };
-pub const A5: Position = Position { row: 4, col: 0 };
-pub const A6: Position = Position { row: 5, col: 0 };
-pub const A7: Position = Position { row: 6, col: 0 };
-pub const A8: Position = Position { row: 7, col: 0 };
+pub const A1: Position = Position {
+    bit: 1u64 << (0 * 8 + 0),
+};
+pub const A2: Position = Position {
+    bit: 1u64 << (1 * 8 + 0),
+};
+pub const A3: Position = Position {
+    bit: 1u64 << (2 * 8 + 0),
+};
+pub const A4: Position = Position {
+    bit: 1u64 << (3 * 8 + 0),
+};
+pub const A5: Position = Position {
+    bit: 1u64 << (4 * 8 + 0),
+};
+pub const A6: Position = Position {
+    bit: 1u64 << (5 * 8 + 0),
+};
+pub const A7: Position = Position {
+    bit: 1u64 << (6 * 8 + 0),
+};
+pub const A8: Position = Position {
+    bit: 1u64 << (7 * 8 + 0),
+};
 
-pub const B1: Position = Position { row: 0, col: 1 };
-pub const B2: Position = Position { row: 1, col: 1 };
-pub const B3: Position = Position { row: 2, col: 1 };
-pub const B4: Position = Position { row: 3, col: 1 };
-pub const B5: Position = Position { row: 4, col: 1 };
-pub const B6: Position = Position { row: 5, col: 1 };
-pub const B7: Position = Position { row: 6, col: 1 };
-pub const B8: Position = Position { row: 7, col: 1 };
+pub const B1: Position = Position {
+    bit: 1u64 << (0 * 8 + 1),
+};
+pub const B2: Position = Position {
+    bit: 1u64 << (1 * 8 + 1),
+};
+pub const B3: Position = Position {
+    bit: 1u64 << (2 * 8 + 1),
+};
+pub const B4: Position = Position {
+    bit: 1u64 << (3 * 8 + 1),
+};
+pub const B5: Position = Position {
+    bit: 1u64 << (4 * 8 + 1),
+};
+pub const B6: Position = Position {
+    bit: 1u64 << (5 * 8 + 1),
+};
+pub const B7: Position = Position {
+    bit: 1u64 << (6 * 8 + 1),
+};
+pub const B8: Position = Position {
+    bit: 1u64 << (7 * 8 + 1),
+};
 
-pub const C1: Position = Position { row: 0, col: 2 };
-pub const C2: Position = Position { row: 1, col: 2 };
-pub const C3: Position = Position { row: 2, col: 2 };
-pub const C4: Position = Position { row: 3, col: 2 };
-pub const C5: Position = Position { row: 4, col: 2 };
-pub const C6: Position = Position { row: 5, col: 2 };
-pub const C7: Position = Position { row: 6, col: 2 };
-pub const C8: Position = Position { row: 7, col: 2 };
+pub const C1: Position = Position {
+    bit: 1u64 << (0 * 8 + 2),
+};
+pub const C2: Position = Position {
+    bit: 1u64 << (1 * 8 + 2),
+};
+pub const C3: Position = Position {
+    bit: 1u64 << (2 * 8 + 2),
+};
+pub const C4: Position = Position {
+    bit: 1u64 << (3 * 8 + 2),
+};
+pub const C5: Position = Position {
+    bit: 1u64 << (4 * 8 + 2),
+};
+pub const C6: Position = Position {
+    bit: 1u64 << (5 * 8 + 2),
+};
+pub const C7: Position = Position {
+    bit: 1u64 << (6 * 8 + 2),
+};
+pub const C8: Position = Position {
+    bit: 1u64 << (7 * 8 + 2),
+};
 
-pub const D1: Position = Position { row: 0, col: 3 };
-pub const D2: Position = Position { row: 1, col: 3 };
-pub const D3: Position = Position { row: 2, col: 3 };
-pub const D4: Position = Position { row: 3, col: 3 };
-pub const D5: Position = Position { row: 4, col: 3 };
-pub const D6: Position = Position { row: 5, col: 3 };
-pub const D7: Position = Position { row: 6, col: 3 };
-pub const D8: Position = Position { row: 7, col: 3 };
+pub const D1: Position = Position {
+    bit: 1u64 << (0 * 8 + 3),
+};
+pub const D2: Position = Position {
+    bit: 1u64 << (1 * 8 + 3),
+};
+pub const D3: Position = Position {
+    bit: 1u64 << (2 * 8 + 3),
+};
+pub const D4: Position = Position {
+    bit: 1u64 << (3 * 8 + 3),
+};
+pub const D5: Position = Position {
+    bit: 1u64 << (4 * 8 + 3),
+};
+pub const D6: Position = Position {
+    bit: 1u64 << (5 * 8 + 3),
+};
+pub const D7: Position = Position {
+    bit: 1u64 << (6 * 8 + 3),
+};
+pub const D8: Position = Position {
+    bit: 1u64 << (7 * 8 + 3),
+};
 
-pub const E1: Position = Position { row: 0, col: 4 };
-pub const E2: Position = Position { row: 1, col: 4 };
-pub const E3: Position = Position { row: 2, col: 4 };
-pub const E4: Position = Position { row: 3, col: 4 };
-pub const E5: Position = Position { row: 4, col: 4 };
-pub const E6: Position = Position { row: 5, col: 4 };
-pub const E7: Position = Position { row: 6, col: 4 };
-pub const E8: Position = Position { row: 7, col: 4 };
+pub const E1: Position = Position {
+    bit: 1u64 << (0 * 8 + 4),
+};
+pub const E2: Position = Position {
+    bit: 1u64 << (1 * 8 + 4),
+};
+pub const E3: Position = Position {
+    bit: 1u64 << (2 * 8 + 4),
+};
+pub const E4: Position = Position {
+    bit: 1u64 << (3 * 8 + 4),
+};
+pub const E5: Position = Position {
+    bit: 1u64 << (4 * 8 + 4),
+};
+pub const E6: Position = Position {
+    bit: 1u64 << (5 * 8 + 4),
+};
+pub const E7: Position = Position {
+    bit: 1u64 << (6 * 8 + 4),
+};
+pub const E8: Position = Position {
+    bit: 1u64 << (7 * 8 + 4),
+};
 
-pub const F1: Position = Position { row: 0, col: 5 };
-pub const F2: Position = Position { row: 1, col: 5 };
-pub const F3: Position = Position { row: 2, col: 5 };
-pub const F4: Position = Position { row: 3, col: 5 };
-pub const F5: Position = Position { row: 4, col: 5 };
-pub const F6: Position = Position { row: 5, col: 5 };
-pub const F7: Position = Position { row: 6, col: 5 };
-pub const F8: Position = Position { row: 7, col: 5 };
+pub const F1: Position = Position {
+    bit: 1u64 << (0 * 8 + 5),
+};
+pub const F2: Position = Position {
+    bit: 1u64 << (1 * 8 + 5),
+};
+pub const F3: Position = Position {
+    bit: 1u64 << (2 * 8 + 5),
+};
+pub const F4: Position = Position {
+    bit: 1u64 << (3 * 8 + 5),
+};
+pub const F5: Position = Position {
+    bit: 1u64 << (4 * 8 + 5),
+};
+pub const F6: Position = Position {
+    bit: 1u64 << (5 * 8 + 5),
+};
+pub const F7: Position = Position {
+    bit: 1u64 << (6 * 8 + 5),
+};
+pub const F8: Position = Position {
+    bit: 1u64 << (7 * 8 + 5),
+};
 
-pub const G1: Position = Position { row: 0, col: 6 };
-pub const G2: Position = Position { row: 1, col: 6 };
-pub const G3: Position = Position { row: 2, col: 6 };
-pub const G4: Position = Position { row: 3, col: 6 };
-pub const G5: Position = Position { row: 4, col: 6 };
-pub const G6: Position = Position { row: 5, col: 6 };
-pub const G7: Position = Position { row: 6, col: 6 };
-pub const G8: Position = Position { row: 7, col: 6 };
+pub const G1: Position = Position {
+    bit: 1u64 << (0 * 8 + 6),
+};
+pub const G2: Position = Position {
+    bit: 1u64 << (1 * 8 + 6),
+};
+pub const G3: Position = Position {
+    bit: 1u64 << (2 * 8 + 6),
+};
+pub const G4: Position = Position {
+    bit: 1u64 << (3 * 8 + 6),
+};
+pub const G5: Position = Position {
+    bit: 1u64 << (4 * 8 + 6),
+};
+pub const G6: Position = Position {
+    bit: 1u64 << (5 * 8 + 6),
+};
+pub const G7: Position = Position {
+    bit: 1u64 << (6 * 8 + 6),
+};
+pub const G8: Position = Position {
+    bit: 1u64 << (7 * 8 + 6),
+};
 
-pub const H1: Position = Position { row: 0, col: 7 };
-pub const H2: Position = Position { row: 1, col: 7 };
-pub const H3: Position = Position { row: 2, col: 7 };
-pub const H4: Position = Position { row: 3, col: 7 };
-pub const H5: Position = Position { row: 4, col: 7 };
-pub const H6: Position = Position { row: 5, col: 7 };
-pub const H7: Position = Position { row: 6, col: 7 };
-pub const H8: Position = Position { row: 7, col: 7 };
+pub const H1: Position = Position {
+    bit: 1u64 << (0 * 8 + 7),
+};
+pub const H2: Position = Position {
+    bit: 1u64 << (1 * 8 + 7),
+};
+pub const H3: Position = Position {
+    bit: 1u64 << (2 * 8 + 7),
+};
+pub const H4: Position = Position {
+    bit: 1u64 << (3 * 8 + 7),
+};
+pub const H5: Position = Position {
+    bit: 1u64 << (4 * 8 + 7),
+};
+pub const H6: Position = Position {
+    bit: 1u64 << (5 * 8 + 7),
+};
+pub const H7: Position = Position {
+    bit: 1u64 << (6 * 8 + 7),
+};
+pub const H8: Position = Position {
+    bit: 1u64 << (7 * 8 + 7),
+};
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    /// Tests the creation of a `Position` using row and column.
     #[test]
-    fn test_to_bit() {
-        // Test converting positions to bitboard representation
-        let pos = Position { row: 0, col: 0 }; // A1
-        assert_eq!(pos.to_bit(), 1);
-
-        let pos = Position { row: 7, col: 7 }; // H8
-        assert_eq!(pos.to_bit(), 1 << 63);
-
-        let pos = Position { row: 3, col: 4 }; // E5
-        assert_eq!(pos.to_bit(), 1 << 28);
+    fn test_position_creation() {
+        let pos = Position::new(0, 0); // A1
+        assert_eq!(pos.to_bit(), 1u64 << 0);
+        assert_eq!(format!("{}", pos), "A1");
     }
 
+    /// Tests the `BitOr` operator for combining multiple positions.
+    #[test]
+    fn test_bitor_operator() {
+        let p1 = Position::new(0, 0); // A1
+        let p2 = Position::new(0, 1); // B1
+        let p3 = Position::new(1, 0); // A2
+
+        let pattern = p1 | p2 | p3;
+        assert_eq!(pattern, (1u64 << 0) | (1u64 << 1) | (1u64 << 8));
+    }
+
+    /// Tests the conversion of a `Position` to its row and column indices.
+    #[test]
+    fn test_to_row_col() {
+        let pos = Position::new(3, 5); // F4
+        assert_eq!(pos.to_row_col(), (3, 5));
+    }
+
+    /// Tests creating a `Position` from a bitboard representation.
     #[test]
     fn test_from_bit() {
-        // Test converting bitboard representation back to positions
-        assert_eq!(Position::from_bit(1), Some(Position { row: 0, col: 0 })); // A1
-        assert_eq!(
-            Position::from_bit(1 << 63),
-            Some(Position { row: 7, col: 7 })
-        ); // H8
-        assert_eq!(
-            Position::from_bit(1 << 28),
-            Some(Position { row: 3, col: 4 })
-        ); // E5
-        assert_eq!(Position::from_bit(0), None); // Invalid bitmask
-        assert_eq!(Position::from_bit(3), None); // Multiple bits set
+        let bit = 1u64 << 0; // A1
+        let pos = Position::from_bit(bit).unwrap();
+        assert_eq!(pos.to_row_col(), (0, 0));
     }
 
+    /// Tests creating a `Position` from a string.
     #[test]
-    fn test_constants() {
-        // Test predefined constants for specific positions
-        assert_eq!(A1.to_bit(), 1);
-        assert_eq!(A2.to_bit(), 1 << 8);
-        assert_eq!(H8.to_bit(), 1 << 63);
+    fn test_from_str() {
+        let pos = Position::from_str("A1").unwrap();
+        assert_eq!(pos.to_row_col(), (0, 0));
+
+        let pos = Position::from_str("H8").unwrap();
+        assert_eq!(pos.to_row_col(), (7, 7));
+
+        assert!(Position::from_str("Z9").is_err());
+        assert!(Position::from_str("AA").is_err());
     }
 
+    /// Tests the `Display` implementation for `Position`.
     #[test]
-    fn test_round_trip_conversion() {
-        // Test round-trip conversion between Position and bitboard
-        let pos = Position { row: 5, col: 6 }; // F6
-        let bit = pos.to_bit();
-        let converted_pos = Position::from_bit(bit).unwrap();
-        assert_eq!(pos, converted_pos);
+    fn test_display() {
+        let pos = Position::new(7, 7); // H8
+        assert_eq!(format!("{}", pos), "H8");
     }
 }

@@ -122,10 +122,10 @@ mod tests {
     #[test]
     fn test_pattern_creation() {
         let positions = vec![
-            Position { row: 0, col: 0 }, // A1
-            Position { row: 0, col: 7 }, // H1
-            Position { row: 7, col: 0 }, // A8
-            Position { row: 7, col: 7 }, // H8
+            Position::new(0, 0), // A1
+            Position::new(0, 7), // H1
+            Position::new(7, 0), // A8
+            Position::new(7, 7), // H8
         ];
         let pattern = Pattern::from_positions(&positions, Some("Corner"));
         assert_eq!(pattern.cell_count(), 4);

@@ -593,7 +593,7 @@ mod tests {
     fn test_apply_move_invalid_position() {
         let mut board = Bitboard::default();
 
-        let position = Position { row: 3, col: 3 }; // D4
+        let position = Position::new(3, 3); // D4
         assert!(board.apply_move(position, Player::Black).is_err());
     }
 
@@ -601,7 +601,7 @@ mod tests {
     fn test_apply_move_no_flips() {
         let mut board = Bitboard::default();
 
-        let position = Position { row: 0, col: 0 }; // A1
+        let position = Position::new(0, 0); // A1
         assert!(board.apply_move(position, Player::Black).is_err());
     }
 
