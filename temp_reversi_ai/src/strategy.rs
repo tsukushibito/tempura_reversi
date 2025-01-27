@@ -1,5 +1,5 @@
 pub mod negamax;
-mod randam;
+pub mod random;
 pub mod simple;
 
 use temp_reversi_core::{Game, Position};
