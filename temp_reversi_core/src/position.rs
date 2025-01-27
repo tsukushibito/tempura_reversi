@@ -48,6 +48,35 @@ impl Position {
             col: index % 8,
         })
     }
+
+    /// Rotates the position 90 degrees clockwise.
+    ///
+    /// # Examples
+    /// ```
+    /// let mut pos = Position { row: 0, col: 0 }; // A1
+    /// pos.rotate_90();
+    /// assert_eq!(pos, Position { row: 0, col: 7 }); // H1
+    /// ```
+    pub fn rotate_90(&mut self) {
+        let rotated = self.rotated_90();
+        self.row = rotated.row;
+        self.col = rotated.col;
+    }
+
+    /// Returns a new position rotated 90 degrees clockwise.
+    ///
+    /// # Examples
+    /// ```
+    /// let pos = Position { row: 0, col: 0 }; // A1
+    /// let rotated_pos = pos.rotated_90();
+    /// assert_eq!(rotated_pos, Position { row: 0, col: 7 }); // H1
+    /// ```
+    pub fn rotated_90(&self) -> Self {
+        Position {
+            row: self.col,
+            col: 7 - self.row,
+        }
+    }
 }
 
 impl FromStr for Position {
