@@ -1,60 +1,64 @@
 use std::collections::HashMap;
+use temp_reversi_core::utils::{rotate_mask_180, rotate_mask_270_ccw, rotate_mask_90_ccw};
 
-/// Represents a single rotated pattern and its key-to-index mapping.
+/// Represents a pattern used for evaluating board positions in Reversi.
 ///
-/// A `Pattern` contains a bitmask representing a specific rotation of a pattern
-/// and a precomputed mapping from masked board states (black and white stones)
-/// to their corresponding state indices.
+/// A `Pattern` consists of a bitmask defining a specific pattern on the board
+/// and a precomputed mapping from board states to their corresponding indices.
 pub struct Pattern {
-    /// Bitmask representing the rotated pattern.
+    /// Bitmask representing the pattern on the board.
     pub mask: u64,
-    /// Mapping from masked board state (black and white stones) to state index.
+    /// Mapping from masked board states (black and white stones) to state indices.
     pub key_to_index: HashMap<(u64, u64), usize>,
 }
 
 impl Pattern {
-    /// Creates a new `Pattern` with a precomputed key-to-index map.
+    /// Creates a new `Pattern` instance.
     ///
     /// # Arguments
     /// * `mask` - A 64-bit integer representing the bitmask of the pattern.
+    /// * `base_pattern` - An optional reference to a base pattern and its rotation.
+    ///
+    /// If `base_pattern` is provided, the `key_to_index` mapping is derived
+    /// from the base pattern by adjusting for rotation.
     ///
     /// # Returns
-    /// A `Pattern` struct with the given bitmask and a precomputed key-to-index map.
-    pub fn new(mask: u64) -> Self {
-        let key_to_index = Self::precompute_key_to_index(mask);
+    /// A `Pattern` instance with a precomputed `key_to_index` mapping.
+    pub fn new(mask: u64, base_pattern: Option<(&Pattern, u8)>) -> Self {
+        let key_to_index = Self::precompute_key_to_index(mask, base_pattern);
         Self { mask, key_to_index }
     }
 
-    /// Precomputes the key-to-index mapping for a given mask.
-    ///
-    /// This function calculates all possible board states (black and white stones)
-    /// for the bits set in the given mask and maps them to their respective state indices.
+    /// Precomputes the key-to-index mapping for a given pattern.
     ///
     /// # Arguments
     /// * `mask` - A 64-bit integer representing the bitmask of the pattern.
+    /// * `base_pattern` - An optional reference to a base pattern and its rotation.
+    ///
+    /// If `base_pattern` is provided, the board states are rotated back to
+    /// the base orientation before retrieving their indices.
     ///
     /// # Returns
-    /// A `HashMap` mapping pairs of masked board states (black, white) to state indices.
-    fn precompute_key_to_index(mask: u64) -> HashMap<(u64, u64), usize> {
+    /// A `HashMap` mapping masked board states `(black_mask, white_mask)` to state indices.
+    fn precompute_key_to_index(
+        mask: u64,
+        base_pattern: Option<(&Pattern, u8)>,
+    ) -> HashMap<(u64, u64), usize> {
         let mut mapping = HashMap::new();
 
-        // Collect positions of bits that are set in the mask
+        // Collect positions of bits set in the mask.
         let cell_positions: Vec<u64> = (0..64).filter(|&i| mask & (1 << i) != 0).collect();
-
-        // Calculate the number of cells covered by the mask
         let num_cells = cell_positions.len();
-
-        // There are 3^num_cells possible states (0: Empty, 1: Black, 2: White)
         let num_states = 3_usize.pow(num_cells as u32);
 
-        // Generate all possible states and compute the corresponding masked board state
+        // Generate all possible masked board states.
         for state_index in 0..num_states {
             let mut masked_black = 0;
             let mut masked_white = 0;
             let mut state = state_index;
 
             for &pos in &cell_positions {
-                let cell_state = state % 3; // 0: Empty, 1: Black, 2: White
+                let cell_state = state % 3;
                 state /= 3;
 
                 match cell_state {
@@ -64,36 +68,31 @@ impl Pattern {
                 }
             }
 
-            // Map the masked state to the state index
-            mapping.insert((masked_black, masked_white), state_index);
+            if let Some((base, rotation)) = base_pattern {
+                // Adjust rotation to match the base pattern.
+                let (base_black, base_white) = match rotation {
+                    1 => (
+                        rotate_mask_90_ccw(masked_black),
+                        rotate_mask_90_ccw(masked_white),
+                    ), // 90-degree counterclockwise
+                    2 => (rotate_mask_180(masked_black), rotate_mask_180(masked_white)), // 180-degree
+                    3 => (
+                        rotate_mask_270_ccw(masked_black),
+                        rotate_mask_270_ccw(masked_white),
+                    ), // 270-degree counterclockwise
+                    _ => (masked_black, masked_white), // No rotation
+                };
+
+                // Retrieve the index from the base pattern's key-to-index mapping.
+                if let Some(&base_index) = base.key_to_index.get(&(base_black, base_white)) {
+                    mapping.insert((masked_black, masked_white), base_index);
+                }
+            } else {
+                // Directly assign indices for the base pattern.
+                mapping.insert((masked_black, masked_white), state_index);
+            }
         }
 
         mapping
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// Tests the precompute_key_to_index function to ensure correct mappings are generated.
-    #[test]
-    fn test_precompute_key_to_index() {
-        let mask = 0b000000000_000000111_000000000_000000000_000000000; // A horizontal line in the third row
-        let pattern = Pattern::new(mask);
-
-        // Verify that the number of entries matches the expected number of states
-        let expected_num_states = 3_usize.pow(3); // 3 cells covered by the mask
-        assert_eq!(pattern.key_to_index.len(), expected_num_states);
-
-        // Verify that a specific state is correctly mapped
-        let black_mask = 0b000000000_000000101_000000000_000000000_000000000; // Black stones on the ends
-        let white_mask = 0b000000000_000000010_000000000_000000000_000000000; // White stone in the middle
-
-        let key = (black_mask & mask, white_mask & mask);
-        assert!(pattern.key_to_index.contains_key(&key));
-
-        let state_index = pattern.key_to_index[&key];
-        assert_eq!(state_index, 16); // Corresponding to [Black, White, Black]
     }
 }

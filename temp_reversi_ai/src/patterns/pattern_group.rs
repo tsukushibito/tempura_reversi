@@ -1,4 +1,7 @@
-use temp_reversi_core::{utils::rotate_mask_90_clockwise, Bitboard};
+use temp_reversi_core::{
+    utils::{rotate_mask_180, rotate_mask_270_cw, rotate_mask_90_cw},
+    Bitboard,
+};
 
 use super::pattern::Pattern;
 
@@ -27,20 +30,20 @@ impl PatternGroup {
     /// # Returns
     /// A `PatternGroup` struct containing the rotated patterns and shared state scores.
     pub fn new(base_pattern: u64, state_scores: Vec<Vec<i32>>, name: Option<&str>) -> Self {
-        // Generate rotated patterns from the base pattern
-        let patterns = vec![
-            Pattern::new(base_pattern),
-            Pattern::new(rotate_mask_90_clockwise(base_pattern)),
-            Pattern::new(rotate_mask_90_clockwise(rotate_mask_90_clockwise(
-                base_pattern,
-            ))),
-            Pattern::new(rotate_mask_90_clockwise(rotate_mask_90_clockwise(
-                rotate_mask_90_clockwise(base_pattern),
-            ))),
-        ];
+        let base_pattern_obj = Pattern::new(base_pattern, None);
+
+        let rotated_90 = Pattern::new(
+            rotate_mask_90_cw(base_pattern),
+            Some((&base_pattern_obj, 1)),
+        );
+        let rotated_180 = Pattern::new(rotate_mask_180(base_pattern), Some((&base_pattern_obj, 2)));
+        let rotated_270 = Pattern::new(
+            rotate_mask_270_cw(base_pattern),
+            Some((&base_pattern_obj, 3)),
+        );
 
         Self {
-            patterns,
+            patterns: vec![base_pattern_obj, rotated_90, rotated_180, rotated_270],
             state_scores,
             name: name.map(|s| s.to_string()),
         }
