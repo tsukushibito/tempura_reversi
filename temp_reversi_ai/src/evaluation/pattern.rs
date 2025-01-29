@@ -9,17 +9,15 @@ pub struct PatternEvaluator {
 }
 
 impl PatternEvaluator {
-    /// Creates a new `PatternEvaluator`.
-    pub fn new() -> Self {
-        Self { groups: Vec::new() }
-    }
-
-    /// Adds a new `PatternGroup` to the manager.
+    /// Creates a `PatternEvaluator` with a predefined list of pattern groups.
     ///
     /// # Arguments
-    /// * `group` - The `PatternGroup` to add.
-    pub fn add_group(&mut self, group: PatternGroup) {
-        self.groups.push(group);
+    /// * `groups` - A vector of `PatternGroup` instances to be managed by the evaluator.
+    ///
+    /// # Returns
+    /// A `PatternEvaluator` initialized with the provided pattern groups.
+    pub fn new(groups: Vec<PatternGroup>) -> Self {
+        Self { groups }
     }
 }
 

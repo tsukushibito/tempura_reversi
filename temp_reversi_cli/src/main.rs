@@ -1,5 +1,6 @@
 use temp_reversi_ai::{
-    evaluation::PhaseAwareEvaluator,
+    evaluation::PatternEvaluator,
+    patterns::{get_predefined_patterns, Pattern},
     strategy::{negamax::NegamaxStrategy, Strategy},
 };
 use temp_reversi_cli::{cli_display, CliPlayer};
@@ -7,12 +8,12 @@ use temp_reversi_core::{run_game, Game, MoveDecider, Position};
 
 /// A wrapper to use NegamaxStrategy with MoveDecider trait.
 struct NegamaxMoveDecider {
-    strategy: NegamaxStrategy<PhaseAwareEvaluator>,
+    strategy: NegamaxStrategy<PatternEvaluator>,
 }
 
 impl NegamaxMoveDecider {
     pub fn new(depth: u32) -> Self {
-        let evaluator = PhaseAwareEvaluator;
+        let evaluator = PatternEvaluator::new(get_predefined_patterns());
         let strategy = NegamaxStrategy::new(evaluator, depth);
         Self { strategy }
     }
