@@ -1,4 +1,4 @@
-use temp_reversi_core::utils::rotate_mask_90_clockwise;
+use temp_reversi_core::{utils::rotate_mask_90_clockwise, Bitboard};
 
 use super::pattern::Pattern;
 
@@ -44,6 +44,30 @@ impl PatternGroup {
             state_scores,
             name: name.map(|s| s.to_string()),
         }
+    }
+
+    /// Evaluates the score contribution of this pattern group for the given board state.
+    ///
+    /// # Arguments
+    /// * `board` - The current board state as a `Bitboard`.
+    /// * `phase` - Current game phase (0-59).
+    ///
+    /// # Returns
+    /// * `i32` - The score contribution of this pattern group.
+    pub fn evaluate_score(&self, board: &Bitboard, phase: usize) -> i32 {
+        let mut score = 0;
+        let (black_mask, white_mask) = board.bits(); // Get black and white bit masks
+
+        for pattern in &self.patterns {
+            let masked_black = black_mask & pattern.mask;
+            let masked_white = white_mask & pattern.mask;
+
+            if let Some(&state_index) = pattern.key_to_index.get(&(masked_black, masked_white)) {
+                score += self.state_scores[phase][state_index];
+            }
+        }
+
+        score
     }
 }
 

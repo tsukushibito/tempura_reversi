@@ -1,6 +1,6 @@
 use super::EvaluationFunction;
 use crate::patterns::PatternGroup;
-use temp_reversi_core::Player;
+use temp_reversi_core::{Bitboard, Player};
 
 /// Evaluates the board based on multiple pattern groups and their scores.
 pub struct PatternEvaluator {
@@ -24,31 +24,17 @@ impl PatternEvaluator {
 }
 
 impl EvaluationFunction for PatternEvaluator {
-    fn evaluate(
-        &self,
-        board: &temp_reversi_core::Bitboard,
-        player: temp_reversi_core::Player,
-    ) -> i32 {
+    fn evaluate(&self, board: &Bitboard, player: Player) -> i32 {
         let mut total_score = 0;
 
-        // Get black and white masks from the board
-        let (black_mask, white_mask) = board.bits();
-
-        // Calculate the number of stones to determine the phase (0 to 59)
-        let total_stones = (black_mask | white_mask).count_ones() as usize;
+        // Calculate the phase using `Bitboard::count_stones`
+        let (black_stones, white_stones) = board.count_stones();
+        let total_stones = black_stones + white_stones;
         let phase = 60 - total_stones.min(60); // Phase is capped at 59
 
         // Iterate through all pattern groups and accumulate scores
         for group in &self.groups {
-            for pattern in &group.patterns {
-                let masked_black = black_mask & pattern.mask;
-                let masked_white = white_mask & pattern.mask;
-
-                if let Some(&state_index) = pattern.key_to_index.get(&(masked_black, masked_white))
-                {
-                    total_score += group.state_scores[phase][state_index];
-                }
-            }
+            total_score += group.evaluate_score(board, phase);
         }
 
         // Adjust score based on the perspective of the current player
