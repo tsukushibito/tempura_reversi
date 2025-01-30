@@ -12,8 +12,8 @@ impl Default for Bitboard {
     /// Creates a new game board in the default initial state.
     fn default() -> Self {
         Self {
-            black: D5.to_bit() | E4.to_bit(), // Initial black stones
-            white: D4.to_bit() | E5.to_bit(), // Initial white stones
+            black: Position::D5 | Position::E4, // Initial black stones
+            white: Position::D4 | Position::E5, // Initial white stones
         }
     }
 }
@@ -224,34 +224,33 @@ mod tests {
     use rand::{seq::SliceRandom, thread_rng};
 
     use super::*;
-    use crate::position::{D4, D5, E4, E5};
 
     #[test]
     fn test_default() {
         let board = Bitboard::default();
         println!("{board}");
-        assert_eq!(board.black, D5.to_bit() | E4.to_bit());
-        assert_eq!(board.white, D4.to_bit() | E5.to_bit());
+        assert_eq!(board.black, Position::D5 | Position::E4);
+        assert_eq!(board.white, Position::D4 | Position::E5);
     }
 
     #[test]
     fn test_new() {
-        let board = Bitboard::new(D5.to_bit() | E4.to_bit(), D4.to_bit() | E5.to_bit());
-        assert_eq!(board.black, D5.to_bit() | E4.to_bit());
-        assert_eq!(board.white, D4.to_bit() | E5.to_bit());
+        let board = Bitboard::new(Position::D5 | Position::E4, Position::D4 | Position::E5);
+        assert_eq!(board.black, Position::D5 | Position::E4);
+        assert_eq!(board.white, Position::D4 | Position::E5);
     }
 
     #[test]
     fn test_get_bitboard_states() {
-        let board = Bitboard::new(D5.to_bit() | E4.to_bit(), D4.to_bit() | E5.to_bit());
+        let board = Bitboard::new(Position::D5 | Position::E4, Position::D4 | Position::E5);
         let (black, white) = board.bits();
-        assert_eq!(black, D5.to_bit() | E4.to_bit());
-        assert_eq!(white, D4.to_bit() | E5.to_bit());
+        assert_eq!(black, Position::D5 | Position::E4);
+        assert_eq!(white, Position::D4 | Position::E5);
     }
 
     #[test]
     fn test_count_stones() {
-        let board = Bitboard::new(D5.to_bit() | E4.to_bit(), D4.to_bit() | E5.to_bit());
+        let board = Bitboard::new(Position::D5 | Position::E4, Position::D4 | Position::E5);
         let (black_count, white_count) = board.count_stones();
         assert_eq!(black_count, 2);
         assert_eq!(white_count, 2);
@@ -259,8 +258,8 @@ mod tests {
 
     #[test]
     fn test_get_valid_moves_bitmask() {
-        let black = D5.to_bit() | E4.to_bit();
-        let white = D4.to_bit() | E5.to_bit();
+        let black = Position::D5 | Position::E4;
+        let white = Position::D4 | Position::E5;
         let board = Bitboard::new(black, white);
 
         let bitmask = board.valid_moves_bitmask(Player::Black);
@@ -269,7 +268,7 @@ mod tests {
         println!("[bitmask]");
         println!("{bitmask_board}");
 
-        let expected = D3.to_bit() | C4.to_bit() | F5.to_bit() | E6.to_bit();
+        let expected = Position::D3 | Position::C4 | Position::F5 | Position::E6;
         let expected_board = Bitboard::new(expected, 0);
         println!("[expected]");
         println!("{expected_board}");
@@ -281,8 +280,8 @@ mod tests {
     fn test_valid_moves_corners() {
         // 左上隅のテスト
         {
-            let black = A1.to_bit();
-            let white = B1.to_bit() | A2.to_bit() | B2.to_bit();
+            let black = Position::A1.to_bit();
+            let white = Position::B1 | Position::A2 | Position::B2;
             let board = Bitboard::new(black, white);
             println!("[Left-Top Corner Test - Board]");
             println!("{board}");
@@ -292,7 +291,7 @@ mod tests {
             println!("[Left-Top Corner Test - Bitmask Board]");
             println!("{bitmask_board}");
 
-            let expected = C1.to_bit() | A3.to_bit() | C3.to_bit();
+            let expected = Position::C1 | Position::A3 | Position::C3;
             let expected_board = Bitboard::new(expected, 0);
             println!("[Left-Top Corner Test - Expected Board]");
             println!("{expected_board}");
@@ -302,8 +301,8 @@ mod tests {
 
         // 右上隅のテスト
         {
-            let black = H1.to_bit();
-            let white = G1.to_bit() | H2.to_bit() | G2.to_bit();
+            let black = Position::H1.to_bit();
+            let white = Position::G1 | Position::H2 | Position::G2;
             let board = Bitboard::new(black, white);
             println!("[Right-Top Corner Test - Board]");
             println!("{board}");
@@ -313,7 +312,7 @@ mod tests {
             println!("[Right-Top Corner Test - Bitmask Board]");
             println!("{bitmask_board}");
 
-            let expected = F1.to_bit() | H3.to_bit() | F3.to_bit();
+            let expected = Position::F1 | Position::H3 | Position::F3;
             let expected_board = Bitboard::new(expected, 0);
             println!("[Right-Top Corner Test - Expected Board]");
             println!("{expected_board}");
@@ -323,8 +322,8 @@ mod tests {
 
         // 左下隅のテスト
         {
-            let black = A8.to_bit();
-            let white = B8.to_bit() | A7.to_bit() | B7.to_bit();
+            let black = Position::A8.to_bit();
+            let white = Position::B8 | Position::A7 | Position::B7;
             let board = Bitboard::new(black, white);
             println!("[Left-Bottom Corner Test - Board]");
             println!("{board}");
@@ -334,7 +333,7 @@ mod tests {
             println!("[Left-Bottom Corner Test - Bitmask Board]");
             println!("{bitmask_board}");
 
-            let expected = C8.to_bit() | A6.to_bit() | C6.to_bit();
+            let expected = Position::C8 | Position::A6 | Position::C6;
             let expected_board = Bitboard::new(expected, 0);
             println!("[Left-Bottom Corner Test - Expected Board]");
             println!("{expected_board}");
@@ -344,8 +343,8 @@ mod tests {
 
         // 右下隅のテスト
         {
-            let black = H8.to_bit();
-            let white = G8.to_bit() | H7.to_bit() | G7.to_bit();
+            let black = Position::H8.to_bit();
+            let white = Position::G8 | Position::H7 | Position::G7;
             let board = Bitboard::new(black, white);
             println!("[Right-Bottom Corner Test - Board]");
             println!("{board}");
@@ -355,7 +354,7 @@ mod tests {
             println!("[Right-Bottom Corner Test - Bitmask Board]");
             println!("{bitmask_board}");
 
-            let expected = F8.to_bit() | H6.to_bit() | F6.to_bit();
+            let expected = Position::F8 | Position::H6 | Position::F6;
             let expected_board = Bitboard::new(expected, 0);
             println!("[Right-Bottom Corner Test - Expected Board]");
             println!("{expected_board}");
@@ -367,8 +366,8 @@ mod tests {
     #[test]
     fn test_valid_moves_edges() {
         {
-            let black = A3.to_bit();
-            let white = A2.to_bit() | A4.to_bit() | B2.to_bit() | B3.to_bit() | B4.to_bit();
+            let black = Position::A3.to_bit();
+            let white = Position::A2 | Position::A4 | Position::B2 | Position::B3 | Position::B4;
             let board = Bitboard::new(black, white);
 
             println!("[Left Edge Test - Board]");
@@ -379,7 +378,7 @@ mod tests {
             println!("[Left Edge Test - Bitmask Board]");
             println!("{bitmask_board}");
 
-            let expected = A1.to_bit() | C1.to_bit() | C3.to_bit() | A5.to_bit() | C5.to_bit();
+            let expected = Position::A1 | Position::C1 | Position::C3 | Position::A5 | Position::C5;
             let expected_board = Bitboard::new(expected, 0);
             println!("[Left Edge Test - Expected Board]");
             println!("{expected_board}");
@@ -389,8 +388,8 @@ mod tests {
 
         // 上端のテスト
         {
-            let black = C1.to_bit();
-            let white = B1.to_bit() | D1.to_bit() | B2.to_bit() | C2.to_bit() | D2.to_bit();
+            let black = Position::C1.to_bit();
+            let white = Position::B1 | Position::D1 | Position::B2 | Position::C2 | Position::D2;
             let board = Bitboard::new(black, white);
 
             println!("[Top Edge Test - Board]");
@@ -401,7 +400,7 @@ mod tests {
             println!("[Top Edge Test - Bitmask Board]");
             println!("{bitmask_board}");
 
-            let expected = A1.to_bit() | A3.to_bit() | C3.to_bit() | E1.to_bit() | E3.to_bit();
+            let expected = Position::A1 | Position::A3 | Position::C3 | Position::E1 | Position::E3;
             let expected_board = Bitboard::new(expected, 0);
             println!("[Top Edge Test - Expected Board]");
             println!("{expected_board}");
@@ -411,8 +410,8 @@ mod tests {
 
         // 右端のテスト
         {
-            let black = H3.to_bit();
-            let white = H2.to_bit() | H4.to_bit() | G2.to_bit() | G3.to_bit() | G4.to_bit();
+            let black = Position::H3.to_bit();
+            let white = Position::H2 | Position::H4 | Position::G2 | Position::G3 | Position::G4;
             let board = Bitboard::new(black, white);
 
             println!("[Right Edge Test - Board]");
@@ -423,7 +422,7 @@ mod tests {
             println!("[Right Edge Test - Bitmask Board]");
             println!("{bitmask_board}");
 
-            let expected = H1.to_bit() | F1.to_bit() | F3.to_bit() | H5.to_bit() | F5.to_bit();
+            let expected = Position::H1 | Position::F1 | Position::F3 | Position::H5 | Position::F5;
             let expected_board = Bitboard::new(expected, 0);
             println!("[Right Edge Test - Expected Board]");
             println!("{expected_board}");
@@ -433,8 +432,8 @@ mod tests {
 
         // 下端のテスト
         {
-            let black = C8.to_bit();
-            let white = B8.to_bit() | D8.to_bit() | B7.to_bit() | C7.to_bit() | D7.to_bit();
+            let black = Position::C8.to_bit();
+            let white = Position::B8 | Position::D8 | Position::B7 | Position::C7 | Position::D7;
             let board = Bitboard::new(black, white);
 
             println!("[Bottom Edge Test - Board]");
@@ -445,7 +444,7 @@ mod tests {
             println!("[Bottom Edge Test - Bitmask Board]");
             println!("{bitmask_board}");
 
-            let expected = A8.to_bit() | A6.to_bit() | C6.to_bit() | E8.to_bit() | E6.to_bit();
+            let expected = Position::A8 | Position::A6 | Position::C6 | Position::E8 | Position::E6;
             let expected_board = Bitboard::new(expected, 0);
             println!("[Bottom Edge Test - Expected Board]");
             println!("{expected_board}");
@@ -457,8 +456,8 @@ mod tests {
     #[test]
     fn test_valid_moves_edges_2() {
         {
-            let black = B3.to_bit();
-            let white = A2.to_bit() | A3.to_bit() | A4.to_bit();
+            let black = Position::B3.to_bit();
+            let white = Position::A2 | Position::A3 | Position::A4;
             let board = Bitboard::new(black, white);
 
             println!("[Left Edge Test - Board]");
@@ -478,8 +477,8 @@ mod tests {
         }
 
         {
-            let black = C2.to_bit();
-            let white = B1.to_bit() | C1.to_bit() | D1.to_bit();
+            let black = Position::C2.to_bit();
+            let white = Position::B1 | Position::C1 | Position::D1;
             let board = Bitboard::new(black, white);
 
             println!("[Top Edge Test - Board]");
@@ -499,8 +498,8 @@ mod tests {
         }
 
         {
-            let black = G3.to_bit();
-            let white = H2.to_bit() | H3.to_bit() | H4.to_bit();
+            let black = Position::G3.to_bit();
+            let white = Position::H2 | Position::H3 | Position::H4;
             let board = Bitboard::new(black, white);
 
             println!("[Right Edge Test - Board]");
@@ -520,8 +519,8 @@ mod tests {
         }
 
         {
-            let black = C7.to_bit();
-            let white = B8.to_bit() | C8.to_bit() | D8.to_bit();
+            let black = Position::C7.to_bit();
+            let white = Position::B8 | Position::C8 | Position::D8;
             let board = Bitboard::new(black, white);
 
             println!("[Bottom Edge Test - Board]");
@@ -545,7 +544,7 @@ mod tests {
     fn test_apply_move() {
         let mut board = Bitboard::default();
 
-        let position = E6;
+        let position = Position::E6;
         assert!(board.apply_move(position, Player::Black).is_ok());
 
         println!("[Board after E6 move by Black]");
@@ -555,7 +554,7 @@ mod tests {
         assert_eq!(black_count, 4);
         assert_eq!(white_count, 1);
 
-        let position = F4;
+        let position = Position::F4;
         assert!(board.apply_move(position, Player::White).is_ok());
 
         println!("[Board after F5 move by White]");
@@ -565,10 +564,31 @@ mod tests {
         assert_eq!(black_count, 3);
         assert_eq!(white_count, 3);
 
-        let black_stones = [C2, D2, B3, C3, D3, C4, D4, E4, D5, E5, F5];
-        let black_bits = black_stones.iter().fold(0, |bits, s| bits | s.to_bit());
-        let white_stones = [A1, B1, C1, D1, E1, A2, B2, A3];
-        let white_bits = white_stones.iter().fold(0, |bits, s| bits | s.to_bit());
+        let black_stones = [
+            Position::C2,
+            Position::D2,
+            Position::B3,
+            Position::C3,
+            Position::D3,
+            Position::C4,
+            Position::D4,
+            Position::E4,
+            Position::D5,
+            Position::E5,
+            Position::F5,
+        ];
+        let black_bits = black_stones.iter().fold(0, |bits, s| bits | *s);
+        let white_stones = [
+            Position::A1,
+            Position::B1,
+            Position::C1,
+            Position::D1,
+            Position::E1,
+            Position::A2,
+            Position::B2,
+            Position::A3,
+        ];
+        let white_bits = white_stones.iter().fold(0, |bits, s| bits | *s);
         let mut board = Bitboard::new(black_bits, white_bits);
         let valid_moves_bit = board.valid_moves_bitmask(Player::White);
         let test = Bitboard::new(valid_moves_bit, 0);
@@ -580,12 +600,12 @@ mod tests {
             println!("[{m}]{r:?}");
         });
 
-        let black = C3.to_bit() | D4.to_bit();
-        let white = A1.to_bit() | B2.to_bit() | E5.to_bit();
+        let black = Position::C3 | Position::D4;
+        let white = Position::A1 | Position::B2 | Position::E5;
         let board = Bitboard::new(black, white);
         println!("{board}");
         let bitmask = board.valid_moves_bitmask(Player::Black);
-        let expected = F6.to_bit();
+        let expected = Position::F6.to_bit();
         assert_eq!(bitmask, expected);
     }
 
@@ -607,17 +627,17 @@ mod tests {
 
     #[test]
     fn test_get_flips_bits() {
-        let black = D5.to_bit() | E4.to_bit();
-        let white = D4.to_bit() | E5.to_bit();
+        let black = Position::D5 | Position::E4;
+        let white = Position::D4 | Position::E5;
 
-        let move_bit = E6.to_bit();
+        let move_bit = Position::E6.to_bit();
         let flips = Bitboard::get_flips_bits(move_bit, black, white);
 
-        let expected_flips = E5.to_bit();
+        let expected_flips = Position::E5.to_bit();
         println!("Flips: {:#018x}, Expected: {:#018x}", flips, expected_flips);
         assert_eq!(flips, expected_flips);
 
-        let move_bit = C4.to_bit();
+        let move_bit = Position::C4.to_bit();
         let flips = Bitboard::get_flips_bits(move_bit, white, black);
 
         let expected_flips = 0x0000000000000000;
@@ -630,15 +650,15 @@ mod tests {
         // Black stones at: A1, B1, C1, A2, A3
         // White stones at: B2, C2, B3
         let black =
-            A1.to_bit() | B1.to_bit() | C1.to_bit() | D1.to_bit() | A2.to_bit() | A3.to_bit();
-        let white = B2.to_bit() | C2.to_bit() | B3.to_bit();
+            Position::A1 | Position::B1 | Position::C1 | Position::D1 | Position::A2 | Position::A3;
+        let white = Position::B2 | Position::C2 | Position::B3;
         let board = Bitboard::new(black, white);
         println!("{board}");
 
-        let move_bit = D2.to_bit();
+        let move_bit = Position::D2.to_bit();
         let flips = Bitboard::get_flips_bits(move_bit, black, white);
 
-        let expected_flips = B2.to_bit() | C2.to_bit();
+        let expected_flips = Position::B2 | Position::C2;
 
         println!(
             "Move: D2, Flips: {:#018x}, Expected: {:#018x}",
@@ -650,9 +670,9 @@ mod tests {
             expected_flips, flips
         );
 
-        let move_bit = D3.to_bit();
+        let move_bit = Position::D3.to_bit();
         let flips = Bitboard::get_flips_bits(move_bit, black, white);
-        let expected_flips = C2.to_bit();
+        let expected_flips = Position::C2.to_bit();
 
         println!(
             "Move: D3, Flips: {:#018x}, Expected: {:#018x}",
@@ -664,9 +684,9 @@ mod tests {
             expected_flips, flips
         );
 
-        let move_bit = C3.to_bit();
+        let move_bit = Position::C3.to_bit();
         let flips = Bitboard::get_flips_bits(move_bit, black, white);
-        let expected_flips = B2.to_bit() | C2.to_bit() | B3.to_bit();
+        let expected_flips = Position::B2 | Position::C2 | Position::B3;
 
         let debug = Bitboard::new(flips, 0);
         println!("{debug}");
@@ -680,9 +700,9 @@ mod tests {
             expected_flips, flips
         );
 
-        let move_bit = A4.to_bit();
+        let move_bit = Position::A4.to_bit();
         let flips = Bitboard::get_flips_bits(move_bit, black, white);
-        let expected_flips = C2.to_bit() | B3.to_bit();
+        let expected_flips = Position::C2 | Position::B3;
 
         println!(
             "Move: A4, Flips: {:#018x}, Expected: {:#018x}",

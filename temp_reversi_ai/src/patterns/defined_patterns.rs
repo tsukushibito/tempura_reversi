@@ -1,5 +1,6 @@
+use temp_reversi_core::Position;
+
 use super::PatternGroup;
-use temp_reversi_core::*;
 
 /// Returns a predefined set of `PatternGroup` instances used for board evaluation.
 ///
@@ -16,50 +17,184 @@ use temp_reversi_core::*;
 /// * `Vec<PatternGroup>` - A collection of predefined pattern groups.
 pub fn get_predefined_patterns() -> Vec<PatternGroup> {
     let mask_and_names = [
-        (A2 | B2 | C2 | D2 | E2 | F2 | G2 | H2, "Line Pattern 1"),
-        (A3 | B3 | C3 | D3 | E3 | F3 | G3 | H3, "Line Pattern 2"),
-        (A4 | B4 | C4 | D4 | E4 | F4 | G4 | H4, "Line Pattern 3"),
         (
-            A1 | B1 | A2 | B2 | C3 | D4 | E5 | F6 | G7 | H8,
+            Position::A2
+                | Position::B2
+                | Position::C2
+                | Position::D2
+                | Position::E2
+                | Position::F2
+                | Position::G2
+                | Position::H2,
+            "Line Pattern 1",
+        ),
+        (
+            Position::A3
+                | Position::B3
+                | Position::C3
+                | Position::D3
+                | Position::E3
+                | Position::F3
+                | Position::G3
+                | Position::H3,
+            "Line Pattern 2",
+        ),
+        (
+            Position::A4
+                | Position::B4
+                | Position::C4
+                | Position::D4
+                | Position::E4
+                | Position::F4
+                | Position::G4
+                | Position::H4,
+            "Line Pattern 3",
+        ),
+        (
+            Position::A1
+                | Position::B1
+                | Position::A2
+                | Position::B2
+                | Position::C3
+                | Position::D4
+                | Position::E5
+                | Position::F6
+                | Position::G7
+                | Position::H8,
             "Diagonal Pattern 1",
         ),
-        (B1 | C2 | D3 | E4 | F5 | G6 | H7, "Diagonal Pattern 2"),
-        (C1 | D2 | E3 | F4 | G5 | H6, "Diagonal Pattern 3"),
-        (D1 | E2 | F3 | G4 | H5, "Diagonal Pattern 4"),
         (
-            A1 | B1 | C1 | D1 | E1 | F1 | G1 | H1 | B2 | G2,
+            Position::B1
+                | Position::C2
+                | Position::D3
+                | Position::E4
+                | Position::F5
+                | Position::G6
+                | Position::H7,
+            "Diagonal Pattern 2",
+        ),
+        (
+            Position::C1 | Position::D2 | Position::E3 | Position::F4 | Position::G5 | Position::H6,
+            "Diagonal Pattern 3",
+        ),
+        (
+            Position::D1 | Position::E2 | Position::F3 | Position::G4 | Position::H5,
+            "Diagonal Pattern 4",
+        ),
+        (
+            Position::A1
+                | Position::B1
+                | Position::C1
+                | Position::D1
+                | Position::E1
+                | Position::F1
+                | Position::G1
+                | Position::H1
+                | Position::B2
+                | Position::G2,
             "Edge Pattern 1",
         ),
         (
-            A1 | B1 | C1 | D1 | E1 | F1 | G1 | H1 | C2 | F2,
+            Position::A1
+                | Position::B1
+                | Position::C1
+                | Position::D1
+                | Position::E1
+                | Position::F1
+                | Position::G1
+                | Position::H1
+                | Position::C2
+                | Position::F2,
             "Edge Pattern 2",
         ),
         (
-            A1 | C1 | D1 | E1 | F1 | H1 | C2 | D2 | E2 | F2,
+            Position::A1
+                | Position::C1
+                | Position::D1
+                | Position::E1
+                | Position::F1
+                | Position::H1
+                | Position::C2
+                | Position::D2
+                | Position::E2
+                | Position::F2,
             "Edge Pattern 3",
         ),
         (
-            C1 | D1 | E1 | F1 | D2 | E2 | C3 | D3 | E3 | F3,
+            Position::C1
+                | Position::D1
+                | Position::E1
+                | Position::F1
+                | Position::D2
+                | Position::E2
+                | Position::C3
+                | Position::D3
+                | Position::E3
+                | Position::F3,
             "Edge Pattern 4",
         ),
         (
-            A1 | B1 | C1 | A2 | B2 | C2 | A3 | B3 | C4,
+            Position::A1
+                | Position::B1
+                | Position::C1
+                | Position::A2
+                | Position::B2
+                | Position::C2
+                | Position::A3
+                | Position::B3
+                | Position::C4,
             "Corner Pattern 1",
         ),
         (
-            A1 | B1 | C1 | D1 | A2 | B2 | C2 | A3 | B3 | D1,
+            Position::A1
+                | Position::B1
+                | Position::C1
+                | Position::D1
+                | Position::A2
+                | Position::B2
+                | Position::C2
+                | Position::A3
+                | Position::B3
+                | Position::D1,
             "Corner Pattern 2",
         ),
         (
-            A1 | B1 | C1 | D1 | E1 | A2 | B2 | A3 | A4 | A5,
+            Position::A1
+                | Position::B1
+                | Position::C1
+                | Position::D1
+                | Position::E1
+                | Position::A2
+                | Position::B2
+                | Position::A3
+                | Position::A4
+                | Position::A5,
             "Corner Pattern 3",
         ),
         (
-            A1 | B1 | A2 | B2 | C2 | B3 | C3 | D3 | C4 | D4,
+            Position::A1
+                | Position::B1
+                | Position::A2
+                | Position::B2
+                | Position::C2
+                | Position::B3
+                | Position::C3
+                | Position::D3
+                | Position::C4
+                | Position::D4,
             "Corner Pattern 4",
         ),
         (
-            A1 | B1 | A2 | B2 | C2 | D2 | B3 | C3 | B4 | D4,
+            Position::A1
+                | Position::B1
+                | Position::A2
+                | Position::B2
+                | Position::C2
+                | Position::D2
+                | Position::B3
+                | Position::C3
+                | Position::B4
+                | Position::D4,
             "Corner Pattern 5",
         ),
     ];

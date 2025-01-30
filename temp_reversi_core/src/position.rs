@@ -61,6 +61,208 @@ impl Position {
     pub fn to_bit(&self) -> u64 {
         self.bit
     }
+
+    /// Constants representing all positions on the board.
+    /// Each constant corresponds to a unique position indexed by row and column.
+    pub const A1: Position = Position {
+        bit: 1u64 << (0 * 8 + 0),
+    };
+    pub const A2: Position = Position {
+        bit: 1u64 << (1 * 8 + 0),
+    };
+    pub const A3: Position = Position {
+        bit: 1u64 << (2 * 8 + 0),
+    };
+    pub const A4: Position = Position {
+        bit: 1u64 << (3 * 8 + 0),
+    };
+    pub const A5: Position = Position {
+        bit: 1u64 << (4 * 8 + 0),
+    };
+    pub const A6: Position = Position {
+        bit: 1u64 << (5 * 8 + 0),
+    };
+    pub const A7: Position = Position {
+        bit: 1u64 << (6 * 8 + 0),
+    };
+    pub const A8: Position = Position {
+        bit: 1u64 << (7 * 8 + 0),
+    };
+
+    pub const B1: Position = Position {
+        bit: 1u64 << (0 * 8 + 1),
+    };
+    pub const B2: Position = Position {
+        bit: 1u64 << (1 * 8 + 1),
+    };
+    pub const B3: Position = Position {
+        bit: 1u64 << (2 * 8 + 1),
+    };
+    pub const B4: Position = Position {
+        bit: 1u64 << (3 * 8 + 1),
+    };
+    pub const B5: Position = Position {
+        bit: 1u64 << (4 * 8 + 1),
+    };
+    pub const B6: Position = Position {
+        bit: 1u64 << (5 * 8 + 1),
+    };
+    pub const B7: Position = Position {
+        bit: 1u64 << (6 * 8 + 1),
+    };
+    pub const B8: Position = Position {
+        bit: 1u64 << (7 * 8 + 1),
+    };
+
+    pub const C1: Position = Position {
+        bit: 1u64 << (0 * 8 + 2),
+    };
+    pub const C2: Position = Position {
+        bit: 1u64 << (1 * 8 + 2),
+    };
+    pub const C3: Position = Position {
+        bit: 1u64 << (2 * 8 + 2),
+    };
+    pub const C4: Position = Position {
+        bit: 1u64 << (3 * 8 + 2),
+    };
+    pub const C5: Position = Position {
+        bit: 1u64 << (4 * 8 + 2),
+    };
+    pub const C6: Position = Position {
+        bit: 1u64 << (5 * 8 + 2),
+    };
+    pub const C7: Position = Position {
+        bit: 1u64 << (6 * 8 + 2),
+    };
+    pub const C8: Position = Position {
+        bit: 1u64 << (7 * 8 + 2),
+    };
+
+    pub const D1: Position = Position {
+        bit: 1u64 << (0 * 8 + 3),
+    };
+    pub const D2: Position = Position {
+        bit: 1u64 << (1 * 8 + 3),
+    };
+    pub const D3: Position = Position {
+        bit: 1u64 << (2 * 8 + 3),
+    };
+    pub const D4: Position = Position {
+        bit: 1u64 << (3 * 8 + 3),
+    };
+    pub const D5: Position = Position {
+        bit: 1u64 << (4 * 8 + 3),
+    };
+    pub const D6: Position = Position {
+        bit: 1u64 << (5 * 8 + 3),
+    };
+    pub const D7: Position = Position {
+        bit: 1u64 << (6 * 8 + 3),
+    };
+    pub const D8: Position = Position {
+        bit: 1u64 << (7 * 8 + 3),
+    };
+
+    pub const E1: Position = Position {
+        bit: 1u64 << (0 * 8 + 4),
+    };
+    pub const E2: Position = Position {
+        bit: 1u64 << (1 * 8 + 4),
+    };
+    pub const E3: Position = Position {
+        bit: 1u64 << (2 * 8 + 4),
+    };
+    pub const E4: Position = Position {
+        bit: 1u64 << (3 * 8 + 4),
+    };
+    pub const E5: Position = Position {
+        bit: 1u64 << (4 * 8 + 4),
+    };
+    pub const E6: Position = Position {
+        bit: 1u64 << (5 * 8 + 4),
+    };
+    pub const E7: Position = Position {
+        bit: 1u64 << (6 * 8 + 4),
+    };
+    pub const E8: Position = Position {
+        bit: 1u64 << (7 * 8 + 4),
+    };
+
+    pub const F1: Position = Position {
+        bit: 1u64 << (0 * 8 + 5),
+    };
+    pub const F2: Position = Position {
+        bit: 1u64 << (1 * 8 + 5),
+    };
+    pub const F3: Position = Position {
+        bit: 1u64 << (2 * 8 + 5),
+    };
+    pub const F4: Position = Position {
+        bit: 1u64 << (3 * 8 + 5),
+    };
+    pub const F5: Position = Position {
+        bit: 1u64 << (4 * 8 + 5),
+    };
+    pub const F6: Position = Position {
+        bit: 1u64 << (5 * 8 + 5),
+    };
+    pub const F7: Position = Position {
+        bit: 1u64 << (6 * 8 + 5),
+    };
+    pub const F8: Position = Position {
+        bit: 1u64 << (7 * 8 + 5),
+    };
+
+    pub const G1: Position = Position {
+        bit: 1u64 << (0 * 8 + 6),
+    };
+    pub const G2: Position = Position {
+        bit: 1u64 << (1 * 8 + 6),
+    };
+    pub const G3: Position = Position {
+        bit: 1u64 << (2 * 8 + 6),
+    };
+    pub const G4: Position = Position {
+        bit: 1u64 << (3 * 8 + 6),
+    };
+    pub const G5: Position = Position {
+        bit: 1u64 << (4 * 8 + 6),
+    };
+    pub const G6: Position = Position {
+        bit: 1u64 << (5 * 8 + 6),
+    };
+    pub const G7: Position = Position {
+        bit: 1u64 << (6 * 8 + 6),
+    };
+    pub const G8: Position = Position {
+        bit: 1u64 << (7 * 8 + 6),
+    };
+
+    pub const H1: Position = Position {
+        bit: 1u64 << (0 * 8 + 7),
+    };
+    pub const H2: Position = Position {
+        bit: 1u64 << (1 * 8 + 7),
+    };
+    pub const H3: Position = Position {
+        bit: 1u64 << (2 * 8 + 7),
+    };
+    pub const H4: Position = Position {
+        bit: 1u64 << (3 * 8 + 7),
+    };
+    pub const H5: Position = Position {
+        bit: 1u64 << (4 * 8 + 7),
+    };
+    pub const H6: Position = Position {
+        bit: 1u64 << (5 * 8 + 7),
+    };
+    pub const H7: Position = Position {
+        bit: 1u64 << (6 * 8 + 7),
+    };
+    pub const H8: Position = Position {
+        bit: 1u64 << (7 * 8 + 7),
+    };
 }
 
 /// Implements the `BitOr` trait to allow combining multiple positions.
@@ -191,208 +393,6 @@ impl fmt::Display for Position {
         write!(f, "{}{}", col_char, row_char)
     }
 }
-
-/// Constants representing all positions on the board.
-/// Each constant corresponds to a unique position indexed by row and column.
-pub const A1: Position = Position {
-    bit: 1u64 << (0 * 8 + 0),
-};
-pub const A2: Position = Position {
-    bit: 1u64 << (1 * 8 + 0),
-};
-pub const A3: Position = Position {
-    bit: 1u64 << (2 * 8 + 0),
-};
-pub const A4: Position = Position {
-    bit: 1u64 << (3 * 8 + 0),
-};
-pub const A5: Position = Position {
-    bit: 1u64 << (4 * 8 + 0),
-};
-pub const A6: Position = Position {
-    bit: 1u64 << (5 * 8 + 0),
-};
-pub const A7: Position = Position {
-    bit: 1u64 << (6 * 8 + 0),
-};
-pub const A8: Position = Position {
-    bit: 1u64 << (7 * 8 + 0),
-};
-
-pub const B1: Position = Position {
-    bit: 1u64 << (0 * 8 + 1),
-};
-pub const B2: Position = Position {
-    bit: 1u64 << (1 * 8 + 1),
-};
-pub const B3: Position = Position {
-    bit: 1u64 << (2 * 8 + 1),
-};
-pub const B4: Position = Position {
-    bit: 1u64 << (3 * 8 + 1),
-};
-pub const B5: Position = Position {
-    bit: 1u64 << (4 * 8 + 1),
-};
-pub const B6: Position = Position {
-    bit: 1u64 << (5 * 8 + 1),
-};
-pub const B7: Position = Position {
-    bit: 1u64 << (6 * 8 + 1),
-};
-pub const B8: Position = Position {
-    bit: 1u64 << (7 * 8 + 1),
-};
-
-pub const C1: Position = Position {
-    bit: 1u64 << (0 * 8 + 2),
-};
-pub const C2: Position = Position {
-    bit: 1u64 << (1 * 8 + 2),
-};
-pub const C3: Position = Position {
-    bit: 1u64 << (2 * 8 + 2),
-};
-pub const C4: Position = Position {
-    bit: 1u64 << (3 * 8 + 2),
-};
-pub const C5: Position = Position {
-    bit: 1u64 << (4 * 8 + 2),
-};
-pub const C6: Position = Position {
-    bit: 1u64 << (5 * 8 + 2),
-};
-pub const C7: Position = Position {
-    bit: 1u64 << (6 * 8 + 2),
-};
-pub const C8: Position = Position {
-    bit: 1u64 << (7 * 8 + 2),
-};
-
-pub const D1: Position = Position {
-    bit: 1u64 << (0 * 8 + 3),
-};
-pub const D2: Position = Position {
-    bit: 1u64 << (1 * 8 + 3),
-};
-pub const D3: Position = Position {
-    bit: 1u64 << (2 * 8 + 3),
-};
-pub const D4: Position = Position {
-    bit: 1u64 << (3 * 8 + 3),
-};
-pub const D5: Position = Position {
-    bit: 1u64 << (4 * 8 + 3),
-};
-pub const D6: Position = Position {
-    bit: 1u64 << (5 * 8 + 3),
-};
-pub const D7: Position = Position {
-    bit: 1u64 << (6 * 8 + 3),
-};
-pub const D8: Position = Position {
-    bit: 1u64 << (7 * 8 + 3),
-};
-
-pub const E1: Position = Position {
-    bit: 1u64 << (0 * 8 + 4),
-};
-pub const E2: Position = Position {
-    bit: 1u64 << (1 * 8 + 4),
-};
-pub const E3: Position = Position {
-    bit: 1u64 << (2 * 8 + 4),
-};
-pub const E4: Position = Position {
-    bit: 1u64 << (3 * 8 + 4),
-};
-pub const E5: Position = Position {
-    bit: 1u64 << (4 * 8 + 4),
-};
-pub const E6: Position = Position {
-    bit: 1u64 << (5 * 8 + 4),
-};
-pub const E7: Position = Position {
-    bit: 1u64 << (6 * 8 + 4),
-};
-pub const E8: Position = Position {
-    bit: 1u64 << (7 * 8 + 4),
-};
-
-pub const F1: Position = Position {
-    bit: 1u64 << (0 * 8 + 5),
-};
-pub const F2: Position = Position {
-    bit: 1u64 << (1 * 8 + 5),
-};
-pub const F3: Position = Position {
-    bit: 1u64 << (2 * 8 + 5),
-};
-pub const F4: Position = Position {
-    bit: 1u64 << (3 * 8 + 5),
-};
-pub const F5: Position = Position {
-    bit: 1u64 << (4 * 8 + 5),
-};
-pub const F6: Position = Position {
-    bit: 1u64 << (5 * 8 + 5),
-};
-pub const F7: Position = Position {
-    bit: 1u64 << (6 * 8 + 5),
-};
-pub const F8: Position = Position {
-    bit: 1u64 << (7 * 8 + 5),
-};
-
-pub const G1: Position = Position {
-    bit: 1u64 << (0 * 8 + 6),
-};
-pub const G2: Position = Position {
-    bit: 1u64 << (1 * 8 + 6),
-};
-pub const G3: Position = Position {
-    bit: 1u64 << (2 * 8 + 6),
-};
-pub const G4: Position = Position {
-    bit: 1u64 << (3 * 8 + 6),
-};
-pub const G5: Position = Position {
-    bit: 1u64 << (4 * 8 + 6),
-};
-pub const G6: Position = Position {
-    bit: 1u64 << (5 * 8 + 6),
-};
-pub const G7: Position = Position {
-    bit: 1u64 << (6 * 8 + 6),
-};
-pub const G8: Position = Position {
-    bit: 1u64 << (7 * 8 + 6),
-};
-
-pub const H1: Position = Position {
-    bit: 1u64 << (0 * 8 + 7),
-};
-pub const H2: Position = Position {
-    bit: 1u64 << (1 * 8 + 7),
-};
-pub const H3: Position = Position {
-    bit: 1u64 << (2 * 8 + 7),
-};
-pub const H4: Position = Position {
-    bit: 1u64 << (3 * 8 + 7),
-};
-pub const H5: Position = Position {
-    bit: 1u64 << (4 * 8 + 7),
-};
-pub const H6: Position = Position {
-    bit: 1u64 << (5 * 8 + 7),
-};
-pub const H7: Position = Position {
-    bit: 1u64 << (6 * 8 + 7),
-};
-pub const H8: Position = Position {
-    bit: 1u64 << (7 * 8 + 7),
-};
 
 #[cfg(test)]
 mod tests {

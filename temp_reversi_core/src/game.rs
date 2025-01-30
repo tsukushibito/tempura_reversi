@@ -155,10 +155,10 @@ mod tests {
         let valid_moves = game.valid_moves();
 
         // Verify the expected valid moves.
-        assert!(valid_moves.contains(&D3));
-        assert!(valid_moves.contains(&C4));
-        assert!(valid_moves.contains(&F5));
-        assert!(valid_moves.contains(&E6));
+        assert!(valid_moves.contains(&Position::D3));
+        assert!(valid_moves.contains(&Position::C4));
+        assert!(valid_moves.contains(&Position::F5));
+        assert!(valid_moves.contains(&Position::E6));
         assert_eq!(valid_moves.len(), 4);
     }
 
@@ -168,7 +168,7 @@ mod tests {
         let mut game = Game::default();
 
         // Black places at D3.
-        assert!(game.apply_move(D3).is_ok());
+        assert!(game.apply_move(Position::D3).is_ok());
         assert_eq!(game.current_player(), Player::White);
 
         // Verify the board state.
