@@ -2,8 +2,10 @@ use std::fmt;
 use std::ops::BitOr;
 use std::str::FromStr;
 
+use serde::{Deserialize, Serialize};
+
 /// Represents a position on the board with an internal bitboard representation.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Position {
     bit: u64, // Internal representation as a bitboard
 }
