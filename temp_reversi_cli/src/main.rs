@@ -1,6 +1,6 @@
 use temp_reversi_ai::{
     evaluation::PatternEvaluator,
-    patterns::{get_predefined_patterns, Pattern},
+    patterns::get_predefined_patterns,
     strategy::{negamax::NegamaxStrategy, Strategy},
 };
 use temp_reversi_cli::{cli_display, CliPlayer};
