@@ -28,21 +28,88 @@ impl Position {
         }
     }
 
-    /// Creates a `Position` from a given bitboard representation.
+    /// Constructs a `Position` from a bitboard representation.
     ///
     /// # Arguments
     ///
-    /// * `bit` - A `u64` representing the bitboard, where exactly one bit is set.
+    /// * `bit` - A `u64` value where exactly one bit represents the position.
     ///
     /// # Returns
     ///
-    /// Returns `Some(Position)` if the bitboard has exactly one bit set, otherwise `None`.
-    pub fn from_bit(bit: u64) -> Option<Self> {
+    /// * `Ok(Position)` - If exactly one bit is set in the bitboard.
+    /// * `Err(&'static str)` - If the bitboard has zero or multiple bits set.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let pos = Position::from_bit(1 << 27).unwrap();
+    /// assert_eq!(pos.to_bit(), 1 << 27);
+    /// ```
+    pub fn from_bit(bit: u64) -> Result<Self, &'static str> {
         if bit.count_ones() == 1 {
-            Some(Self { bit })
+            Ok(Self { bit })
         } else {
-            None // Invalid if more than one bit is set
+            Err("Invalid bitboard: exactly one bit must be set")
         }
+    }
+
+    /// Converts the `Position` into its bitboard representation.
+    ///
+    /// # Returns
+    ///
+    /// A `u64` value where a single bit represents the position on the board.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let pos = Position::from_bit(1 << 27).unwrap();
+    /// assert_eq!(pos.to_bit(), 1 << 27);
+    /// ```
+    pub fn to_bit(&self) -> u64 {
+        self.bit
+    }
+
+    /// Creates a `Position` from a given index (0-63).
+    ///
+    /// # Arguments
+    ///
+    /// * `idx` - An index representing a position on the board (0-63).
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Position)` - If the index is within the valid range.
+    /// * `Err(&'static str)` - If the index is out of range.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let pos = Position::from_u8(27).unwrap();
+    /// assert_eq!(pos.to_u8(), 27);
+    /// ```
+    pub fn from_u8(idx: u8) -> Result<Self, &'static str> {
+        if idx >= 64 {
+            return Err("Invalid position index: must be in range 0-63");
+        }
+        let row = (idx / 8) as usize;
+        let col = (idx % 8) as usize;
+        Ok(Position::new(row, col))
+    }
+
+    /// Converts the `Position` to a corresponding index (0-63).
+    ///
+    /// # Returns
+    ///
+    /// * A `u8` value representing the position index on the board.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let pos = Position::new(3, 3);
+    /// assert_eq!(pos.to_u8(), 27);
+    /// ```
+    pub fn to_u8(&self) -> u8 {
+        let (row, col) = self.to_row_col();
+        (row * 8 + col) as u8
     }
 
     /// Returns the row and column indices of the position.
@@ -53,15 +120,6 @@ impl Position {
     pub fn to_row_col(&self) -> (usize, usize) {
         let index = self.bit.trailing_zeros() as usize;
         (index / 8, index % 8)
-    }
-
-    /// Returns the internal bitboard representation of the position.
-    ///
-    /// # Returns
-    ///
-    /// A `u64` representing the position as a single bit in a bitboard.
-    pub fn to_bit(&self) -> u64 {
-        self.bit
     }
 
     /// Constants representing all positions on the board.

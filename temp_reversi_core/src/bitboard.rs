@@ -187,7 +187,7 @@ impl Bitboard {
 
         while bits != 0 {
             let lsb = bits & (!bits + 1); // Extract the least significant bit
-            if let Some(position) = Position::from_bit(lsb) {
+            if let Ok(position) = Position::from_bit(lsb) {
                 positions.push(position);
             }
             bits &= bits - 1; // Clear the least significant bit
