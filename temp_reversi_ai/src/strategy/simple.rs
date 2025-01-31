@@ -8,6 +8,10 @@ impl Strategy for SimpleStrategy {
     fn evaluate_and_decide(&mut self, game: &Game) -> Option<Position> {
         game.valid_moves().into_iter().next()
     }
+
+    fn clone_box(&self) -> Box<dyn Strategy> {
+        Box::new(Self)
+    }
 }
 
 #[cfg(test)]

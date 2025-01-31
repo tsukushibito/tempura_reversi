@@ -12,6 +12,10 @@ impl Strategy for RandomStrategy {
         let valid_moves = game.valid_moves();
         valid_moves.choose(&mut rng).copied()
     }
+
+    fn clone_box(&self) -> Box<dyn Strategy> {
+        Box::new(Self)
+    }
 }
 
 #[cfg(test)]

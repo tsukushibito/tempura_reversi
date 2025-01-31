@@ -1,5 +1,5 @@
 use crate::evaluation::EvaluationFunction;
-use rand::{rngs::ThreadRng, seq::SliceRandom};
+use rand::{seq::SliceRandom, thread_rng};
 use temp_reversi_core::{Bitboard, Game, Player, Position};
 
 use super::Strategy;
@@ -8,24 +8,19 @@ use super::Strategy;
 ///
 /// This strategy employs the Negamax algorithm with alpha-beta pruning to search the game tree.
 /// Randomness is introduced to shuffle valid moves for variability in decision-making.
-pub struct NegamaxStrategy<E: EvaluationFunction> {
+pub struct NegamaxStrategy<E: EvaluationFunction + Send + Sync> {
     pub depth: u32,   // The depth to search in the game tree.
     pub evaluator: E, // The evaluation function to use.
-    rng: ThreadRng,   // Random number generator for shuffling moves.
 }
 
-impl<E: EvaluationFunction> NegamaxStrategy<E> {
+impl<E: EvaluationFunction + Send + Sync> NegamaxStrategy<E> {
     /// Creates a new NegamaxStrategy.
     ///
     /// # Arguments
     /// * `evaluator` - The evaluation function to score board states.
     /// * `depth` - The maximum depth of the search tree.
     pub fn new(evaluator: E, depth: u32) -> Self {
-        Self {
-            depth,
-            evaluator,
-            rng: rand::thread_rng(), // Initialize the RNG for shuffling moves.
-        }
+        Self { depth, evaluator }
     }
 
     /// Negamax recursive function with alpha-beta pruning.
@@ -60,7 +55,7 @@ impl<E: EvaluationFunction> NegamaxStrategy<E> {
         let mut valid_moves = board.valid_moves(player);
 
         // Shuffle the moves to introduce randomness
-        valid_moves.shuffle(&mut self.rng);
+        valid_moves.shuffle(&mut thread_rng());
 
         for mv in valid_moves {
             let mut new_board = board.clone();
@@ -80,7 +75,10 @@ impl<E: EvaluationFunction> NegamaxStrategy<E> {
     }
 }
 
-impl<E: EvaluationFunction> Strategy for NegamaxStrategy<E> {
+impl<E> Strategy for NegamaxStrategy<E>
+where
+    E: EvaluationFunction + Send + Sync,
+{
     /// Evaluates the game state and selects the best move using the Negamax algorithm.
     ///
     /// # Arguments
@@ -99,7 +97,7 @@ impl<E: EvaluationFunction> Strategy for NegamaxStrategy<E> {
         let player = game.current_player();
 
         let mut valid_moves = board.valid_moves(player);
-        valid_moves.shuffle(&mut self.rng); // Shuffle moves for variability
+        valid_moves.shuffle(&mut thread_rng()); // Shuffle moves for variability
 
         for &mv in &valid_moves {
             let mut new_board = board.clone();
@@ -117,6 +115,10 @@ impl<E: EvaluationFunction> Strategy for NegamaxStrategy<E> {
         }
 
         best_move
+    }
+
+    fn clone_box(&self) -> Box<dyn Strategy> {
+        todo!()
     }
 }
 
