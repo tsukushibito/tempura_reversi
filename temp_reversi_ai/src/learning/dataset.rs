@@ -1,7 +1,7 @@
 use crate::utils::SparseVector;
 
 /// A dataset structure for storing feature vectors and their corresponding labels.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Dataset {
     /// A collection of sparse feature vectors.
     pub features: Vec<SparseVector>,
