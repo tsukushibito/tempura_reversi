@@ -3,10 +3,8 @@ use std::io::Read;
 use std::path::Path;
 
 use crate::evaluation::PhaseAwareEvaluator;
-use crate::learning::GameDataset;
+use crate::learning::{generate_self_play_data, GameDataset};
 use crate::strategy::negamax::NegamaxStrategy;
-
-use super::generate_and_save_self_play_data;
 
 /// Configuration for the training pipeline.
 pub struct TrainingConfig {
@@ -39,15 +37,27 @@ impl TrainingPipeline {
         self.train();
     }
 
-    /// Generates self-play data using AI strategies and saves it to a file.
+    /// Generates self-play data using AI strategies and saves it to files automatically.
+    ///
+    /// The dataset will be saved in chunks if it exceeds 100,000 records per file.
+    ///
+    /// # Panics
+    /// Panics if saving the dataset fails.
     pub fn generate_self_play_data(&self) {
-        generate_and_save_self_play_data(
+        println!("🔄 Generating {} self-play games...", self.config.num_games);
+
+        let game_data = generate_self_play_data(
             self.config.num_games,
             Box::new(NegamaxStrategy::new(PhaseAwareEvaluator, 5)),
             Box::new(NegamaxStrategy::new(PhaseAwareEvaluator, 5)),
-            &self.config.dataset_path,
-        )
-        .expect("Failed to generate and save self-play data.");
+        );
+
+        // Save dataset automatically in chunks
+        game_data
+            .save_auto(&self.config.dataset_path)
+            .expect("Failed to save self-play data.");
+
+        println!("✅ Self-play data saved successfully.");
     }
 
     /// Loads the dataset and trains the model.
