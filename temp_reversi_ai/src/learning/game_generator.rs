@@ -1,3 +1,9 @@
+use std::{
+    fs::{create_dir_all, File},
+    io::Write,
+    path::Path,
+};
+
 use super::{GameDataset, GameRecord};
 use crate::{ai_decider::AiDecider, strategy::Strategy};
 use rayon::prelude::*;
@@ -50,4 +56,39 @@ pub fn generate_self_play_data(
         .collect();
 
     GameDataset { records }
+}
+
+/// Generates self-play data and saves it to the specified file path.
+///
+/// # Arguments
+/// - `num_games`: Number of self-play games to generate.
+/// - `black_strategy`: The strategy for the black player.
+/// - `white_strategy`: The strategy for the white player.
+/// - `dataset_path`: Path to save the generated dataset.
+///
+/// # Returns
+/// - `Result<(), String>` indicating success or error.
+pub fn generate_and_save_self_play_data(
+    num_games: usize,
+    black_strategy: Box<dyn Strategy>,
+    white_strategy: Box<dyn Strategy>,
+    dataset_path: &str,
+) -> Result<(), String> {
+    println!("🔄 Generating {} self-play games...", num_games);
+
+    let game_data = generate_self_play_data(num_games, black_strategy, white_strategy);
+    println!("✅ {} games generated.", game_data.len());
+
+    // Ensure the parent directory exists
+    if let Some(parent) = Path::new(dataset_path).parent() {
+        create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+
+    // Save the game dataset in binary format
+    let serialized = bincode::serialize(&game_data).map_err(|e| e.to_string())?;
+    let mut file = File::create(dataset_path).map_err(|e| e.to_string())?;
+    file.write_all(&serialized).map_err(|e| e.to_string())?;
+
+    println!("💾 Dataset saved to {}", dataset_path);
+    Ok(())
 }
