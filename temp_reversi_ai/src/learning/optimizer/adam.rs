@@ -1,3 +1,5 @@
+use crate::utils::SparseVector;
+
 use super::Optimizer;
 
 /// Implementation of Adam optimizer
@@ -6,12 +8,13 @@ pub struct Adam {
     beta1: f32,
     beta2: f32,
     epsilon: f32,
-    m: Vec<f32>,
-    v: Vec<f32>,
-    t: usize,
+    m: Vec<f32>, // First moment vector
+    v: Vec<f32>, // Second moment vector
+    t: usize,    // Time step
 }
 
 impl Adam {
+    /// Creates a new Adam optimizer
     pub fn new(feature_size: usize, learning_rate: f32) -> Self {
         Self {
             learning_rate,
@@ -26,20 +29,26 @@ impl Adam {
 }
 
 impl Optimizer for Adam {
-    fn update(&mut self, weights: &mut [f32], bias: &mut f32, gradients: &[f32], bias_grad: f32) {
+    /// Updates model parameters using sparse gradients
+    fn update(
+        &mut self,
+        weights: &mut [f32],
+        bias: &mut f32,
+        gradients: &SparseVector,
+        bias_grad: f32,
+    ) {
         self.t += 1;
-        for i in 0..weights.len() {
-            let grad = gradients[i];
+        for (&index, &grad) in gradients.indices().iter().zip(gradients.values().iter()) {
+            self.m[index] = self.beta1 * self.m[index] + (1.0 - self.beta1) * grad;
+            self.v[index] = self.beta2 * self.v[index] + (1.0 - self.beta2) * grad.powi(2);
 
-            self.m[i] = self.beta1 * self.m[i] + (1.0 - self.beta1) * grad;
-            self.v[i] = self.beta2 * self.v[i] + (1.0 - self.beta2) * grad.powi(2);
+            let m_hat = self.m[index] / (1.0 - self.beta1.powi(self.t as i32));
+            let v_hat = self.v[index] / (1.0 - self.beta2.powi(self.t as i32));
 
-            let m_hat = self.m[i] / (1.0 - self.beta1.powi(self.t as i32));
-            let v_hat = self.v[i] / (1.0 - self.beta2.powi(self.t as i32));
-
-            weights[i] -= self.learning_rate * m_hat / (v_hat.sqrt() + self.epsilon);
+            weights[index] -= self.learning_rate * m_hat / (v_hat.sqrt() + self.epsilon);
         }
 
+        // Update bias term
         *bias -= self.learning_rate * bias_grad;
     }
 }
