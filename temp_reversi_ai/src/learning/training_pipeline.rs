@@ -1,10 +1,13 @@
 use std::fs::File;
-use std::io::Read;
-use std::path::Path;
+use std::io::{Read, Write};
 
 use crate::evaluation::PhaseAwareEvaluator;
-use crate::learning::{generate_self_play_data, GameDataset};
+use crate::learning::loss_function::MSELoss;
+use crate::learning::optimizer::Adam;
+use crate::learning::{generate_self_play_data, GameDataset, Trainer};
 use crate::strategy::negamax::NegamaxStrategy;
+
+use super::Model;
 
 /// Configuration for the training pipeline.
 pub struct TrainingConfig {
@@ -37,27 +40,17 @@ impl TrainingPipeline {
         self.train();
     }
 
-    /// Generates self-play data using AI strategies and saves it to files automatically.
-    ///
-    /// The dataset will be saved in chunks if it exceeds 100,000 records per file.
-    ///
-    /// # Panics
-    /// Panics if saving the dataset fails.
+    /// Generates self-play data using AI strategies and saves it to a file.
     pub fn generate_self_play_data(&self) {
-        println!("🔄 Generating {} self-play games...", self.config.num_games);
-
-        let game_data = generate_self_play_data(
+        let dataset = generate_self_play_data(
             self.config.num_games,
             Box::new(NegamaxStrategy::new(PhaseAwareEvaluator, 5)),
             Box::new(NegamaxStrategy::new(PhaseAwareEvaluator, 5)),
         );
 
-        // Save dataset automatically in chunks
-        game_data
+        dataset
             .save_auto(&self.config.dataset_path)
             .expect("Failed to save self-play data.");
-
-        println!("✅ Self-play data saved successfully.");
     }
 
     /// Loads the dataset and trains the model.
@@ -65,9 +58,23 @@ impl TrainingPipeline {
         println!("📊 Loading dataset from {}", self.config.dataset_path);
 
         let dataset = self.load_dataset();
-        self.train_model(dataset);
+        let feature_size = 64; // 盤面サイズに基づく特徴量のサイズ
+        let learning_rate = 0.001;
 
-        self.save_model();
+        let optimizer = Adam::new(feature_size, learning_rate);
+        let mut trainer = Trainer::new(
+            feature_size,
+            MSELoss,
+            optimizer,
+            self.config.batch_size,
+            self.config.num_epochs,
+        );
+
+        trainer.train(&dataset);
+
+        // モデル取得は `model()` メソッドで簡潔に
+        self.save_model(trainer.model(), &self.config.model_path)
+            .expect("Failed to save model.");
     }
 
     /// Loads the game dataset from the specified file.
@@ -78,35 +85,22 @@ impl TrainingPipeline {
         bincode::deserialize(&buffer).expect("Failed to deserialize dataset.")
     }
 
-    /// Trains the model using batches extracted from the dataset.
-    fn train_model(&self, dataset: GameDataset) {
-        todo!();
-        /*
-        let mut trainer = Trainer::new();
-        println!("📚 Training model for {} epochs...", self.config.num_epochs);
-
-        for epoch in 0..self.config.num_epochs {
-            println!("Epoch {}/{}", epoch + 1, self.config.num_epochs);
-
-            let batches = dataset.extract_training_data_in_batches(self.config.batch_size);
-            for batch in batches {
-                // trainer.train(&batch, 1); // Train with each batch for 1 epoch
-            }
-        }
-        */
+    /// Saves the trained model to a specified path
+    pub fn save_model(&self, model: &Model, path: &str) -> std::io::Result<()> {
+        let serialized = bincode::serialize(model).expect("Failed to serialize model.");
+        let mut file = File::create(path)?;
+        file.write_all(&serialized)?;
+        println!("✅ Model saved at: {}", path);
+        Ok(())
     }
 
-    /// Saves the trained model to the specified path.
-    fn save_model(&self) {
-        if let Some(parent) = Path::new(&self.config.model_path).parent() {
-            std::fs::create_dir_all(parent).unwrap();
-        }
-
-        todo!();
-        /*
-        let trainer = Trainer::new();
-        trainer.save_model(&self.config.model_path);
-        println!("✅ Model saved at: {}", self.config.model_path);
-        */
+    /// Loads the model from a specified path
+    pub fn load_model(&self, path: &str) -> std::io::Result<Model> {
+        let mut file = File::open(path)?;
+        let mut buffer = Vec::new();
+        file.read_to_end(&mut buffer)?;
+        let model = bincode::deserialize(&buffer).expect("Failed to deserialize model.");
+        println!("📥 Model loaded from {}", path);
+        Ok(model)
     }
 }

@@ -1,16 +1,5 @@
-use rayon::prelude::*;
-use serde::{Deserialize, Serialize};
-
+use super::{loss_function::LossFunction, optimizer::Optimizer, Dataset, GameDataset, Model};
 use crate::utils::SparseVector;
-
-use super::{loss_function::LossFunction, optimizer::Optimizer, Dataset, GameDataset};
-
-/// Model structure containing weights and bias
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Model {
-    pub weights: Vec<f32>,
-    pub bias: f32,
-}
 
 /// Trainer responsible for managing epochs, batches, and model updates
 pub struct Trainer<L: LossFunction, O: Optimizer> {
@@ -21,7 +10,7 @@ pub struct Trainer<L: LossFunction, O: Optimizer> {
     epochs: usize,
 }
 
-impl<L: LossFunction + Sync, O: Optimizer + Sync> Trainer<L, O> {
+impl<L: LossFunction, O: Optimizer> Trainer<L, O> {
     /// Creates a new Trainer with specified parameters
     pub fn new(
         feature_size: usize,
@@ -42,6 +31,11 @@ impl<L: LossFunction + Sync, O: Optimizer + Sync> Trainer<L, O> {
         }
     }
 
+    /// Returns a reference to the trained model
+    pub fn model(&self) -> &Model {
+        &self.model
+    }
+
     /// Trains the model using GameDataset with batch processing
     pub fn train(&mut self, game_dataset: &GameDataset) {
         for epoch in 0..self.epochs {
@@ -59,7 +53,7 @@ impl<L: LossFunction + Sync, O: Optimizer + Sync> Trainer<L, O> {
 
     /// Trains the model on a single batch
     fn train_batch(&mut self, batch: &Dataset) {
-        let predictions = self.predict(&batch.features);
+        let predictions = self.model.predict(&batch.features);
         let losses = self.loss_fn.compute_loss(&predictions, &batch.labels);
         let gradients = self.loss_fn.compute_gradient(&predictions, &batch.labels);
 
@@ -85,13 +79,5 @@ impl<L: LossFunction + Sync, O: Optimizer + Sync> Trainer<L, O> {
 
         let avg_loss: f32 = losses.iter().sum::<f32>() / losses.len() as f32;
         println!("Loss: {:.6}", avg_loss);
-    }
-
-    /// Predicts the outputs based on a batch of input features
-    pub fn predict(&self, features_batch: &[SparseVector]) -> Vec<f32> {
-        features_batch
-            .par_iter()
-            .map(|features| self.model.bias + features.dot(&self.model.weights))
-            .collect()
     }
 }
