@@ -9,6 +9,8 @@ pub struct Game {
     board: Bitboard,
     /// Current player (Black or White).
     current_player: Player,
+    /// History of moves.
+    moves: Vec<Position>,
 }
 
 impl Default for Game {
@@ -17,6 +19,7 @@ impl Default for Game {
         Self {
             board: Default::default(),
             current_player: Player::Black,
+            moves: Vec::new(),
         }
     }
 }
@@ -31,6 +34,7 @@ impl Game {
         Self {
             board,
             current_player,
+            moves: Vec::new(),
         }
     }
 
@@ -72,6 +76,7 @@ impl Game {
         }
 
         self.board.apply_move(position, self.current_player)?;
+        self.moves.push(position);
         self.switch_turn();
 
         if self.valid_moves().is_empty() {
@@ -121,6 +126,11 @@ impl Game {
     /// Returns the current state of the board.
     pub fn board_state(&self) -> &Bitboard {
         &self.board
+    }
+
+    /// Returns the history of moves.
+    pub fn history(&self) -> &Vec<Position> {
+        &self.moves
     }
 
     /// Switches the turn to the other player. (Internal use only)

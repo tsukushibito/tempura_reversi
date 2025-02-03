@@ -6,3 +6,6 @@ edition = "2021"
 [dependencies]
 temp_reversi_core = { path = "../temp_reversi_core" }
 temp_reversi_ai = { path = "../temp_reversi_ai" }
+indicatif = "0.17.11"
+clap = { version = "4.5.27", features = ["derive"] }
+env_logger = "0.11.6"

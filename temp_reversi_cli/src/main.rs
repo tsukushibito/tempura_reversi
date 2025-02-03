@@ -1,32 +1,113 @@
-use temp_reversi_ai::{
-    evaluation::PatternEvaluator,
-    patterns::get_predefined_patterns,
-    strategy::{negamax::NegamaxStrategy, Strategy},
-};
-use temp_reversi_cli::{cli_display, CliPlayer};
-use temp_reversi_core::{run_game, Game, MoveDecider, Position};
+use std::sync::Arc;
 
-/// A wrapper to use NegamaxStrategy with MoveDecider trait.
-struct NegamaxMoveDecider {
-    strategy: NegamaxStrategy<PatternEvaluator>,
+use clap::{Parser, Subcommand};
+use indicatif::{ProgressBar, ProgressStyle};
+use temp_reversi_ai::learning::{TrainingConfig, TrainingPipeline};
+use temp_reversi_cli::utils::ProgressBarReporter;
+
+#[derive(Parser)]
+#[command(name = "reversi-cli")]
+#[command(about = "Reversi CLI for training and self-play", long_about = None)]
+struct Cli {
+    #[command(subcommand)]
+    command: Commands,
 }
 
-impl NegamaxMoveDecider {
-    pub fn new(depth: u32) -> Self {
-        let evaluator = PatternEvaluator::new(get_predefined_patterns());
-        let strategy = NegamaxStrategy::new(evaluator, depth);
-        Self { strategy }
+#[derive(Subcommand)]
+enum Commands {
+    /// Start a new game
+    Play,
+
+    /// Generate self-play data
+    Generate {
+        /// Number of games to generate
+        #[arg(short, long, default_value = "1000")]
+        games: usize,
+
+        /// Path to save the generated dataset
+        #[arg(short = 'o', long, default_value = "self_play_dataset")]
+        dataset_base_path: String,
+    },
+
+    /// Train the model
+    Train {
+        /// Path to load the dataset
+        #[arg(short, long, default_value = "self_play_dataset.bin")]
+        dataset_path: String,
+
+        /// Path to save the trained model
+        #[arg(short = 'o', long, default_value = "reversi_model.bin")]
+        model_path: String,
+
+        /// Batch size for training
+        #[arg(short, long, default_value = "32")]
+        batch_size: usize,
+
+        /// Number of epochs
+        #[arg(short, long, default_value = "10")]
+        epochs: usize,
+    },
+}
+
+fn main() {
+    env_logger::init(); // ✅ ログ出力の初期化
+    let cli = Cli::parse();
+
+    match cli.command {
+        Commands::Play => {
+            println!("Starting a new game...");
+            // ゲームロジックをここに実装
+        }
+        Commands::Generate {
+            games,
+            dataset_base_path: dataset_path,
+        } => {
+            println!("🎯 Generating {} self-play games...", games);
+
+            let progress_reporter = Arc::new(ProgressBarReporter::new());
+            let config = TrainingConfig {
+                num_games: games,
+                batch_size: 32, // デフォルト値
+                num_epochs: 10, // デフォルト値
+                model_path: "reversi_model.bin".to_string(),
+                dataset_path,
+            };
+
+            let pipeline = TrainingPipeline::new(config);
+            pipeline.generate_self_play_data(Some(progress_reporter.clone()));
+
+            println!("✅ Data generation completed.");
+        }
+        Commands::Train {
+            dataset_path,
+            model_path,
+            batch_size,
+            epochs,
+        } => {
+            println!("📊 Starting training with dataset: {}", dataset_path);
+
+            let progress_bar = ProgressBar::new(epochs as u64);
+            progress_bar.set_style(
+                ProgressStyle::with_template("[{elapsed_precise}] [{wide_bar}] Epoch {pos}/{len}")
+                    .unwrap(),
+            );
+
+            let config = TrainingConfig {
+                num_games: 0,
+                batch_size,
+                num_epochs: epochs,
+                model_path,
+                dataset_path,
+            };
+
+            let pipeline = TrainingPipeline::new(config);
+
+            for _ in 0..epochs {
+                pipeline.train();
+                progress_bar.inc(1);
+            }
+
+            progress_bar.finish_with_message("✅ Model training completed.");
+        }
     }
-}
-
-impl MoveDecider for NegamaxMoveDecider {
-    fn select_move(&mut self, game: &Game) -> Option<Position> {
-        self.strategy.evaluate_and_decide(game)
-    }
-}
-
-/// Entry point for the CLI-based Reversi game.
-fn main() -> Result<(), String> {
-    let ai_player = NegamaxMoveDecider::new(5); // Depth of 3 for Black
-    run_game(ai_player, CliPlayer {}, cli_display)
 }

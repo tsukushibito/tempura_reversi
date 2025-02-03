@@ -8,12 +8,13 @@ use super::Strategy;
 ///
 /// This strategy employs the Negamax algorithm with alpha-beta pruning to search the game tree.
 /// Randomness is introduced to shuffle valid moves for variability in decision-making.
-pub struct NegamaxStrategy<E: EvaluationFunction + Send + Sync> {
+#[derive(Clone)]
+pub struct NegamaxStrategy<E: EvaluationFunction + Clone + Send + Sync> {
     pub depth: u32,   // The depth to search in the game tree.
     pub evaluator: E, // The evaluation function to use.
 }
 
-impl<E: EvaluationFunction + Send + Sync> NegamaxStrategy<E> {
+impl<E: EvaluationFunction + Clone + Send + Sync> NegamaxStrategy<E> {
     /// Creates a new NegamaxStrategy.
     ///
     /// # Arguments
@@ -77,7 +78,7 @@ impl<E: EvaluationFunction + Send + Sync> NegamaxStrategy<E> {
 
 impl<E> Strategy for NegamaxStrategy<E>
 where
-    E: EvaluationFunction + Send + Sync,
+    E: EvaluationFunction + Clone + Send + Sync + 'static,
 {
     /// Evaluates the game state and selects the best move using the Negamax algorithm.
     ///
@@ -118,7 +119,7 @@ where
     }
 
     fn clone_box(&self) -> Box<dyn Strategy> {
-        todo!()
+        Box::new((*self).clone())
     }
 }
 

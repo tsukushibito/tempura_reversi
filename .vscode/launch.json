@@ -1,0 +1,122 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'temp_reversi_ai'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=temp_reversi_ai"
+                ],
+                "filter": {
+                    "name": "temp_reversi_ai",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'temp_reversi_core'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=temp_reversi_core"
+                ],
+                "filter": {
+                    "name": "temp_reversi_core",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'temp_reversi_cli'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=temp_reversi_cli"
+                ],
+                "filter": {
+                    "name": "temp_reversi_cli",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'temp_reversi_cli'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=temp_reversi_cli",
+                    "--package=temp_reversi_cli"
+                ],
+                "filter": {
+                    "name": "temp_reversi_cli",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'temp_reversi_cli generate'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=temp_reversi_cli",
+                    "--package=temp_reversi_cli"
+                ],
+                "filter": {
+                    "name": "temp_reversi_cli",
+                    "kind": "bin"
+                }
+            },
+            "args": [
+                "generate"
+            ],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'temp_reversi_cli'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=temp_reversi_cli",
+                    "--package=temp_reversi_cli"
+                ],
+                "filter": {
+                    "name": "temp_reversi_cli",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}

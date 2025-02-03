@@ -1,11 +1,13 @@
 use std::fs::File;
 use std::io::{Read, Write};
+use std::sync::Arc;
 
 use crate::evaluation::PhaseAwareEvaluator;
 use crate::learning::loss_function::MSELoss;
 use crate::learning::optimizer::Adam;
 use crate::learning::{generate_self_play_data, GameDataset, Trainer};
 use crate::strategy::negamax::NegamaxStrategy;
+use crate::utils::ProgressReporter;
 
 use super::Model;
 
@@ -36,16 +38,20 @@ impl TrainingPipeline {
 
     /// Executes the full training pipeline: generates self-play data and trains the model.
     pub fn run(&self) {
-        self.generate_self_play_data();
+        self.generate_self_play_data(None);
         self.train();
     }
 
     /// Generates self-play data using AI strategies and saves it to a file.
-    pub fn generate_self_play_data(&self) {
+    pub fn generate_self_play_data(
+        &self,
+        reporter: Option<Arc<dyn ProgressReporter + Send + Sync>>,
+    ) {
         let dataset = generate_self_play_data(
             self.config.num_games,
             Box::new(NegamaxStrategy::new(PhaseAwareEvaluator, 5)),
             Box::new(NegamaxStrategy::new(PhaseAwareEvaluator, 5)),
+            reporter,
         );
 
         dataset

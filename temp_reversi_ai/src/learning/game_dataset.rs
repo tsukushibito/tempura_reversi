@@ -16,6 +16,19 @@ pub struct GameRecord {
     pub final_score: (u8, u8),
 }
 
+impl GameRecord {
+    /// Creates a new `GameRecord` from a completed game.
+    pub fn new(game: &Game) -> Self {
+        let moves = game.history().iter().map(|m| m.to_u8()).collect();
+        let (black_score, white_score) = game.current_score();
+
+        Self {
+            moves,
+            final_score: (black_score as u8, white_score as u8),
+        }
+    }
+}
+
 /// Manages multiple `GameRecord` entries, supporting batch processing, saving, and loading.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GameDataset {

@@ -2,6 +2,7 @@ use temp_reversi_core::{Bitboard, Player};
 
 use super::EvaluationFunction;
 
+#[derive(Clone)]
 pub struct SimpleEvaluator;
 
 impl EvaluationFunction for SimpleEvaluator {
