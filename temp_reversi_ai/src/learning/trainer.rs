@@ -1,3 +1,5 @@
+use rand::{seq::SliceRandom, thread_rng};
+
 use super::{loss_function::LossFunction, optimizer::Optimizer, Dataset, GameDataset, Model};
 use crate::utils::SparseVector;
 
@@ -38,11 +40,16 @@ impl<L: LossFunction, O: Optimizer> Trainer<L, O> {
 
     /// Trains the model using GameDataset with batch processing
     pub fn train(&mut self, game_dataset: &GameDataset) {
+        let mut batches: Vec<Dataset> = game_dataset
+            .extract_training_data_in_batches(self.batch_size)
+            .collect();
         for epoch in 0..self.epochs {
             println!("🚀 Starting Epoch {}/{}", epoch + 1, self.epochs);
 
-            let batches = game_dataset.extract_training_data_in_batches(self.batch_size);
-            for (batch_idx, batch) in batches.enumerate() {
+            let mut rng = thread_rng();
+            batches.shuffle(&mut rng);
+
+            for (batch_idx, batch) in batches.iter().enumerate() {
                 self.train_batch(&batch);
                 println!("Batch {} completed.", batch_idx + 1);
             }
