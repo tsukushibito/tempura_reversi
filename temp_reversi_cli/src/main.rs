@@ -21,22 +21,22 @@ enum Commands {
     /// Generate self-play data
     Generate {
         /// Number of games to generate
-        #[arg(short, long, default_value = "1000")]
+        #[arg(short, long, default_value = "10000")]
         games: usize,
 
         /// Path to save the generated dataset
-        #[arg(short = 'o', long, default_value = "self_play_dataset")]
+        #[arg(short = 'o', long, default_value = "../work/self_play_dataset")]
         dataset_base_path: String,
     },
 
     /// Train the model
     Train {
         /// Path to load the dataset
-        #[arg(short, long, default_value = "self_play_dataset.bin")]
+        #[arg(short, long, default_value = "../work/self_play_dataset.bin")]
         dataset_path: String,
 
         /// Path to save the trained model
-        #[arg(short = 'o', long, default_value = "reversi_model.bin")]
+        #[arg(short = 'o', long, default_value = "../work/reversi_model.bin")]
         model_path: String,
 
         /// Batch size for training
