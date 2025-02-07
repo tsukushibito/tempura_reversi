@@ -64,7 +64,14 @@ impl TrainingPipeline {
         println!("📊 Loading dataset from {}", self.config.dataset_path);
 
         let dataset = self.load_dataset();
-        let feature_size = 64; // 盤面サイズに基づく特徴量のサイズ
+        if dataset.records.is_empty() {
+            panic!("Dataset is empty, cannot determine feature size.");
+        }
+
+        // Generate a dummy board state to extract feature vector and determine its size.
+        let dummy_board = temp_reversi_core::Bitboard::default();
+        let feature_vector = crate::learning::feature_extraction::extract_features(&dummy_board);
+        let feature_size = feature_vector.size();
         let learning_rate = 0.001;
 
         let optimizer = Adam::new(feature_size, learning_rate);
