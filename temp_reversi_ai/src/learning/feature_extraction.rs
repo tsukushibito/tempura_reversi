@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use rayon::prelude::*;
 use temp_reversi_core::Bitboard;
 
 use crate::{evaluation::PatternEvaluator, patterns::get_predefined_patterns, utils::SparseVector};
@@ -39,20 +40,47 @@ pub fn extract_features(board: &Bitboard) -> SparseVector {
     let mut total_features = 0;
 
     for group in &evaluator.groups {
-        // The total number of possible states for this pattern group (3^N)
+        // Determine the total number of possible states for this pattern group (3^N)
         let num_states_per_group = group.state_scores[0].len();
 
-        for pattern in &group.patterns {
-            let masked_black = black_mask & pattern.mask;
-            let masked_white = white_mask & pattern.mask;
+        // Parallelize: For each pattern, generate a pair (state_index, 1.0) and aggregate within the group.
+        let group_feature_counts: HashMap<usize, f32> = group
+            .patterns
+            .par_iter()
+            .filter_map(|pattern| {
+                let masked_black = black_mask & pattern.mask;
+                let masked_white = white_mask & pattern.mask;
+                if let Some(&state_index) = pattern.key_to_index.get(&(masked_black, masked_white))
+                {
+                    Some((state_index, 1.0))
+                } else {
+                    None
+                }
+            })
+            .fold(
+                || HashMap::new(),
+                |mut acc, (state_index, count)| {
+                    *acc.entry(state_index).or_insert(0.0) += count;
+                    acc
+                },
+            )
+            .reduce(
+                || HashMap::new(),
+                |mut acc, map| {
+                    for (k, v) in map {
+                        *acc.entry(k).or_insert(0.0) += v;
+                    }
+                    acc
+                },
+            );
 
-            if let Some(&state_index) = pattern.key_to_index.get(&(masked_black, masked_white)) {
-                let feature_index = feature_index_offset + state_index;
-                *feature_counts.entry(feature_index).or_insert(0.0) += 1.0;
-            }
+        // Add the group's offset to each count and merge into the overall feature counts.
+        for (state_index, count) in group_feature_counts {
+            let feature_index = feature_index_offset + state_index;
+            *feature_counts.entry(feature_index).or_insert(0.0) += count;
         }
 
-        // Move the offset forward by the total number of states in this PatternGroup
+        // Update the offset for the next group.
         feature_index_offset += num_states_per_group;
         total_features += num_states_per_group;
     }
