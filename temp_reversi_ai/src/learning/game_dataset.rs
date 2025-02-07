@@ -4,7 +4,10 @@ use crate::{
     patterns::get_predefined_patterns,
 };
 use serde::{Deserialize, Serialize};
-use std::fs::{self, metadata};
+use std::{
+    fs::{self, metadata},
+    path::Path,
+};
 use temp_reversi_core::{Game, Position};
 
 /// Represents a game record containing move history and final score.
@@ -158,6 +161,13 @@ impl GameDataset {
     ///
     /// A `std::io::Result<()>` indicating success or failure.
     pub fn save_auto(&self, base_file_name: &str) -> std::io::Result<()> {
+        // If base_file_name includes a directory, create it if it doesn't exist.
+        if let Some(parent) = Path::new(base_file_name).parent() {
+            if !parent.as_os_str().is_empty() {
+                fs::create_dir_all(parent)?;
+            }
+        }
+
         const MAX_RECORDS_PER_FILE: usize = 100_000;
 
         if self.records.len() <= MAX_RECORDS_PER_FILE {
