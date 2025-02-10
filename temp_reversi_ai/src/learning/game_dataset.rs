@@ -243,7 +243,7 @@ impl GameDataset {
     pub fn extract_training_data_in_batches(
         &self,
         batch_size: usize,
-    ) -> impl Iterator<Item = Dataset> + use<'_> {
+    ) -> impl Iterator<Item = Dataset> + '_ {
         let evaluator = PatternEvaluator::new(get_predefined_patterns());
         let mut batch = Dataset::new();
 
@@ -251,7 +251,7 @@ impl GameDataset {
             batch.features.clear();
             batch.labels.clear();
 
-            for record in chunk.iter().cloned() {
+            for record in chunk.iter() {
                 let mut game = Game::default();
                 for &pos_idx in &record.moves {
                     let pos = Position::from_u8(pos_idx).unwrap();
