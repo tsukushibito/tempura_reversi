@@ -2,10 +2,11 @@ use std::fs::File;
 use std::io::{Read, Write};
 use std::sync::Arc;
 
-use crate::evaluation::PhaseAwareEvaluator;
+use crate::evaluation::{PatternEvaluator, PhaseAwareEvaluator};
 use crate::learning::loss_function::MSELoss;
 use crate::learning::optimizer::Adam;
-use crate::learning::{generate_self_play_data, GameDataset, Trainer};
+use crate::learning::{extract_features, generate_self_play_data, GameDataset, Trainer};
+use crate::patterns::get_predefined_patterns;
 use crate::strategy::negamax::NegamaxStrategy;
 use crate::utils::ProgressReporter;
 
@@ -70,7 +71,8 @@ impl TrainingPipeline {
 
         // Generate a dummy board state to extract feature vector and determine its size.
         let dummy_board = temp_reversi_core::Bitboard::default();
-        let feature_vector = crate::learning::feature_extraction::extract_features(&dummy_board);
+        let evaluator = PatternEvaluator::new(get_predefined_patterns());
+        let feature_vector = extract_features(&dummy_board, &evaluator);
         let feature_size = feature_vector.size();
         let learning_rate = 0.001;
 

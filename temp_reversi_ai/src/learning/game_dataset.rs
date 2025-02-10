@@ -256,7 +256,7 @@ impl GameDataset {
                 for &pos_idx in &record.moves {
                     let pos = Position::from_u8(pos_idx).unwrap();
                     if game.is_valid_move(pos) {
-                        let feature_vector = extract_features(&game.board_state());
+                        let feature_vector = extract_features(&game.board_state(), &evaluator);
                         let score = evaluator.evaluate(&game.board_state(), game.current_player());
                         batch.add_sample(feature_vector, score as f32);
                         game.apply_move(pos).unwrap();

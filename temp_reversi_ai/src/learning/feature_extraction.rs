@@ -3,9 +3,9 @@ use std::collections::HashMap;
 use rayon::prelude::*;
 use temp_reversi_core::Bitboard;
 
-use crate::{evaluation::PatternEvaluator, patterns::get_predefined_patterns, utils::SparseVector};
+use crate::{evaluation::PatternEvaluator, utils::SparseVector};
 
-/// Extracts a feature vector from the board state using predefined pattern groups.
+/// Extracts a feature vector from the board state using the provided evaluator and predefined pattern groups.
 ///
 /// The extracted feature vector uses a **sparse representation**, where each feature corresponds
 /// to a specific pattern state index. The values range from `0` to `4`, indicating how many
@@ -18,6 +18,7 @@ use crate::{evaluation::PatternEvaluator, patterns::get_predefined_patterns, uti
 ///
 /// # Arguments
 /// * `board` - The current board state as a `Bitboard`.
+/// * `evaluator` - A reference to a `PatternEvaluator` used for feature extraction.
 ///
 /// # Returns
 /// * A `SparseVector` representing the board's features.
@@ -25,11 +26,11 @@ use crate::{evaluation::PatternEvaluator, patterns::get_predefined_patterns, uti
 /// # Example
 /// ```
 /// let board = Bitboard::default();
-/// let features = extract_features(&board);
+/// let evaluator = PatternEvaluator::new(get_predefined_patterns());
+/// let features = extract_features(&board, &evaluator);
 /// assert!(!features.indices().is_empty());
 /// ```
-pub fn extract_features(board: &Bitboard) -> SparseVector {
-    let evaluator = PatternEvaluator::new(get_predefined_patterns());
+pub fn extract_features(board: &Bitboard, evaluator: &PatternEvaluator) -> SparseVector {
     let (black_mask, white_mask) = board.bits();
 
     // Store feature counts (each key is a unique feature index, value is the occurrence count)
@@ -96,6 +97,8 @@ mod tests {
 
     use temp_reversi_core::{utils::rotate_mask_90_cw, Player, Position};
 
+    use crate::patterns::get_predefined_patterns;
+
     use super::*;
 
     /// Tests feature extraction on the default board state.
@@ -106,7 +109,8 @@ mod tests {
     #[test]
     fn test_extract_features_default_board() {
         let board = Bitboard::default();
-        let features = extract_features(&board);
+        let evaluator = PatternEvaluator::new(get_predefined_patterns());
+        let features = extract_features(&board, &evaluator);
 
         // Ensure that some features are extracted (the vector is not empty)
         assert!(
@@ -133,8 +137,8 @@ mod tests {
     fn test_extract_features_with_corners() {
         // Place stones in the four corners
         let board = Bitboard::new(0x8100000000000081, 0);
-
-        let features = extract_features(&board);
+        let evaluator = PatternEvaluator::new(get_predefined_patterns());
+        let features = extract_features(&board, &evaluator);
 
         // Ensure that some features are extracted
         assert!(
@@ -153,7 +157,8 @@ mod tests {
 
         // Check if the feature vector has changed from the default state
         let default_board = Bitboard::default();
-        let default_features = extract_features(&default_board);
+        let evaluator = PatternEvaluator::new(get_predefined_patterns());
+        let default_features = extract_features(&default_board, &evaluator);
 
         assert_ne!(
             features.indices(),
@@ -170,7 +175,8 @@ mod tests {
     #[test]
     fn test_feature_index_offset() {
         let board = Bitboard::default();
-        let features = extract_features(&board);
+        let evaluator = PatternEvaluator::new(get_predefined_patterns());
+        let features = extract_features(&board, &evaluator);
 
         let indices: HashSet<usize> = features.indices().iter().cloned().collect();
 
@@ -223,7 +229,8 @@ mod tests {
         board.apply_move(Position::C5, Player::White).unwrap();
 
         // Extract features for the original board
-        let base_features = extract_features(&board);
+        let evaluator = PatternEvaluator::new(get_predefined_patterns());
+        let base_features = extract_features(&board, &evaluator);
         let base_sum: f32 = base_features.values().iter().sum();
 
         // Track the maximum value in the feature vector
@@ -239,7 +246,7 @@ mod tests {
 
             // Create a new Bitboard with rotated bitmasks
             let rotated_board = Bitboard::new(black_mask, white_mask);
-            let rotated_features = extract_features(&rotated_board);
+            let rotated_features = extract_features(&rotated_board, &evaluator);
             let rotated_sum: f32 = rotated_features.values().iter().sum();
 
             // Check that total sum of feature values remains the same across rotations
@@ -273,7 +280,8 @@ mod tests {
     #[test]
     fn test_sparse_vector_size() {
         let board = Bitboard::default();
-        let features = extract_features(&board);
+        let evaluator = PatternEvaluator::new(get_predefined_patterns());
+        let features = extract_features(&board, &evaluator);
 
         // Compute the expected size: sum of all possible states in all PatternGroups
         let expected_size: usize = get_predefined_patterns()
@@ -298,7 +306,8 @@ mod tests {
     #[test]
     fn test_no_panic() {
         let board = Bitboard::default();
-        let _ = extract_features(&board); // Ensure no panic on default board
+        let evaluator = PatternEvaluator::new(get_predefined_patterns());
+        let _ = extract_features(&board, &evaluator); // Ensure no panic on default board
 
         // Define positions for black and white stones
         let black_positions = [Position::A1, Position::D4, Position::C3, Position::E5];
@@ -310,6 +319,6 @@ mod tests {
 
         // Create a new Bitboard with predefined stone placements
         let custom_board = Bitboard::new(black_mask, white_mask);
-        let _ = extract_features(&custom_board); // Ensure no panic on modified board
+        let _ = extract_features(&custom_board, &evaluator); // Ensure no panic on modified board
     }
 }
