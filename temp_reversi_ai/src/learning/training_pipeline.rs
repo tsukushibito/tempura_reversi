@@ -63,7 +63,7 @@ impl TrainingPipeline {
     pub fn train(&self) {
         println!("📊 Loading dataset from {}", self.config.dataset_path);
 
-        let dataset = self.load_dataset();
+        let mut dataset = self.load_dataset();
         if dataset.records.is_empty() {
             panic!("Dataset is empty, cannot determine feature size.");
         }
@@ -83,7 +83,7 @@ impl TrainingPipeline {
             self.config.num_epochs,
         );
 
-        trainer.train(&dataset);
+        trainer.train(&mut dataset);
 
         // モデル取得は `model()` メソッドで簡潔に
         self.save_model(trainer.model(), &self.config.model_path)

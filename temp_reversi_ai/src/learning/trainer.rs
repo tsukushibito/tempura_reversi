@@ -37,7 +37,7 @@ impl<L: LossFunction, O: Optimizer> Trainer<L, O> {
     }
 
     /// Trains the model using GameDataset with batch processing
-    pub fn train(&mut self, game_dataset: &GameDataset) {
+    pub fn train(&mut self, game_dataset: &mut GameDataset) {
         for epoch in 0..self.epochs {
             println!("🚀 Starting Epoch {}/{}", epoch + 1, self.epochs);
 
