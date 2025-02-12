@@ -41,10 +41,13 @@ impl<L: LossFunction, O: Optimizer> Trainer<L, O> {
         for epoch in 0..self.epochs {
             println!("🚀 Starting Epoch {}/{}", epoch + 1, self.epochs);
 
+            game_dataset.shuffle();
+
             let batches = game_dataset.extract_training_data_in_batches(self.batch_size);
-            for (batch_idx, batch) in batches.enumerate() {
+
+            for (_batch_idx, batch) in batches.enumerate() {
                 self.train_batch(&batch);
-                println!("Batch {} completed.", batch_idx + 1);
+                // println!("Batch {} completed.", _batch_idx + 1);
             }
 
             println!("✅ Epoch {}/{} completed.", epoch + 1, self.epochs);
@@ -73,7 +76,7 @@ impl<L: LossFunction, O: Optimizer> Trainer<L, O> {
                     &mut self.model.weights,
                     &mut self.model.bias,
                     &sparse_grad,
-                    grad,
+                    0.0,
                 );
             });
 

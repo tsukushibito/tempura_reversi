@@ -1,8 +1,6 @@
 use super::{extract_features, Dataset};
-use crate::{
-    evaluation::{EvaluationFunction, PatternEvaluator},
-    patterns::get_predefined_patterns,
-};
+use crate::{evaluation::PatternEvaluator, patterns::get_predefined_patterns};
+use rand::seq::SliceRandom;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -268,5 +266,10 @@ impl GameDataset {
             // Collect the parallel iterator into a Vec and convert it back to an iterator.
             .collect::<Vec<Dataset>>()
             .into_iter()
+    }
+
+    /// Shuffles the game records in the dataset.
+    pub fn shuffle(&mut self) {
+        self.records.shuffle(&mut rand::thread_rng());
     }
 }
