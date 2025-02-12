@@ -3,6 +3,7 @@ use crate::{
     evaluation::{EvaluationFunction, PatternEvaluator},
     patterns::get_predefined_patterns,
 };
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{
     fs::{self, metadata},
@@ -245,26 +246,28 @@ impl GameDataset {
         batch_size: usize,
     ) -> impl Iterator<Item = Dataset> + '_ {
         let evaluator = PatternEvaluator::new(get_predefined_patterns());
-        let mut batch = Dataset::new();
 
-        self.records.chunks(batch_size).map(move |chunk| {
-            batch.features.clear();
-            batch.labels.clear();
-
-            for record in chunk.iter() {
-                let mut game = Game::default();
-                for &pos_idx in &record.moves {
-                    let pos = Position::from_u8(pos_idx).unwrap();
-                    if game.is_valid_move(pos) {
-                        let feature_vector = extract_features(&game.board_state(), &evaluator);
-                        let score = evaluator.evaluate(&game.board_state(), game.current_player());
-                        batch.add_sample(feature_vector, score as f32);
-                        game.apply_move(pos).unwrap();
+        self.records
+            .par_chunks(batch_size)
+            .map(move |chunk| {
+                let mut batch = Dataset::new();
+                for record in chunk.iter() {
+                    let mut game = Game::default();
+                    for &pos_idx in &record.moves {
+                        let pos = Position::from_u8(pos_idx).unwrap();
+                        if game.is_valid_move(pos) {
+                            let feature_vector = extract_features(&game.board_state(), &evaluator);
+                            let score =
+                                evaluator.evaluate(&game.board_state(), game.current_player());
+                            batch.add_sample(feature_vector, score as f32);
+                            game.apply_move(pos).unwrap();
+                        }
                     }
                 }
-            }
-
-            batch.clone()
-        })
+                batch
+            })
+            // Collect the parallel iterator into a Vec and convert it back to an iterator.
+            .collect::<Vec<Dataset>>()
+            .into_iter()
     }
 }

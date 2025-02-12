@@ -102,6 +102,26 @@
         {
             "type": "lldb",
             "request": "launch",
+            "name": "Debug executable 'temp_reversi_cli train'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=temp_reversi_cli",
+                    "--package=temp_reversi_cli"
+                ],
+                "filter": {
+                    "name": "temp_reversi_cli",
+                    "kind": "bin"
+                }
+            },
+            "args": [
+                "train"
+            ],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
             "name": "Debug unit tests in executable 'temp_reversi_cli'",
             "cargo": {
                 "args": [
