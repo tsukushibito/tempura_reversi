@@ -252,14 +252,13 @@ impl GameDataset {
             .map(move |chunk| {
                 let mut batch = Dataset::new();
                 for record in chunk.iter() {
+                    let final_score = (record.final_score.0 as f32) - (record.final_score.1 as f32);
                     let mut game = Game::default();
                     for &pos_idx in &record.moves {
                         let pos = Position::from_u8(pos_idx).unwrap();
                         if game.is_valid_move(pos) {
                             let feature_vector = extract_features(&game.board_state(), &evaluator);
-                            let score =
-                                evaluator.evaluate(&game.board_state(), game.current_player());
-                            batch.add_sample(feature_vector, score as f32);
+                            batch.add_sample(feature_vector, final_score);
                             game.apply_move(pos).unwrap();
                         }
                     }
