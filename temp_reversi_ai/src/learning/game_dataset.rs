@@ -1,5 +1,5 @@
 use super::{extract_features, Dataset};
-use crate::{evaluation::PatternEvaluator, patterns::get_predefined_patterns};
+use crate::{evaluation::PatternEvaluator, patterns::get_predefined_patterns, utils::Feature};
 use rand::seq::SliceRandom;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -252,12 +252,18 @@ impl GameDataset {
                 for record in chunk.iter() {
                     let final_score = (record.final_score.0 as f32) - (record.final_score.1 as f32);
                     let mut game = Game::default();
+                    let mut phase = 0;
                     for &pos_idx in &record.moves {
                         let pos = Position::from_u8(pos_idx).unwrap();
                         if game.is_valid_move(pos) {
                             let feature_vector = extract_features(&game.board_state(), &evaluator);
-                            batch.add_sample(feature_vector, final_score);
+                            let feature = Feature {
+                                phase,
+                                vector: feature_vector,
+                            };
+                            batch.add_sample(feature, final_score);
                             game.apply_move(pos).unwrap();
+                            phase += 1;
                         }
                     }
                 }

@@ -21,7 +21,7 @@ impl<L: LossFunction, O: Optimizer> Trainer<L, O> {
     ) -> Self {
         Self {
             model: Model {
-                weights: vec![0.0; feature_size],
+                weights: vec![vec![0.0; feature_size]; 60],
                 bias: 0.0,
             },
             loss_fn,
@@ -66,14 +66,14 @@ impl<L: LossFunction, O: Optimizer> Trainer<L, O> {
             .zip(gradients.iter())
             .for_each(|(features, &grad)| {
                 let sparse_grad = SparseVector::new(
-                    features.indices().to_vec(),
-                    features.values().iter().map(|&v| grad * v).collect(),
-                    features.size(),
+                    features.vector.indices().to_vec(),
+                    features.vector.values().iter().map(|&v| grad * v).collect(),
+                    features.vector.size(),
                 )
                 .unwrap();
 
                 self.optimizer.update(
-                    &mut self.model.weights,
+                    &mut self.model.weights[features.phase],
                     &mut self.model.bias,
                     &sparse_grad,
                     0.0,

@@ -3,23 +3,23 @@ use std::{
     io::{Read, Write},
 };
 
-use crate::utils::SparseVector;
+use crate::utils::Feature;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
 /// Represents the machine learning model
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Model {
-    pub weights: Vec<f32>,
+    pub weights: Vec<Vec<f32>>,
     pub bias: f32,
 }
 
 impl Model {
     /// Predicts outputs for a batch of feature vectors
-    pub fn predict(&self, features_batch: &[SparseVector]) -> Vec<f32> {
-        features_batch
+    pub fn predict(&self, features: &[Feature]) -> Vec<f32> {
+        features
             .par_iter()
-            .map(|features| self.bias + features.dot(&self.weights))
+            .map(|feature| self.bias + feature.vector.dot(&self.weights[feature.phase]))
             .collect()
     }
 

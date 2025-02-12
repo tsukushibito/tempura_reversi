@@ -1,10 +1,10 @@
-use crate::utils::SparseVector;
+use crate::utils::Feature;
 
-/// A dataset structure for storing feature vectors and their corresponding labels.
+/// Represents the training dataset containing features and their corresponding labels.
 #[derive(Debug, Clone)]
 pub struct Dataset {
-    /// A collection of sparse feature vectors.
-    pub features: Vec<SparseVector>,
+    /// A collection of features, each containing phase and sparse feature vector.
+    pub features: Vec<Feature>,
     /// A collection of labels representing evaluation values (ground truth).
     pub labels: Vec<f32>,
 }
@@ -29,22 +29,8 @@ impl Dataset {
         }
     }
 
-    /// Adds a sample consisting of a feature vector and a label to the dataset.
-    ///
-    /// # Arguments
-    ///
-    /// * `feature` - A `SparseVector` representing the feature vector.
-    /// * `label` - A `f32` value representing the corresponding evaluation.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// let mut dataset = Dataset::new();
-    /// let feature = SparseVector::new();
-    /// dataset.add_sample(feature, 1.5);
-    /// assert_eq!(dataset.len(), 1);
-    /// ```
-    pub fn add_sample(&mut self, feature: SparseVector, label: f32) {
+    /// Adds a new sample to the dataset.
+    pub fn add_sample(&mut self, feature: Feature, label: f32) {
         self.features.push(feature);
         self.labels.push(label);
     }
