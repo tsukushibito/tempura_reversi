@@ -32,8 +32,8 @@ enum Commands {
     /// Train the model
     Train {
         /// Path to load the dataset
-        #[arg(short, long, default_value = "../work/self_play_dataset.bin")]
-        dataset_path: String,
+        #[arg(short, long, default_value = "../work/self_play_dataset")]
+        dataset_base_path: String,
 
         /// Path to save the trained model
         #[arg(short = 'o', long, default_value = "../work/reversi_model.bin")]
@@ -44,7 +44,7 @@ enum Commands {
         batch_size: usize,
 
         /// Number of epochs
-        #[arg(short, long, default_value = "10")]
+        #[arg(short, long, default_value = "30")]
         epochs: usize,
     },
 }
@@ -70,7 +70,8 @@ fn main() {
                 batch_size: 32, // デフォルト値
                 num_epochs: 10, // デフォルト値
                 model_path: "reversi_model.bin".to_string(),
-                dataset_path,
+                dataset_base_path: dataset_path,
+                train_ratio: 0.8, // デフォルト値
             };
 
             let pipeline = TrainingPipeline::new(config);
@@ -79,7 +80,7 @@ fn main() {
             println!("✅ Data generation completed.");
         }
         Commands::Train {
-            dataset_path,
+            dataset_base_path: dataset_path,
             model_path,
             batch_size,
             epochs,
@@ -97,7 +98,8 @@ fn main() {
                 batch_size,
                 num_epochs: epochs,
                 model_path,
-                dataset_path,
+                dataset_base_path: dataset_path,
+                train_ratio: 0.8,
             };
 
             let pipeline = TrainingPipeline::new(config);

@@ -23,7 +23,9 @@ pub struct TrainingConfig {
     /// Path to save the trained model.
     pub model_path: String,
     /// Path to save the generated game dataset.
-    pub dataset_path: String,
+    pub dataset_base_path: String,
+    /// Ratio of training data to use for training.
+    pub train_ratio: f32,
 }
 
 /// Training pipeline for self-play data generation and model training.
@@ -56,17 +58,16 @@ impl TrainingPipeline {
         );
 
         dataset
-            .save_auto(&self.config.dataset_path)
+            .save_auto(&self.config.dataset_base_path)
             .expect("Failed to save self-play data.");
     }
 
     /// Loads the dataset and trains the model.
     pub fn train(&self) {
-        println!("📊 Loading dataset from {}", self.config.dataset_path);
-
-        let mut dataset = self.load_dataset();
-        if dataset.records.is_empty() {
-            panic!("Dataset is empty, cannot determine feature size.");
+        // GameDataset::load_auto は (training_dataset, validation_dataset) のタプルを返す前提
+        let (mut train_dataset, validation_dataset) = self.load_dataset();
+        if train_dataset.records.is_empty() {
+            panic!("Training dataset is empty, cannot determine feature size.");
         }
 
         // Generate a dummy board state to extract feature vector and determine its size.
@@ -85,19 +86,16 @@ impl TrainingPipeline {
             self.config.num_epochs,
         );
 
-        trainer.train(&mut dataset);
+        trainer.train(&mut train_dataset, &validation_dataset);
 
-        // モデル取得は `model()` メソッドで簡潔に
         self.save_model(trainer.model(), &self.config.model_path)
             .expect("Failed to save model.");
     }
 
     /// Loads the game dataset from the specified file.
-    fn load_dataset(&self) -> GameDataset {
-        let mut file = File::open(&self.config.dataset_path).expect("Failed to open dataset file.");
-        let mut buffer = Vec::new();
-        file.read_to_end(&mut buffer).unwrap();
-        bincode::deserialize(&buffer).expect("Failed to deserialize dataset.")
+    fn load_dataset(&self) -> (GameDataset, GameDataset) {
+        GameDataset::load_auto(&self.config.dataset_base_path, self.config.train_ratio)
+            .expect("Failed to load dataset")
     }
 
     /// Saves the trained model to a specified path

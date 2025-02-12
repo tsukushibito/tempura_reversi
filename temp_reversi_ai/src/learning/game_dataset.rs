@@ -183,42 +183,57 @@ impl GameDataset {
         Ok(())
     }
 
-    /// Loads multiple dataset files and merges them into a single dataset.
+    /// Loads multiple dataset files (either a single bin file or multiple parts),
+    /// merges them into one GameDataset, shuffles the records, and then splits them
+    /// into training and validation datasets according to the given train_ratio.
     ///
     /// # Arguments
     ///
-    /// * `base_file_name` - The base name for the input files.
+    /// * `base_file_name` - The base file name for the dataset files.
+    /// * `train_ratio` - The ratio of records to be used for training (e.g., 0.8 for 80%).
     ///
     /// # Returns
     ///
-    /// A `std::io::Result<GameDataset>` containing the merged dataset or an error.
-    pub fn load_auto(base_file_name: &str) -> std::io::Result<Self> {
+    /// A tuple (training_dataset, validation_dataset) or an io::Error if no data is found.
+    pub fn load_auto(base_file_name: &str, train_ratio: f32) -> std::io::Result<(Self, Self)> {
         let bin_file = format!("{}.bin", base_file_name);
-        if metadata(&bin_file).is_ok() {
-            return Self::load_bin(&bin_file);
-        }
-
-        let mut combined_dataset = GameDataset::new();
-        let mut part_num = 1;
-
-        loop {
-            let file_name = format!("{}_part_{}.bin", base_file_name, part_num);
-            if let Ok(dataset) = Self::load_bin(&file_name) {
-                combined_dataset.records.extend(dataset.records);
-                part_num += 1;
-            } else {
-                break;
+        let combined_dataset = if metadata(&bin_file).is_ok() {
+            Self::load_bin(&bin_file)?
+        } else {
+            let mut combined_dataset = GameDataset::new();
+            let mut part_num = 1;
+            loop {
+                let file_name = format!("{}_part_{}.bin", base_file_name, part_num);
+                if let Ok(dataset) = Self::load_bin(&file_name) {
+                    combined_dataset.records.extend(dataset.records);
+                    part_num += 1;
+                } else {
+                    break;
+                }
             }
-        }
+            combined_dataset
+        };
 
         if combined_dataset.records.is_empty() {
-            Err(std::io::Error::new(
+            return Err(std::io::Error::new(
                 std::io::ErrorKind::NotFound,
                 "No dataset files found",
-            ))
-        } else {
-            Ok(combined_dataset)
+            ));
         }
+
+        let mut records = combined_dataset.records;
+        records.shuffle(&mut rand::thread_rng());
+        let split_index = ((records.len() as f32) * train_ratio).round() as usize;
+        let (train_records, validation_records) = records.split_at(split_index);
+
+        Ok((
+            GameDataset {
+                records: train_records.to_vec(),
+            },
+            GameDataset {
+                records: validation_records.to_vec(),
+            },
+        ))
     }
 
     /// Extracts training data in batches from the game records.
