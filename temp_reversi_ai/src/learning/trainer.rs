@@ -57,30 +57,49 @@ impl<L: LossFunction, O: Optimizer> Trainer<L, O> {
     /// Trains the model on a single batch
     fn train_batch(&mut self, batch: &Dataset) {
         let predictions = self.model.predict(&batch.features);
-        let losses = self.loss_fn.compute_loss(&predictions, &batch.labels);
+        let phases: Vec<usize> = batch.features.iter().map(|f| f.phase).collect();
+        let (losses, phase_losses) =
+            self.loss_fn
+                .compute_loss_by_phase(&predictions, &batch.labels, &phases);
         let gradients = self.loss_fn.compute_gradient(&predictions, &batch.labels);
 
         batch
             .features
             .iter()
             .zip(gradients.iter())
-            .for_each(|(features, &grad)| {
+            .enumerate()
+            .for_each(|(_i, (feature, &grad))| {
                 let sparse_grad = SparseVector::new(
-                    features.vector.indices().to_vec(),
-                    features.vector.values().iter().map(|&v| grad * v).collect(),
-                    features.vector.size(),
+                    feature.vector.indices().to_vec(),
+                    feature.vector.values().iter().map(|&v| grad * v).collect(),
+                    feature.vector.size(),
                 )
                 .unwrap();
 
                 self.optimizer.update(
-                    &mut self.model.weights[features.phase],
+                    &mut self.model.weights[feature.phase],
                     &mut self.model.bias,
                     &sparse_grad,
                     0.0,
                 );
             });
 
-        let avg_loss: f32 = losses.iter().sum::<f32>() / losses.len() as f32;
-        println!("Loss: {:.6}", avg_loss);
+        let overall_avg_loss: f32 = losses.iter().sum::<f32>() / losses.len() as f32;
+        println!("Overall Loss: {:.6}", overall_avg_loss);
+
+        let phase_loss_line: String = phase_losses
+            .iter()
+            .enumerate()
+            .filter_map(|(phase, losses_vec)| {
+                if !losses_vec.is_empty() {
+                    let avg = losses_vec.iter().sum::<f32>() / losses_vec.len() as f32;
+                    Some(format!("Phase {}: {:.6}", phase, avg))
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<String>>()
+            .join(", ");
+        println!("Phase Losses: {}", phase_loss_line);
     }
 }

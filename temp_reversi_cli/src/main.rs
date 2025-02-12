@@ -102,10 +102,7 @@ fn main() {
 
             let pipeline = TrainingPipeline::new(config);
 
-            for _ in 0..epochs {
-                pipeline.train();
-                progress_bar.inc(1);
-            }
+            pipeline.train();
 
             progress_bar.finish_with_message("✅ Model training completed.");
         }
