@@ -1,5 +1,6 @@
 use super::{extract_features, Dataset};
 use crate::{evaluation::PatternEvaluator, patterns::get_predefined_patterns, utils::Feature};
+use lz4_flex::{compress_prepend_size, decompress_size_prepended};
 use rand::seq::SliceRandom;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -108,7 +109,7 @@ impl GameDataset {
         self.records.is_empty()
     }
 
-    /// Saves the dataset in binary format using bincode serialization.
+    /// Saves the dataset in binary format using bincode serialization with LZ4 compression.
     ///
     /// # Arguments
     ///
@@ -126,10 +127,11 @@ impl GameDataset {
     /// ```
     pub fn save_bin(&self, file_path: &str) -> std::io::Result<()> {
         let encoded: Vec<u8> = bincode::serialize(self).unwrap();
-        fs::write(file_path, encoded)
+        let compressed = compress_prepend_size(&encoded);
+        fs::write(file_path, compressed)
     }
 
-    /// Loads a dataset from a binary file.
+    /// Loads a dataset from a binary file using LZ4 decompression.
     ///
     /// # Arguments
     ///
@@ -146,7 +148,8 @@ impl GameDataset {
     /// ```
     pub fn load_bin(file_path: &str) -> std::io::Result<Self> {
         let data = fs::read(file_path)?;
-        let dataset: Self = bincode::deserialize(&data).unwrap();
+        let decompressed = decompress_size_prepended(&data).expect("Failed to decompress dataset.");
+        let dataset: Self = bincode::deserialize(&decompressed).unwrap();
         Ok(dataset)
     }
 

@@ -1,5 +1,3 @@
-use std::fs::File;
-use std::io::{Read, Write};
 use std::sync::Arc;
 
 use crate::evaluation::{PatternEvaluator, PhaseAwareEvaluator};
@@ -100,19 +98,14 @@ impl TrainingPipeline {
 
     /// Saves the trained model to a specified path
     pub fn save_model(&self, model: &Model, path: &str) -> std::io::Result<()> {
-        let serialized = bincode::serialize(model).expect("Failed to serialize model.");
-        let mut file = File::create(path)?;
-        file.write_all(&serialized)?;
+        model.save(path)?;
         println!("✅ Model saved at: {}", path);
         Ok(())
     }
 
     /// Loads the model from a specified path
     pub fn load_model(&self, path: &str) -> std::io::Result<Model> {
-        let mut file = File::open(path)?;
-        let mut buffer = Vec::new();
-        file.read_to_end(&mut buffer)?;
-        let model = bincode::deserialize(&buffer).expect("Failed to deserialize model.");
+        let model = Model::load(path)?;
         println!("📥 Model loaded from {}", path);
         Ok(model)
     }

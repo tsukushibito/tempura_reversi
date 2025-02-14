@@ -4,6 +4,7 @@ use std::{
 };
 
 use crate::utils::Feature;
+use lz4_flex::{compress_prepend_size, decompress_size_prepended};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -26,8 +27,9 @@ impl Model {
     /// Saves the model to a file
     pub fn save(&self, path: &str) -> std::io::Result<()> {
         let serialized = bincode::serialize(self).expect("Failed to serialize model.");
+        let compressed = compress_prepend_size(&serialized);
         let mut file = File::create(path)?;
-        file.write_all(&serialized)?;
+        file.write_all(&compressed)?;
         Ok(())
     }
 
@@ -36,7 +38,8 @@ impl Model {
         let mut file = File::open(path)?;
         let mut buffer = Vec::new();
         file.read_to_end(&mut buffer)?;
-        let model = bincode::deserialize(&buffer).expect("Failed to deserialize model.");
+        let decompressed = decompress_size_prepended(&buffer).expect("Failed to decompress model.");
+        let model = bincode::deserialize(&decompressed).expect("Failed to deserialize model.");
         Ok(model)
     }
 }
