@@ -8,8 +8,9 @@ pub struct Trainer<L: LossFunction, O: Optimizer> {
     optimizer: O,
     batch_size: usize,
     epochs: usize,
-    validation_overall_losses: Vec<f32>,
-    validation_phase_losses: Vec<Vec<(usize, f32)>>, // (phase, avg_loss)
+    // Made public to allow access from training_pipeline.rs
+    pub validation_overall_losses: Vec<f32>,
+    pub validation_phase_losses: Vec<Vec<(usize, f32)>>, // (phase, avg_loss)
 }
 
 impl<L: LossFunction, O: Optimizer> Trainer<L, O> {
@@ -152,9 +153,10 @@ impl<L: LossFunction, O: Optimizer> Trainer<L, O> {
         phase_loss_result.sort_by_key(|&(phase, _)| phase);
 
         // println!("Validation Loss: {:.6}", overall_avg_loss);
-        // for (phase, avg_loss) in &phase_loss_result {
-        //     println!("Phase {}: {:.6}", phase, avg_loss);
-        // }
+        for (phase, avg_loss) in &phase_loss_result {
+            print!("Phase {}: {:.6}, ", phase, avg_loss);
+        }
+        println!();
 
         (overall_avg_loss, phase_loss_result)
     }

@@ -46,6 +46,14 @@ enum Commands {
         /// Number of epochs
         #[arg(short, long, default_value = "10")]
         epochs: usize,
+
+        /// Path for overall loss plot
+        #[arg(long, default_value = "../work/loss_plot_overall.png")]
+        overall_loss_plot_path: String,
+
+        /// Path for phase loss plot
+        #[arg(long, default_value = "../work/loss_plot_phase.png")]
+        phase_loss_plot_path: String,
     },
 }
 
@@ -71,7 +79,9 @@ fn main() {
                 num_epochs: 10, // デフォルト値
                 model_path: "reversi_model.bin".to_string(),
                 dataset_base_path: dataset_path,
-                train_ratio: 0.8, // デフォルト値
+                train_ratio: 0.8,
+                overall_loss_plot_path: Default::default(),
+                phase_loss_plot_path: Default::default(),
             };
 
             let pipeline = TrainingPipeline::new(config);
@@ -84,6 +94,8 @@ fn main() {
             model_path,
             batch_size,
             epochs,
+            overall_loss_plot_path,
+            phase_loss_plot_path,
         } => {
             println!("📊 Starting training with dataset: {}", dataset_path);
 
@@ -100,10 +112,11 @@ fn main() {
                 model_path,
                 dataset_base_path: dataset_path,
                 train_ratio: 0.8,
+                overall_loss_plot_path, // new field added
+                phase_loss_plot_path,   // new field added
             };
 
             let pipeline = TrainingPipeline::new(config);
-
             pipeline.train();
 
             progress_bar.finish_with_message("✅ Model training completed.");

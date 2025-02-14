@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::evaluation::{PatternEvaluator, PhaseAwareEvaluator};
@@ -5,6 +6,7 @@ use crate::learning::loss_function::MSELoss;
 use crate::learning::optimizer::Adam;
 use crate::learning::{extract_features, generate_self_play_data, GameDataset, Trainer};
 use crate::patterns::get_predefined_patterns;
+use crate::plotter::{plot_overall_loss, plot_phase_losses};
 use crate::strategy::negamax::NegamaxStrategy;
 use crate::utils::ProgressReporter;
 
@@ -24,6 +26,10 @@ pub struct TrainingConfig {
     pub dataset_base_path: String,
     /// Ratio of training data to use for training.
     pub train_ratio: f32,
+    /// Path for overall loss plot.
+    pub overall_loss_plot_path: String,
+    /// Path for phase loss plot.
+    pub phase_loss_plot_path: String,
 }
 
 /// Training pipeline for self-play data generation and model training.
@@ -85,6 +91,32 @@ impl TrainingPipeline {
         );
 
         trainer.train(&mut train_dataset, &validation_dataset);
+
+        // Plot overall loss
+        if let Err(e) = plot_overall_loss(
+            &trainer.validation_overall_losses,
+            &self.config.overall_loss_plot_path,
+        ) {
+            eprintln!("Failed to plot overall loss: {}", e);
+        }
+
+        // Convert phase loss data: Vec<Vec<(usize, f32)>> -> Vec<HashMap<usize, f32>>
+        let phase_loss_data: Vec<HashMap<usize, f32>> = trainer
+            .validation_phase_losses
+            .iter()
+            .map(|vec_phase| {
+                let mut hm = HashMap::new();
+                for &(phase, loss) in vec_phase {
+                    hm.insert(phase, loss);
+                }
+                hm
+            })
+            .collect();
+
+        // Plot phase losses
+        if let Err(e) = plot_phase_losses(&phase_loss_data, &self.config.phase_loss_plot_path) {
+            eprintln!("Failed to plot phase losses: {}", e);
+        }
 
         self.save_model(trainer.model(), &self.config.model_path)
             .expect("Failed to save model.");
