@@ -8,6 +8,8 @@ pub struct Trainer<L: LossFunction, O: Optimizer> {
     optimizer: O,
     batch_size: usize,
     epochs: usize,
+    validation_overall_losses: Vec<f32>,
+    validation_phase_losses: Vec<Vec<(usize, f32)>>, // (phase, avg_loss)
 }
 
 impl<L: LossFunction, O: Optimizer> Trainer<L, O> {
@@ -28,6 +30,8 @@ impl<L: LossFunction, O: Optimizer> Trainer<L, O> {
             optimizer,
             batch_size,
             epochs,
+            validation_overall_losses: Vec::new(),
+            validation_phase_losses: Vec::new(),
         }
     }
 
@@ -52,7 +56,9 @@ impl<L: LossFunction, O: Optimizer> Trainer<L, O> {
 
             println!("✅ Epoch {}/{} completed.", epoch + 1, self.epochs);
 
-            self.validate(validation_dataset);
+            let (overall_loss, phase_losses) = self.validate(validation_dataset);
+            self.validation_overall_losses.push(overall_loss);
+            self.validation_phase_losses.push(phase_losses);
         }
     }
 
@@ -107,7 +113,7 @@ impl<L: LossFunction, O: Optimizer> Trainer<L, O> {
 
     /// Validates the model on the provided validation dataset and prints
     /// the overall average loss as well as the per-phase average losses in one line.
-    pub fn validate(&self, validation_dataset: &GameDataset) {
+    pub fn validate(&self, validation_dataset: &GameDataset) -> (f32, Vec<(usize, f32)>) {
         let batches = validation_dataset.extract_training_data_in_batches(self.batch_size);
 
         let mut all_features = Vec::new();
@@ -130,24 +136,26 @@ impl<L: LossFunction, O: Optimizer> Trainer<L, O> {
             0.0
         };
 
-        let phase_loss_line: String = phase_losses
+        let mut phase_loss_result: Vec<(usize, f32)> = phase_losses
             .iter()
             .enumerate()
             .filter_map(|(phase, losses_vec)| {
-                if phase < 40 {
-                    return None;
-                }
                 if !losses_vec.is_empty() {
                     let avg = losses_vec.iter().sum::<f32>() / losses_vec.len() as f32;
-                    Some(format!("Phase {}: {:.6}", phase, avg))
+                    Some((phase, avg))
                 } else {
                     None
                 }
             })
-            .collect::<Vec<String>>()
-            .join(", ");
+            .collect();
 
-        println!("Validation Loss: {:.6}", overall_avg_loss);
-        println!("Phase Losses: {}", phase_loss_line);
+        phase_loss_result.sort_by_key(|&(phase, _)| phase);
+
+        // println!("Validation Loss: {:.6}", overall_avg_loss);
+        // for (phase, avg_loss) in &phase_loss_result {
+        //     println!("Phase {}: {:.6}", phase, avg_loss);
+        // }
+
+        (overall_avg_loss, phase_loss_result)
     }
 }
