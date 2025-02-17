@@ -43,6 +43,9 @@ impl<L: LossFunction, O: Optimizer> Trainer<L, O> {
 
     /// Trains the model on the training dataset and evaluates it on the validation dataset after each epoch.
     pub fn train(&mut self, train_dataset: &mut GameDataset, validation_dataset: &GameDataset) {
+        // Pre-expand validation data once
+        let validation_data = validation_dataset.extract_all_training_data();
+
         for epoch in 0..self.epochs {
             println!("🚀 Starting Epoch {}/{}", epoch + 1, self.epochs);
 
@@ -57,7 +60,7 @@ impl<L: LossFunction, O: Optimizer> Trainer<L, O> {
 
             println!("✅ Epoch {}/{} completed.", epoch + 1, self.epochs);
 
-            let (overall_loss, phase_losses) = self.validate(validation_dataset);
+            let (overall_loss, phase_losses) = self.validate(&validation_data);
             self.validation_overall_losses.push(overall_loss);
             self.validation_phase_losses.push(phase_losses);
         }
@@ -112,24 +115,17 @@ impl<L: LossFunction, O: Optimizer> Trainer<L, O> {
         // println!("Phase Losses: {}", _phase_loss_line);
     }
 
-    /// Validates the model on the provided validation dataset and prints
-    /// the overall average loss as well as the per-phase average losses in one line.
-    pub fn validate(&self, validation_dataset: &GameDataset) -> (f32, Vec<(usize, f32)>) {
-        let batches = validation_dataset.extract_training_data_in_batches(self.batch_size);
-
-        let mut all_features = Vec::new();
-        let mut all_labels = Vec::new();
-        for batch in batches {
-            all_features.extend(batch.features);
-            all_labels.extend(batch.labels);
-        }
-
-        let predictions = self.model.predict(&all_features);
+    /// Validates the model on the provided pre-expanded Dataset and prints
+    /// the overall average loss as well as the per-phase average losses.
+    pub fn validate(&self, validation_data: &Dataset) -> (f32, Vec<(usize, f32)>) {
+        let all_features = &validation_data.features;
+        let all_labels = &validation_data.labels;
+        let predictions = self.model.predict(all_features);
         let phases: Vec<usize> = all_features.iter().map(|f| f.phase).collect();
 
         let (losses, phase_losses) =
             self.loss_fn
-                .compute_loss_by_phase(&predictions, &all_labels, &phases);
+                .compute_loss_by_phase(&predictions, all_labels, &phases);
 
         let overall_avg_loss = if !losses.is_empty() {
             losses.iter().sum::<f32>() / losses.len() as f32
@@ -152,11 +148,10 @@ impl<L: LossFunction, O: Optimizer> Trainer<L, O> {
 
         phase_loss_result.sort_by_key(|&(phase, _)| phase);
 
-        // println!("Validation Loss: {:.6}", overall_avg_loss);
-        for (phase, avg_loss) in &phase_loss_result {
-            print!("Phase {}: {:.6}, ", phase, avg_loss);
-        }
-        println!();
+        // for (phase, avg_loss) in &phase_loss_result {
+        //     print!("Phase {}: {:.6}, ", phase, avg_loss);
+        // }
+        // println!();
 
         (overall_avg_loss, phase_loss_result)
     }
