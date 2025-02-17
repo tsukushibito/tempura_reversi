@@ -263,33 +263,71 @@ impl GameDataset {
     ) -> impl Iterator<Item = Dataset> + '_ {
         let evaluator = PatternEvaluator::new(get_predefined_patterns());
 
-        self.records
-            .par_chunks(batch_size)
-            .map(move |chunk| {
-                let mut batch = Dataset::new();
-                for record in chunk.iter() {
-                    let final_score = (record.final_score.0 as f32) - (record.final_score.1 as f32);
-                    let mut game = Game::default();
-                    let mut phase = 0;
-                    for &pos_idx in &record.moves {
-                        let pos = Position::from_u8(pos_idx).unwrap();
+        self.records.chunks(batch_size).map(move |chunk| {
+            let mut batch = Dataset::new();
+            for record in chunk.iter() {
+                let final_score = (record.final_score.0 as f32) - (record.final_score.1 as f32);
+                let mut game = Game::default();
+                let mut phase = 0;
+                for &pos_idx in &record.moves {
+                    let pos = Position::from_u8(pos_idx).unwrap();
+                    if game.is_valid_move(pos) {
+                        let feature_vector = extract_features(&game.board_state(), &evaluator);
+                        let feature = Feature {
+                            phase,
+                            vector: feature_vector,
+                        };
+                        // println!("feature: {:?}, label: {:?}", feature, final_score);
+                        batch.add_sample(feature, final_score);
+                        game.apply_move(pos).unwrap();
+                        phase += 1;
+                    }
+                }
+            }
+            // println!("Batch size: {}", batch.len());
+            // println!("batch: {:?}", batch);
+            batch
+        })
+    }
+
+    /// Extracts training data from all game records into a single Dataset.
+    /// The processing is parallelized where applicable.
+    pub fn extract_all_training_data(&self) -> Dataset {
+        use rayon::prelude::*;
+        let evaluator = PatternEvaluator::new(get_predefined_patterns());
+
+        let samples: Vec<(Feature, f32)> = self
+            .records
+            .par_iter()
+            .flat_map_iter(|record| {
+                let final_score = (record.final_score.0 as f32) - (record.final_score.1 as f32);
+                let mut game = Game::default();
+                let mut phase = 0;
+                let mut record_samples = Vec::new();
+                for &pos_idx in &record.moves {
+                    // Process each move and gather samples if valid.
+                    if let Ok(pos) = Position::from_u8(pos_idx) {
                         if game.is_valid_move(pos) {
                             let feature_vector = extract_features(&game.board_state(), &evaluator);
                             let feature = Feature {
                                 phase,
                                 vector: feature_vector,
                             };
-                            batch.add_sample(feature, final_score);
+                            record_samples.push((feature, final_score));
                             game.apply_move(pos).unwrap();
                             phase += 1;
                         }
                     }
                 }
-                batch
+                record_samples.into_iter()
             })
-            // Collect the parallel iterator into a Vec and convert it back to an iterator.
-            .collect::<Vec<Dataset>>()
-            .into_iter()
+            .collect();
+
+        let mut dataset = Dataset::new();
+        for (feature, label) in samples {
+            dataset.add_sample(feature, label);
+        }
+        dataset
     }
 
     /// Shuffles the game records in the dataset.

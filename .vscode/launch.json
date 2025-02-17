@@ -95,7 +95,9 @@
                 }
             },
             "args": [
-                "generate"
+                "generate",
+                "-g",
+                "10",
             ],
             "cwd": "${workspaceFolder}"
         },
@@ -115,7 +117,9 @@
                 }
             },
             "args": [
-                "train"
+                "train",
+                "-b",
+                "1",
             ],
             "cwd": "${workspaceFolder}"
         },
