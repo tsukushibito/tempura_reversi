@@ -2,7 +2,6 @@ use super::{extract_features, Dataset};
 use crate::{evaluation::PatternEvaluator, patterns::get_predefined_patterns, utils::Feature};
 use lz4_flex::{compress_prepend_size, decompress_size_prepended};
 use rand::seq::SliceRandom;
-use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{
     fs::{self, metadata},
@@ -272,20 +271,17 @@ impl GameDataset {
                 for &pos_idx in &record.moves {
                     let pos = Position::from_u8(pos_idx).unwrap();
                     if game.is_valid_move(pos) {
+                        game.apply_move(pos).unwrap();
                         let feature_vector = extract_features(&game.board_state(), &evaluator);
                         let feature = Feature {
                             phase,
                             vector: feature_vector,
                         };
-                        // println!("feature: {:?}, label: {:?}", feature, final_score);
                         batch.add_sample(feature, final_score);
-                        game.apply_move(pos).unwrap();
                         phase += 1;
                     }
                 }
             }
-            // println!("Batch size: {}", batch.len());
-            // println!("batch: {:?}", batch);
             batch
         })
     }
