@@ -52,3 +52,35 @@ impl Optimizer for Adam {
         *bias -= self.learning_rate * bias_grad;
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_update() {
+        // Create an Adam optimizer for 3 features and initial weights and bias.
+        let mut adam = Adam::new(3, 0.1);
+        let mut weights = vec![0.5, 0.5, 0.5];
+        let mut bias = 0.0;
+
+        // Create a SparseVector with one non-zero gradient at index 1.
+        let gradients = SparseVector::new(vec![1], vec![0.2], 1);
+
+        // Apply update with a bias gradient of 0.1.
+        adam.update(&mut weights, &mut bias, &gradients.unwrap(), 0.1);
+
+        // For t = 1, the expected computations:
+        // m[1] = 0.9*0 + 0.1*0.2 = 0.02 and v[1] = 0.999*0 + 0.001*0.04 = 0.00004.
+        // m_hat = 0.02 / (1.0 - 0.9) = 0.02 / 0.1 = 0.2.
+        // v_hat = 0.00004 / (1.0 - 0.999) = 0.00004 / 0.001 = 0.04.
+        // New weight[1] = 0.5 - 0.1*(0.2/(0.2 + 1e-8)) ≈ 0.4.
+        // New bias = 0.0 - 0.1*0.1 = -0.01.
+        assert!((weights[1] - 0.4).abs() < 1e-6);
+        assert!((bias + 0.01).abs() < 1e-6);
+
+        // Unchanged weights.
+        assert_eq!(weights[0], 0.5);
+        assert_eq!(weights[2], 0.5);
+    }
+}

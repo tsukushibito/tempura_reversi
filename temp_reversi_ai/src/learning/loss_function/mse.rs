@@ -22,3 +22,26 @@ impl LossFunction for MSELoss {
             .collect()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_compute_loss() {
+        let mse = MSELoss;
+        let predictions = [2.0, 3.0];
+        let targets = [1.0, 3.0];
+        let loss = mse.compute_loss(&predictions, &targets);
+        assert_eq!(loss, vec![1.0, 0.0]);
+    }
+
+    #[test]
+    fn test_compute_gradient() {
+        let mse = MSELoss;
+        let predictions = [2.0, 3.0];
+        let targets = [1.0, 3.0];
+        let grad = mse.compute_gradient(&predictions, &targets);
+        assert_eq!(grad, vec![2.0, 0.0]);
+    }
+}
