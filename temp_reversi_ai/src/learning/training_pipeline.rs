@@ -77,7 +77,7 @@ impl TrainingPipeline {
         // Generate a dummy board state to extract feature vector and determine its size.
         let dummy_board = temp_reversi_core::Bitboard::default();
         let evaluator = PatternEvaluator::new(get_predefined_patterns());
-        let feature_vector = extract_features(&dummy_board, &evaluator);
+        let feature_vector = extract_features(&dummy_board, &evaluator.groups);
         let feature_size = feature_vector.size();
         let learning_rate = 0.001;
 

@@ -304,7 +304,7 @@ impl GameDataset {
             if let Ok(pos) = Position::from_u8(pos_idx) {
                 if game.is_valid_move(pos) {
                     game.apply_move(pos).unwrap();
-                    let feature_vector = extract_features(&game.board_state(), evaluator);
+                    let feature_vector = extract_features(&game.board_state(), &evaluator.groups);
                     samples.push((
                         Feature {
                             phase,
