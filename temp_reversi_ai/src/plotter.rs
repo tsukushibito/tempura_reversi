@@ -30,12 +30,6 @@ pub fn plot_phase_losses(
     phase_losses_data: &[HashMap<usize, f32>],
     file_path: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    // Compute global maximum loss from all phases
-    let max_loss = phase_losses_data
-        .iter()
-        .flat_map(|phase_map| phase_map.values())
-        .cloned()
-        .fold(0. / 0., f32::max);
     let epochs = phase_losses_data.len();
 
     // Organize phase series from the input data
@@ -53,6 +47,13 @@ pub fn plot_phase_losses(
 
     // Group phases into chunks of 10 and generate one chart per group.
     for (group_idx, phase_chunk) in sorted_phases.chunks(10).enumerate() {
+        // Compute the maximum loss for this group only.
+        let group_max_loss = phase_chunk
+            .iter()
+            .filter_map(|phase| phase_series.get(phase))
+            .flat_map(|series| series.iter().map(|(_epoch, loss)| *loss))
+            .fold(0. / 0., f32::max);
+
         // Construct an output filename for each group graph.
         let group_file = format!(
             "{}_group{}.png",
@@ -72,7 +73,7 @@ pub fn plot_phase_losses(
             .margin(20)
             .x_label_area_size(40)
             .y_label_area_size(40)
-            .build_cartesian_2d(0..epochs, 0.0..max_loss)?;
+            .build_cartesian_2d(0..epochs, 0.0..group_max_loss)?;
 
         chart.configure_mesh().draw()?;
 
