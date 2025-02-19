@@ -25,18 +25,18 @@ enum Commands {
         games: usize,
 
         /// Path to save the generated dataset
-        #[arg(short = 'o', long, default_value = "../work/self_play_dataset")]
+        #[arg(short = 'o', long, default_value = "work/self_play_dataset")]
         dataset_base_path: String,
     },
 
     /// Train the model
     Train {
         /// Path to load the dataset
-        #[arg(short, long, default_value = "../work/self_play_dataset")]
+        #[arg(short, long, default_value = "work/self_play_dataset")]
         dataset_base_path: String,
 
         /// Path to save the trained model
-        #[arg(short = 'o', long, default_value = "../work/reversi_model.bin")]
+        #[arg(short = 'o', long, default_value = "work/reversi_model.bin")]
         model_path: String,
 
         /// Batch size for training
@@ -48,11 +48,11 @@ enum Commands {
         epochs: usize,
 
         /// Path for overall loss plot
-        #[arg(long, default_value = "../work/loss_plot_overall.png")]
+        #[arg(long, default_value = "work/loss_plot_overall.png")]
         overall_loss_plot_path: String,
 
         /// Path for phase loss plot
-        #[arg(long, default_value = "../work/loss_plot_phase.png")]
+        #[arg(long, default_value = "work/loss_plot_phase.png")]
         phase_loss_plot_path: String,
     },
 }
