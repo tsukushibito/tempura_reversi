@@ -98,6 +98,8 @@
                 "generate",
                 "-g",
                 "10",
+                "-o",
+                "work/debug_self_play_dataset"
             ],
             "cwd": "${workspaceFolder}"
         },
@@ -120,6 +122,10 @@
                 "train",
                 "-b",
                 "1",
+                "-d",
+                "work/debug_self_play_dataset",
+                "-o",
+                "work/debug_model.bin"
             ],
             "cwd": "${workspaceFolder}"
         },
