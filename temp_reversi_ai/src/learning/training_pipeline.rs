@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::evaluation::{PatternEvaluator, PhaseAwareEvaluator};
+use crate::evaluation::PhaseAwareEvaluator;
 use crate::learning::loss_function::MSELoss;
 use crate::learning::optimizer::Adam;
 use crate::learning::{extract_features, generate_self_play_data, GameDataset, Trainer};
@@ -76,8 +76,8 @@ impl TrainingPipeline {
 
         // Generate a dummy board state to extract feature vector and determine its size.
         let dummy_board = temp_reversi_core::Bitboard::default();
-        let evaluator = PatternEvaluator::new(get_predefined_patterns());
-        let feature_vector = extract_features(&dummy_board, &evaluator.groups);
+        let groups = get_predefined_patterns();
+        let feature_vector = extract_features(&dummy_board, &groups);
         let feature_size = feature_vector.size();
         let learning_rate = 0.001;
 
