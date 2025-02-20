@@ -30,6 +30,8 @@ pub struct TrainingConfig {
     pub overall_loss_plot_path: String,
     /// Path for phase loss plot.
     pub phase_loss_plot_path: String,
+    /// Learning rate for the optimizer.
+    pub learning_rate: f32,
 }
 
 /// Training pipeline for self-play data generation and model training.
@@ -79,9 +81,7 @@ impl TrainingPipeline {
         let groups = get_predefined_patterns();
         let feature_vector = extract_features(&dummy_board, &groups);
         let feature_size = feature_vector.size();
-        let learning_rate = 0.001;
-
-        let optimizer = Adam::new(feature_size, learning_rate);
+        let optimizer = Adam::new(feature_size, self.config.learning_rate);
         let mut trainer = Trainer::new(
             feature_size,
             MSELoss,

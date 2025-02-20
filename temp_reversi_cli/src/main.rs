@@ -44,7 +44,7 @@ enum Commands {
         batch_size: usize,
 
         /// Number of epochs
-        #[arg(short, long, default_value = "10")]
+        #[arg(short, long, default_value = "20")]
         epochs: usize,
 
         /// Path for overall loss plot
@@ -54,6 +54,14 @@ enum Commands {
         /// Path for phase loss plot
         #[arg(long, default_value = "work/loss_plot_phase.png")]
         phase_loss_plot_path: String,
+
+        /// Learning rate for training
+        #[arg(short = 'l', long, default_value = "0.0001")]
+        learning_rate: f32,
+
+        /// Training ratio
+        #[arg(short = 't', long, default_value = "0.8")]
+        train_ratio: f32,
     },
 }
 
@@ -82,6 +90,7 @@ fn main() {
                 train_ratio: 0.8,
                 overall_loss_plot_path: Default::default(),
                 phase_loss_plot_path: Default::default(),
+                learning_rate: 0.0001,
             };
 
             let pipeline = TrainingPipeline::new(config);
@@ -96,6 +105,8 @@ fn main() {
             epochs,
             overall_loss_plot_path,
             phase_loss_plot_path,
+            learning_rate,
+            train_ratio,
         } => {
             println!("📊 Starting training with dataset: {}", dataset_path);
 
@@ -111,9 +122,10 @@ fn main() {
                 num_epochs: epochs,
                 model_path,
                 dataset_base_path: dataset_path,
-                train_ratio: 0.8,
-                overall_loss_plot_path, // new field added
-                phase_loss_plot_path,   // new field added
+                train_ratio, // updated value from CLI argument
+                overall_loss_plot_path,
+                phase_loss_plot_path,
+                learning_rate, // new field added
             };
 
             let pipeline = TrainingPipeline::new(config);
