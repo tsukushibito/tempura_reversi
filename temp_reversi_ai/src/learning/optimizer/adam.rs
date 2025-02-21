@@ -4,23 +4,36 @@ use super::Optimizer;
 
 /// Implementation of Adam optimizer
 pub struct Adam {
+    // Learning rate for parameter updates.
     learning_rate: f32,
+    // Exponential decay rate for the first moment estimates.
     beta1: f32,
+    // Exponential decay rate for the second moment estimates.
     beta2: f32,
+    // Small constant for numerical stability.
     epsilon: f32,
-    m: Vec<f32>, // First moment vector
-    v: Vec<f32>, // Second moment vector
-    t: usize,    // Time step
+    // L1 regularization coefficient.
+    lambda_l1: f32,
+    // L2 regularization coefficient.
+    lambda_l2: f32,
+    // First moment vector (gradient mean).
+    m: Vec<f32>,
+    // Second moment vector (gradient variance).
+    v: Vec<f32>,
+    // Time step counter.
+    t: usize,
 }
 
 impl Adam {
-    /// Creates a new Adam optimizer
-    pub fn new(feature_size: usize, learning_rate: f32) -> Self {
+    /// Creates a new Adam optimizer with Elastic Net regularization.
+    pub fn new(feature_size: usize, learning_rate: f32, lambda_l1: f32, lambda_l2: f32) -> Self {
         Self {
             learning_rate,
             beta1: 0.9,
             beta2: 0.999,
             epsilon: 1e-8,
+            lambda_l1,
+            lambda_l2,
             m: vec![0.0; feature_size],
             v: vec![0.0; feature_size],
             t: 0,
@@ -29,7 +42,7 @@ impl Adam {
 }
 
 impl Optimizer for Adam {
-    /// Updates model parameters using sparse gradients
+    /// Updates model parameters using sparse gradients and applies Elastic Net regularization.
     fn update(
         &mut self,
         weights: &mut [f32],
@@ -50,6 +63,22 @@ impl Optimizer for Adam {
 
         // Update bias term
         *bias -= self.learning_rate * bias_grad;
+
+        // Apply Elastic Net regularization (L1 + L2) to all weights.
+        // L2: weight decay, L1: soft-thresholding (proximally applied)
+        for w in weights.iter_mut() {
+            // L2 weight decay
+            let decayed = *w * (1.0 - self.learning_rate * self.lambda_l2);
+            // L1 soft-thresholding
+            let threshold = self.learning_rate * self.lambda_l1;
+            *w = if decayed > threshold {
+                decayed - threshold
+            } else if decayed < -threshold {
+                decayed + threshold
+            } else {
+                0.0
+            };
+        }
     }
 }
 
@@ -60,7 +89,7 @@ mod tests {
     #[test]
     fn test_update() {
         // Create an Adam optimizer for 3 features and initial weights and bias.
-        let mut adam = Adam::new(3, 0.1);
+        let mut adam = Adam::new(3, 0.1, 0.001, 0.001);
         let mut weights = vec![0.5, 0.5, 0.5];
         let mut bias = 0.0;
 

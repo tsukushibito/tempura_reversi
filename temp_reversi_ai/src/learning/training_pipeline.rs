@@ -10,7 +10,6 @@ use crate::plotter::{plot_overall_loss, plot_phase_losses};
 use crate::strategy::negamax::NegamaxStrategy;
 use crate::utils::ProgressReporter;
 
-use super::regularizer::ElasticNetRegularizer;
 use super::Model;
 
 /// Configuration for the training pipeline.
@@ -82,13 +81,11 @@ impl TrainingPipeline {
         let groups = get_predefined_patterns();
         let feature_vector = extract_features(&dummy_board, &groups);
         let feature_size = feature_vector.size();
-        let optimizer = Adam::new(feature_size, self.config.learning_rate);
-        let regularizer = ElasticNetRegularizer::new(0.001, 0.001);
+        let optimizer = Adam::new(feature_size, self.config.learning_rate, 0.001, 0.001);
         let mut trainer = Trainer::new(
             feature_size,
             MSELoss,
             optimizer,
-            regularizer,
             self.config.batch_size,
             self.config.num_epochs,
         );

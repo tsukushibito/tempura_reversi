@@ -5,7 +5,6 @@ mod game_generator;
 pub mod loss_function;
 mod model;
 pub mod optimizer;
-pub mod regularizer;
 mod trainer;
 mod training_pipeline;
 
