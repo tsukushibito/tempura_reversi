@@ -92,7 +92,7 @@ impl<L: LossFunction, O: Optimizer> Trainer<L, O> {
                     &mut self.model.weights[feature.phase],
                     &mut self.model.bias,
                     &sparse_grad,
-                    0.0,
+                    0.0, // バイアスは使わないので0.0
                 );
             });
 
