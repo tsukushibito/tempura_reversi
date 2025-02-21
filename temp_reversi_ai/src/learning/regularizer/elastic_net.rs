@@ -12,3 +12,12 @@ impl Regularizer for ElasticNetRegularizer {
         self.lambda_l1 * l1 + self.lambda_l2 * l2
     }
 }
+
+impl ElasticNetRegularizer {
+    pub fn new(lambda_l1: f32, lambda_l2: f32) -> Self {
+        Self {
+            lambda_l1,
+            lambda_l2,
+        }
+    }
+}

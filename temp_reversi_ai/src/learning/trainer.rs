@@ -1,24 +1,30 @@
-use super::{loss_function::LossFunction, optimizer::Optimizer, Dataset, GameDataset, Model};
+use super::{
+    loss_function::LossFunction, optimizer::Optimizer, regularizer::Regularizer, Dataset,
+    GameDataset, Model,
+};
 use crate::utils::SparseVector;
 
 /// Trainer responsible for managing epochs, batches, and model updates
-pub struct Trainer<L: LossFunction, O: Optimizer> {
+pub struct Trainer<L: LossFunction, O: Optimizer, R: Regularizer> {
     model: Model,
     loss_fn: L,
     optimizer: O,
     batch_size: usize,
     epochs: usize,
+    regularizer: R,
+
     // Made public to allow access from training_pipeline.rs
     pub validation_overall_losses: Vec<f32>,
     pub validation_phase_losses: Vec<Vec<(usize, f32)>>, // (phase, avg_loss)
 }
 
-impl<L: LossFunction, O: Optimizer> Trainer<L, O> {
-    /// Creates a new Trainer with specified parameters
+impl<L: LossFunction, O: Optimizer, R: Regularizer> Trainer<L, O, R> {
+    /// Creates a new Trainer with specified parameters and an optional regularizer.
     pub fn new(
         feature_size: usize,
         loss_fn: L,
         optimizer: O,
+        regularizer: R,
         batch_size: usize,
         epochs: usize,
     ) -> Self {
@@ -33,6 +39,7 @@ impl<L: LossFunction, O: Optimizer> Trainer<L, O> {
             epochs,
             validation_overall_losses: Vec::new(),
             validation_phase_losses: Vec::new(),
+            regularizer,
         }
     }
 
@@ -95,6 +102,12 @@ impl<L: LossFunction, O: Optimizer> Trainer<L, O> {
                     0.0, // バイアスは使わないので0.0
                 );
             });
+
+        // Apply regularization penalty to each weight vector.
+        for weight_vector in self.model.weights.iter_mut() {
+            let penalty = self.regularizer.regularize(&weight_vector);
+            weight_vector.iter_mut().for_each(|w| *w -= penalty);
+        }
 
         let _overall_avg_loss: f32 = losses.iter().sum::<f32>() / losses.len() as f32;
         // println!("Overall Loss: {:.6}", _overall_avg_loss);
