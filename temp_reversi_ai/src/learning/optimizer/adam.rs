@@ -64,21 +64,21 @@ impl Optimizer for Adam {
         // Update bias term
         *bias -= self.learning_rate * bias_grad;
 
-        // Apply Elastic Net regularization (L1 + L2) to all weights.
-        // L2: weight decay, L1: soft-thresholding (proximally applied)
-        for w in weights.iter_mut() {
-            // L2 weight decay
-            let decayed = *w * (1.0 - self.learning_rate * self.lambda_l2);
-            // L1 soft-thresholding
-            let threshold = self.learning_rate * self.lambda_l1;
-            *w = if decayed > threshold {
-                decayed - threshold
-            } else if decayed < -threshold {
-                decayed + threshold
-            } else {
-                0.0
-            };
-        }
+        // // Apply Elastic Net regularization (L1 + L2) to all weights.
+        // // L2: weight decay, L1: soft-thresholding (proximally applied)
+        // for w in weights.iter_mut() {
+        //     // L2 weight decay
+        //     let decayed = *w * (1.0 - self.learning_rate * self.lambda_l2);
+        //     // L1 soft-thresholding
+        //     let threshold = self.learning_rate * self.lambda_l1;
+        //     *w = if decayed > threshold {
+        //         decayed - threshold
+        //     } else if decayed < -threshold {
+        //         decayed + threshold
+        //     } else {
+        //         0.0
+        //     };
+        // }
     }
 }
 

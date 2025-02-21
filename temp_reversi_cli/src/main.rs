@@ -40,7 +40,7 @@ enum Commands {
         model_path: String,
 
         /// Batch size for training
-        #[arg(short, long, default_value = "64")]
+        #[arg(short, long, default_value = "32")]
         batch_size: usize,
 
         /// Number of epochs
