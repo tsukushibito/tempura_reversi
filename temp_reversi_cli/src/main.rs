@@ -44,7 +44,7 @@ enum Commands {
         batch_size: usize,
 
         /// Number of epochs
-        #[arg(short, long, default_value = "20")]
+        #[arg(short, long, default_value = "16")]
         epochs: usize,
 
         /// Path for overall loss plot
@@ -56,7 +56,7 @@ enum Commands {
         phase_loss_plot_path: String,
 
         /// Learning rate for training
-        #[arg(short = 'l', long, default_value = "0.0001")]
+        #[arg(short = 'l', long, default_value = "0.0004")]
         learning_rate: f32,
 
         /// Training ratio

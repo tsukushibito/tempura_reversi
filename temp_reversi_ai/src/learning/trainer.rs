@@ -1,3 +1,5 @@
+use rayon::prelude::*;
+
 use super::{loss_function::LossFunction, optimizer::Optimizer, Dataset, GameDataset, Model};
 use crate::utils::SparseVector;
 
@@ -5,7 +7,7 @@ use crate::utils::SparseVector;
 pub struct Trainer<L: LossFunction, O: Optimizer> {
     model: Model,
     loss_fn: L,
-    optimizer: O,
+    optimizers: Vec<O>,
     batch_size: usize,
     epochs: usize,
 
@@ -14,7 +16,7 @@ pub struct Trainer<L: LossFunction, O: Optimizer> {
     pub validation_phase_losses: Vec<Vec<(usize, f32)>>, // (phase, avg_loss)
 }
 
-impl<L: LossFunction, O: Optimizer> Trainer<L, O> {
+impl<L: LossFunction, O: Optimizer + Send + Sync + Clone> Trainer<L, O> {
     /// Creates a new Trainer with specified parameters and an optional regularizer.
     pub fn new(
         feature_size: usize,
@@ -23,13 +25,14 @@ impl<L: LossFunction, O: Optimizer> Trainer<L, O> {
         batch_size: usize,
         epochs: usize,
     ) -> Self {
+        let optimizers = vec![optimizer.clone(); 60];
         Self {
             model: Model {
                 weights: vec![vec![0.0; feature_size]; 60],
                 bias: 0.0,
             },
             loss_fn,
-            optimizer,
+            optimizers,
             batch_size,
             epochs,
             validation_overall_losses: Vec::new(),
@@ -49,6 +52,7 @@ impl<L: LossFunction, O: Optimizer> Trainer<L, O> {
 
         for epoch in 0..self.epochs {
             println!("🚀 Starting Epoch {}/{}", epoch + 1, self.epochs);
+            let start_time = std::time::Instant::now();
 
             train_dataset.shuffle();
 
@@ -58,8 +62,13 @@ impl<L: LossFunction, O: Optimizer> Trainer<L, O> {
                 self.train_batch(&batch);
                 // println!("Batch {} completed.", _batch_idx + 1);
             }
-
-            println!("✅ Epoch {}/{} completed.", epoch + 1, self.epochs);
+            let duration = start_time.elapsed();
+            println!(
+                "✅ Epoch {}/{} completed. {:?}",
+                epoch + 1,
+                self.epochs,
+                duration
+            );
 
             let (overall_loss, phase_losses) = self.validate(&validation_data);
             self.validation_overall_losses.push(overall_loss);
@@ -67,7 +76,6 @@ impl<L: LossFunction, O: Optimizer> Trainer<L, O> {
         }
     }
 
-    /// Trains the model on a single batch
     fn train_batch(&mut self, batch: &Dataset) {
         let predictions = self.model.predict(&batch.features);
         let phases: Vec<usize> = batch.features.iter().map(|f| f.phase).collect();
@@ -76,30 +84,42 @@ impl<L: LossFunction, O: Optimizer> Trainer<L, O> {
                 .compute_loss_by_phase(&predictions, &batch.labels, &phases);
         let gradients = self.loss_fn.compute_gradient(&predictions, &batch.labels);
 
-        batch
-            .features
-            .iter()
-            .zip(gradients.iter())
-            .enumerate()
-            .for_each(|(_i, (feature, &grad))| {
-                let sparse_grad = SparseVector::new(
-                    feature.vector.indices().to_vec(),
-                    feature.vector.values().iter().map(|&v| grad * v).collect(),
-                    feature.vector.size(),
-                )
-                .unwrap();
+        let num_phases = self.model.weights.len();
+        let mut phase_sparse_grads: Vec<Vec<SparseVector>> = vec![Vec::new(); num_phases];
+        for (feature, &grad) in batch.features.iter().zip(gradients.iter()) {
+            let sparse_grad = SparseVector::new(
+                feature.vector.indices().to_vec(),
+                feature.vector.values().iter().map(|&v| grad * v).collect(),
+                feature.vector.size(),
+            )
+            .unwrap();
 
-                self.optimizer.update(
-                    &mut self.model.weights[feature.phase],
-                    &mut self.model.bias,
-                    &sparse_grad,
-                    0.0, // バイアスは使わないので0.0
-                );
+            phase_sparse_grads[feature.phase].push(sparse_grad);
+        }
+
+        let num_threads = rayon::current_num_threads();
+        let chunk_size = (self.model.weights.len() + num_threads - 1) / num_threads;
+
+        self.model
+            .weights
+            .par_chunks_mut(chunk_size)
+            .zip(self.optimizers.par_chunks_mut(chunk_size))
+            .enumerate()
+            .for_each(|(chunk_index, (weights_chunk, optimizers_chunk))| {
+                for (i, (weight, optimizer)) in weights_chunk
+                    .iter_mut()
+                    .zip(optimizers_chunk.iter_mut())
+                    .enumerate()
+                {
+                    let phase = chunk_index * chunk_size + i;
+                    let mut dummy_bias = 0.0;
+                    for sparse_grad in &phase_sparse_grads[phase] {
+                        optimizer.update(weight, &mut dummy_bias, sparse_grad, 0.0);
+                    }
+                }
             });
 
         let _overall_avg_loss: f32 = losses.iter().sum::<f32>() / losses.len() as f32;
-        // println!("Overall Loss: {:.6}", _overall_avg_loss);
-
         let _phase_loss_line: String = phase_losses
             .iter()
             .enumerate()
@@ -113,7 +133,6 @@ impl<L: LossFunction, O: Optimizer> Trainer<L, O> {
             })
             .collect::<Vec<String>>()
             .join(", ");
-        // println!("Phase Losses: {}", _phase_loss_line);
     }
 
     /// Validates the model on the provided pre-expanded Dataset and prints

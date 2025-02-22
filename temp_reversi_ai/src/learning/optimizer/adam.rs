@@ -3,6 +3,7 @@ use crate::utils::SparseVector;
 use super::Optimizer;
 
 /// Implementation of Adam optimizer
+#[derive(Debug, Clone)]
 pub struct Adam {
     // Learning rate for parameter updates.
     learning_rate: f32,
@@ -13,9 +14,9 @@ pub struct Adam {
     // Small constant for numerical stability.
     epsilon: f32,
     // L1 regularization coefficient.
-    lambda_l1: f32,
+    _lambda_l1: f32,
     // L2 regularization coefficient.
-    lambda_l2: f32,
+    _lambda_l2: f32,
     // First moment vector (gradient mean).
     m: Vec<f32>,
     // Second moment vector (gradient variance).
@@ -32,8 +33,8 @@ impl Adam {
             beta1: 0.9,
             beta2: 0.999,
             epsilon: 1e-8,
-            lambda_l1,
-            lambda_l2,
+            _lambda_l1: lambda_l1,
+            _lambda_l2: lambda_l2,
             m: vec![0.0; feature_size],
             v: vec![0.0; feature_size],
             t: 0,
