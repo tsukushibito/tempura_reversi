@@ -48,7 +48,7 @@ impl TrainingPipeline {
     /// Executes the full training pipeline: generates self-play data and trains the model.
     pub fn run(&self) {
         self.generate_self_play_data(None);
-        self.train();
+        self.train(None);
     }
 
     /// Generates self-play data using AI strategies and saves it to a file.
@@ -69,7 +69,7 @@ impl TrainingPipeline {
     }
 
     /// Loads the dataset and trains the model.
-    pub fn train(&self) {
+    pub fn train(&self, reporter: Option<Arc<dyn ProgressReporter + Send + Sync>>) {
         // GameDataset::load_auto は (training_dataset, validation_dataset) のタプルを返す前提
         let (mut train_dataset, validation_dataset) = self.load_dataset();
         if train_dataset.records.is_empty() {
@@ -90,7 +90,8 @@ impl TrainingPipeline {
             self.config.num_epochs,
         );
 
-        trainer.train(&mut train_dataset, &validation_dataset);
+        // Pass reporter if available; here using None. Replace with Some(reporter) as needed.
+        trainer.train(&mut train_dataset, &validation_dataset, reporter);
 
         // Plot overall loss
         if let Err(e) = plot_overall_loss(

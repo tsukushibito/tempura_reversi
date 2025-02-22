@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rayon::prelude::*;
 
 use super::{loss_function::LossFunction, optimizer::Optimizer, Dataset, GameDataset, Model};
@@ -46,12 +48,20 @@ impl<L: LossFunction, O: Optimizer + Send + Sync + Clone> Trainer<L, O> {
     }
 
     /// Trains the model on the training dataset and evaluates it on the validation dataset after each epoch.
-    pub fn train(&mut self, train_dataset: &mut GameDataset, validation_dataset: &GameDataset) {
+    pub fn train(
+        &mut self,
+        train_dataset: &mut GameDataset,
+        validation_dataset: &GameDataset,
+        reporter: Option<Arc<dyn crate::utils::ProgressReporter + Send + Sync>>,
+    ) {
+        if let Some(r) = &reporter {
+            r.on_start(self.epochs);
+        }
         // Pre-expand validation data once
         let validation_data = validation_dataset.extract_all_training_data();
 
         for epoch in 0..self.epochs {
-            println!("🚀 Starting Epoch {}/{}", epoch + 1, self.epochs);
+            // println!("🚀 Starting Epoch {}/{}", epoch + 1, self.epochs);
             let start_time = std::time::Instant::now();
 
             train_dataset.shuffle();
@@ -63,16 +73,27 @@ impl<L: LossFunction, O: Optimizer + Send + Sync + Clone> Trainer<L, O> {
                 // println!("Batch {} completed.", _batch_idx + 1);
             }
             let duration = start_time.elapsed();
-            println!(
-                "✅ Epoch {}/{} completed. {:?}",
-                epoch + 1,
-                self.epochs,
-                duration
-            );
+            // println!(
+            //     "✅ Epoch {}/{} completed. {:?}",
+            //     epoch + 1,
+            //     self.epochs,
+            //     duration
+            // );
 
             let (overall_loss, phase_losses) = self.validate(&validation_data);
             self.validation_overall_losses.push(overall_loss);
             self.validation_phase_losses.push(phase_losses);
+
+            if let Some(r) = &reporter {
+                r.on_progress(
+                    epoch + 1,
+                    self.epochs,
+                    Some(&format!("duration: {duration:?}")),
+                );
+            }
+        }
+        if let Some(r) = &reporter {
+            r.on_complete();
         }
     }
 

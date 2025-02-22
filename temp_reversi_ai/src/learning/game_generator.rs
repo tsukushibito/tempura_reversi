@@ -47,7 +47,7 @@ pub fn generate_self_play_data(
             }
 
             if let Some(r) = &reporter {
-                r.on_progress(1, num_games); // 進捗更新
+                r.on_progress(1, num_games, None);
             }
 
             GameRecord::new(&game)

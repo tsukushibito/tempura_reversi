@@ -1,9 +1,8 @@
 use std::sync::Arc;
 
 use clap::{Parser, Subcommand};
-use indicatif::{ProgressBar, ProgressStyle};
 use temp_reversi_ai::learning::{TrainingConfig, TrainingPipeline};
-use temp_reversi_cli::utils::ProgressBarReporter;
+use temp_reversi_cli::utils::{GenerationReporter, TrainingReporter};
 
 #[derive(Parser)]
 #[command(name = "reversi-cli")]
@@ -80,7 +79,7 @@ fn main() {
         } => {
             println!("🎯 Generating {} self-play games...", games);
 
-            let progress_reporter = Arc::new(ProgressBarReporter::new());
+            let generation_reporter = Arc::new(GenerationReporter::new());
             let config = TrainingConfig {
                 num_games: games,
                 batch_size: 32, // デフォルト値
@@ -94,7 +93,7 @@ fn main() {
             };
 
             let pipeline = TrainingPipeline::new(config);
-            pipeline.generate_self_play_data(Some(progress_reporter.clone()));
+            pipeline.generate_self_play_data(Some(generation_reporter));
 
             println!("✅ Data generation completed.");
         }
@@ -110,11 +109,7 @@ fn main() {
         } => {
             println!("📊 Starting training with dataset: {}", dataset_path);
 
-            let progress_bar = ProgressBar::new(epochs as u64);
-            progress_bar.set_style(
-                ProgressStyle::with_template("[{elapsed_precise}] [{wide_bar}] Epoch {pos}/{len}")
-                    .unwrap(),
-            );
+            let training_reporter = Arc::new(TrainingReporter::new());
 
             let config = TrainingConfig {
                 num_games: 0,
@@ -129,9 +124,9 @@ fn main() {
             };
 
             let pipeline = TrainingPipeline::new(config);
-            pipeline.train();
+            pipeline.train(Some(training_reporter));
 
-            progress_bar.finish_with_message("✅ Model training completed.");
+            println!("✅ Model training completed.");
         }
     }
 }
