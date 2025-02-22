@@ -1,5 +1,8 @@
 use super::{extract_features, Dataset};
-use crate::{evaluation::PatternEvaluator, patterns::get_predefined_patterns, utils::Feature};
+use crate::{
+    patterns::{get_predefined_patterns, PatternGroup},
+    utils::Feature,
+};
 use lz4_flex::{compress_prepend_size, decompress_size_prepended};
 use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
@@ -260,11 +263,11 @@ impl GameDataset {
         &self,
         batch_size: usize,
     ) -> impl Iterator<Item = Dataset> + '_ {
-        let evaluator = PatternEvaluator::new(get_predefined_patterns());
+        let groups = get_predefined_patterns();
         self.records.chunks(batch_size).map(move |chunk| {
             let mut batch = Dataset::new();
             for record in chunk.iter() {
-                for (feature, label) in Self::process_record(record, &evaluator) {
+                for (feature, label) in Self::process_record(record, &groups) {
                     batch.add_sample(feature, label);
                 }
             }
@@ -276,11 +279,11 @@ impl GameDataset {
     /// The processing is parallelized where applicable.
     pub fn extract_all_training_data(&self) -> Dataset {
         use rayon::prelude::*;
-        let evaluator = PatternEvaluator::new(get_predefined_patterns());
+        let groups = get_predefined_patterns();
         let samples: Vec<(Feature, f32)> = self
             .records
             .par_iter()
-            .flat_map_iter(|record| Self::process_record(record, &evaluator))
+            .flat_map_iter(|record| Self::process_record(record, &groups))
             .collect();
 
         let mut dataset = Dataset::new();
@@ -295,7 +298,7 @@ impl GameDataset {
         self.records.shuffle(&mut rand::thread_rng());
     }
 
-    fn process_record(record: &GameRecord, evaluator: &PatternEvaluator) -> Vec<(Feature, f32)> {
+    fn process_record(record: &GameRecord, groups: &[PatternGroup]) -> Vec<(Feature, f32)> {
         let final_score = (record.final_score.0 as f32) - (record.final_score.1 as f32);
         let mut samples = Vec::new();
         let mut game = Game::default();
@@ -304,7 +307,7 @@ impl GameDataset {
             if let Ok(pos) = Position::from_u8(pos_idx) {
                 if game.is_valid_move(pos) {
                     game.apply_move(pos).unwrap();
-                    let feature_vector = extract_features(&game.board_state(), &evaluator.groups);
+                    let feature_vector = extract_features(&game.board_state(), groups);
                     samples.push((
                         Feature {
                             phase,

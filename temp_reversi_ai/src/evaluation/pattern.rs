@@ -1,11 +1,16 @@
 use super::EvaluationFunction;
-use crate::patterns::PatternGroup;
+use crate::{
+    learning::{extract_features, Model},
+    patterns::PatternGroup,
+    utils::Feature,
+};
 use temp_reversi_core::{Bitboard, Player};
 
 /// Evaluates the board based on multiple pattern groups and their scores.
 pub struct PatternEvaluator {
     /// Collection of pattern groups.
     pub groups: Vec<PatternGroup>,
+    pub model: Model,
 }
 
 impl PatternEvaluator {
@@ -16,30 +21,29 @@ impl PatternEvaluator {
     ///
     /// # Returns
     /// A `PatternEvaluator` initialized with the provided pattern groups.
-    pub fn new(groups: Vec<PatternGroup>) -> Self {
-        Self { groups }
+    pub fn new(groups: Vec<PatternGroup>, model: Model) -> Self {
+        Self { groups, model }
     }
 }
 
 impl EvaluationFunction for PatternEvaluator {
     fn evaluate(&self, board: &Bitboard, player: Player) -> i32 {
-        let mut total_score = 0;
+        let vector = extract_features(board, &self.groups);
 
-        // Calculate the phase using `Bitboard::count_stones`
-        let (black_stones, white_stones) = board.count_stones();
-        let total_stones = black_stones + white_stones;
-        let phase = 60 - total_stones.min(60); // Phase is capped at 59
+        // phase[0] = 1手進めた盤面
+        // phase[1] = 2手進めた盤面
+        // ...
+        let total_stones = board.count_stones().0 + board.count_stones().1;
+        let phase = (total_stones - 5).max(0);
 
-        // Iterate through all pattern groups and accumulate scores
-        for group in &self.groups {
-            total_score += group.evaluate_score(board, phase);
-        }
+        let feature = Feature { phase, vector };
 
-        // Adjust score based on the perspective of the current player
+        let value = self.model.predict(&[feature]);
+
         if player == Player::White {
-            total_score = -total_score;
+            -value[0] as i32
+        } else {
+            value[0] as i32
         }
-
-        total_score
     }
 }
