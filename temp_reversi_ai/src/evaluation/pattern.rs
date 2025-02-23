@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use super::EvaluationFunction;
 use crate::{
     learning::{extract_features, Model},
@@ -10,8 +12,8 @@ use temp_reversi_core::{Bitboard, Player};
 #[derive(Debug, Clone)]
 pub struct PatternEvaluator {
     /// Collection of pattern groups.
-    pub groups: Vec<PatternGroup>,
-    pub model: Model,
+    pub groups: Arc<Vec<PatternGroup>>,
+    pub model: Arc<Model>,
 }
 
 impl PatternEvaluator {
@@ -23,7 +25,10 @@ impl PatternEvaluator {
     /// # Returns
     /// A `PatternEvaluator` initialized with the provided pattern groups.
     pub fn new(groups: Vec<PatternGroup>, model: Model) -> Self {
-        Self { groups, model }
+        Self {
+            groups: Arc::new(groups),
+            model: Arc::new(model),
+        }
     }
 }
 

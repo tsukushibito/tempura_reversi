@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::evaluation::PhaseAwareEvaluator;
+use crate::evaluation::{PatternEvaluator, TempuraEvaluator};
 use crate::learning::loss_function::MSELoss;
 use crate::learning::optimizer::Adam;
 use crate::learning::{extract_features, generate_self_play_data, GameDataset, Trainer};
@@ -56,10 +56,13 @@ impl TrainingPipeline {
         &self,
         reporter: Option<Arc<dyn ProgressReporter + Send + Sync>>,
     ) {
+        let model = Model::load(self.config.model_path.as_str()).expect("Failed to load model.");
+        let pattern_evaluator = PatternEvaluator::new(get_predefined_patterns(), model);
+        let tempura_evaluator = TempuraEvaluator::new(pattern_evaluator);
         let dataset = generate_self_play_data(
             self.config.num_games,
-            Box::new(NegamaxStrategy::new(PhaseAwareEvaluator, 5)),
-            Box::new(NegamaxStrategy::new(PhaseAwareEvaluator, 5)),
+            Box::new(NegamaxStrategy::new(tempura_evaluator.clone(), 5)),
+            Box::new(NegamaxStrategy::new(tempura_evaluator, 5)),
             reporter,
         );
 

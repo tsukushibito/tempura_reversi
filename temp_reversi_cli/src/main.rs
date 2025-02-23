@@ -26,6 +26,10 @@ enum Commands {
         /// Path to save the generated dataset
         #[arg(short = 'o', long, default_value = "work/self_play_dataset")]
         dataset_base_path: String,
+
+        // Path to model for self-play
+        #[arg(short = 'm', long, default_value = "work/reversi_model.bin")]
+        model_path: String,
     },
 
     /// Train the model
@@ -136,6 +140,7 @@ fn main() {
         Commands::Generate {
             games,
             dataset_base_path: dataset_path,
+            model_path,
         } => {
             println!("🎯 Generating {} self-play games...", games);
 
@@ -144,7 +149,7 @@ fn main() {
                 num_games: games,
                 batch_size: 32, // デフォルト値
                 num_epochs: 10, // デフォルト値
-                model_path: "reversi_model.bin".to_string(),
+                model_path,
                 dataset_base_path: dataset_path,
                 train_ratio: 0.8,
                 overall_loss_plot_path: Default::default(),
