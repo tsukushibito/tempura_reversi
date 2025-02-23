@@ -62,6 +62,65 @@ enum Commands {
         #[arg(short = 't', long, default_value = "0.8")]
         train_ratio: f32,
     },
+
+    /// Test match: 100 games between PatternEvaluator and PhaseAwareEvaluator AIs.
+    TestMatch,
+}
+
+fn run_test_match() {
+    const NUM_GAMES: usize = 100;
+    use rayon::prelude::*;
+    use temp_reversi_ai::ai_decider::AiDecider;
+    use temp_reversi_ai::evaluation::{PatternEvaluator, PhaseAwareEvaluator};
+    use temp_reversi_ai::learning::Model;
+    use temp_reversi_ai::patterns::get_predefined_patterns;
+    use temp_reversi_ai::strategy::negamax::NegamaxStrategy;
+    use temp_reversi_ai::strategy::Strategy;
+    use temp_reversi_core::{Game, MoveDecider, Player};
+
+    // Create evaluators and strategies.
+    let groups = get_predefined_patterns();
+    let pattern_model = Model::load("work/reversi_model.bin").unwrap();
+    let pattern_evaluator = PatternEvaluator::new(groups, pattern_model);
+    let phase_evaluator = PhaseAwareEvaluator;
+    let pattern_strategy = NegamaxStrategy::new(pattern_evaluator, 5);
+    let phase_strategy = NegamaxStrategy::new(phase_evaluator, 5);
+
+    // Run simulations in parallel.
+    let (pattern_wins, phase_wins, draws) = (0..NUM_GAMES)
+        .into_par_iter()
+        .map(|_| {
+            let mut game = Game::default();
+            // Create local AI deciders by cloning strategies.
+            let mut local_pattern_ai = AiDecider::new(pattern_strategy.clone_box());
+            let mut local_phase_ai = AiDecider::new(phase_strategy.clone_box());
+            while !game.is_game_over() {
+                let current_ai = if game.current_player() == Player::Black {
+                    &mut local_pattern_ai
+                } else {
+                    &mut local_phase_ai
+                };
+                if let Some(chosen_move) = current_ai.select_move(&game) {
+                    game.apply_move(chosen_move).unwrap();
+                } else {
+                    break;
+                }
+            }
+            let (black_stones, white_stones) = game.current_score();
+            if black_stones > white_stones {
+                (1, 0, 0)
+            } else if white_stones > black_stones {
+                (0, 1, 0)
+            } else {
+                (0, 0, 1)
+            }
+        })
+        .reduce(|| (0, 0, 0), |a, b| (a.0 + b.0, a.1 + b.1, a.2 + b.2));
+
+    println!("Test Match Results:");
+    println!("PatternEvaluator (Black) wins: {}", pattern_wins);
+    println!("PhaseAwareEvaluator (White) wins: {}", phase_wins);
+    println!("Draws: {}", draws);
 }
 
 fn main() {
@@ -127,6 +186,10 @@ fn main() {
             pipeline.train(Some(training_reporter));
 
             println!("✅ Model training completed.");
+        }
+        Commands::TestMatch => {
+            println!("Starting test match: 100 games between PatternEvaluator (Black) and PhaseAwareEvaluator (White)...");
+            run_test_match();
         }
     }
 }

@@ -9,6 +9,7 @@ use super::pattern::Pattern;
 ///
 /// A `PatternGroup` contains multiple rotated `Pattern`s and a shared set of
 /// state scores indexed by phase and state.
+#[derive(Debug, Clone)]
 pub struct PatternGroup {
     /// Rotated patterns belonging to this group.
     pub patterns: Vec<Pattern>,

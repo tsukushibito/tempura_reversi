@@ -9,7 +9,7 @@ use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
 /// Represents the machine learning model
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Model {
     pub weights: Vec<Vec<f32>>,
     pub bias: f32,

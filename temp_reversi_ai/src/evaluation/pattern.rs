@@ -7,6 +7,7 @@ use crate::{
 use temp_reversi_core::{Bitboard, Player};
 
 /// Evaluates the board based on multiple pattern groups and their scores.
+#[derive(Debug, Clone)]
 pub struct PatternEvaluator {
     /// Collection of pattern groups.
     pub groups: Vec<PatternGroup>,

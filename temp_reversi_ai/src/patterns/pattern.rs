@@ -5,6 +5,7 @@ use temp_reversi_core::utils::{rotate_mask_180, rotate_mask_270_ccw, rotate_mask
 ///
 /// A `Pattern` consists of a bitmask defining a specific pattern on the board
 /// and a precomputed mapping from board states to their corresponding indices.
+#[derive(Debug, Clone)]
 pub struct Pattern {
     /// Bitmask representing the pattern on the board.
     pub mask: u64,

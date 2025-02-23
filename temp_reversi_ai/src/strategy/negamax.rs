@@ -9,12 +9,12 @@ use super::Strategy;
 /// This strategy employs the Negamax algorithm with alpha-beta pruning to search the game tree.
 /// Randomness is introduced to shuffle valid moves for variability in decision-making.
 #[derive(Clone)]
-pub struct NegamaxStrategy<E: EvaluationFunction + Clone + Send + Sync> {
+pub struct NegamaxStrategy<E: EvaluationFunction + Send + Sync> {
     pub depth: u32,   // The depth to search in the game tree.
     pub evaluator: E, // The evaluation function to use.
 }
 
-impl<E: EvaluationFunction + Clone + Send + Sync> NegamaxStrategy<E> {
+impl<E: EvaluationFunction + Send + Sync> NegamaxStrategy<E> {
     /// Creates a new NegamaxStrategy.
     ///
     /// # Arguments
