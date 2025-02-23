@@ -3,6 +3,7 @@ use super::phase_aware::PhaseAwareEvaluator;
 use super::EvaluationFunction;
 use temp_reversi_core::{Bitboard, Player};
 
+#[derive(Debug, Clone)]
 pub struct TempuraEvaluator {
     phase_aware: PhaseAwareEvaluator,
     pattern: PatternEvaluator,
@@ -24,7 +25,7 @@ impl EvaluationFunction for TempuraEvaluator {
         // Determine phase by counting stones.
         let (black, white) = board.count_stones();
         let total = black + white;
-        if total <= 20 {
+        if total <= 49 {
             // Early phase: use PhaseAwareEvaluator.
             self.phase_aware.evaluate(board, player)
         } else {

@@ -71,7 +71,7 @@ fn run_test_match() {
     const NUM_GAMES: usize = 100;
     use rayon::prelude::*;
     use temp_reversi_ai::ai_decider::AiDecider;
-    use temp_reversi_ai::evaluation::{PatternEvaluator, PhaseAwareEvaluator};
+    use temp_reversi_ai::evaluation::{PatternEvaluator, PhaseAwareEvaluator, TempuraEvaluator};
     use temp_reversi_ai::learning::Model;
     use temp_reversi_ai::patterns::get_predefined_patterns;
     use temp_reversi_ai::strategy::negamax::NegamaxStrategy;
@@ -82,8 +82,9 @@ fn run_test_match() {
     let groups = get_predefined_patterns();
     let pattern_model = Model::load("work/reversi_model.bin").unwrap();
     let pattern_evaluator = PatternEvaluator::new(groups, pattern_model);
+    let tempura_evaluator = TempuraEvaluator::new(pattern_evaluator);
     let phase_evaluator = PhaseAwareEvaluator;
-    let pattern_strategy = NegamaxStrategy::new(pattern_evaluator, 5);
+    let tempura_strategy = NegamaxStrategy::new(tempura_evaluator, 5);
     let phase_strategy = NegamaxStrategy::new(phase_evaluator, 5);
 
     // Run simulations in parallel.
@@ -92,7 +93,7 @@ fn run_test_match() {
         .map(|_| {
             let mut game = Game::default();
             // Create local AI deciders by cloning strategies.
-            let mut local_pattern_ai = AiDecider::new(pattern_strategy.clone_box());
+            let mut local_pattern_ai = AiDecider::new(tempura_strategy.clone_box());
             let mut local_phase_ai = AiDecider::new(phase_strategy.clone_box());
             while !game.is_game_over() {
                 let current_ai = if game.current_player() == Player::Black {

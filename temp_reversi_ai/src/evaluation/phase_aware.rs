@@ -11,7 +11,7 @@ enum Phase {
 
 /// Phase-aware evaluator that adjusts weights for mobility, positional values, and score
 /// based on the phase of the game.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct PhaseAwareEvaluator;
 
 impl PhaseAwareEvaluator {
