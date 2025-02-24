@@ -5,6 +5,7 @@ use crate::{
 };
 use lz4_flex::{compress_prepend_size, decompress_size_prepended};
 use rand::seq::SliceRandom;
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{
     fs::{self, metadata},
@@ -265,11 +266,13 @@ impl GameDataset {
     ) -> impl Iterator<Item = Dataset> + '_ {
         let groups = get_predefined_patterns();
         self.records.chunks(batch_size).map(move |chunk| {
+            let samples: Vec<(Feature, f32)> = chunk
+                .par_iter()
+                .flat_map(|record| Self::process_record(record, &groups))
+                .collect();
             let mut batch = Dataset::new();
-            for record in chunk.iter() {
-                for (feature, label) in Self::process_record(record, &groups) {
-                    batch.add_sample(feature, label);
-                }
+            for (feature, label) in samples {
+                batch.add_sample(feature, label);
             }
             batch
         })
@@ -278,7 +281,6 @@ impl GameDataset {
     /// Extracts training data from all game records into a single Dataset.
     /// The processing is parallelized where applicable.
     pub fn extract_all_training_data(&self) -> Dataset {
-        use rayon::prelude::*;
         let groups = get_predefined_patterns();
         let samples: Vec<(Feature, f32)> = self
             .records

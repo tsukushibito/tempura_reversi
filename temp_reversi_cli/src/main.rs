@@ -39,15 +39,15 @@ enum Commands {
         dataset_base_path: String,
 
         /// Path to save the trained model
-        #[arg(short = 'o', long, default_value = "work/reversi_model.bin")]
+        #[arg(short, long, default_value = "work/reversi_model.bin")]
         model_path: String,
 
         /// Batch size for training
-        #[arg(short, long, default_value = "32")]
+        #[arg(short, long, default_value = "64")]
         batch_size: usize,
 
         /// Number of epochs
-        #[arg(short, long, default_value = "16")]
+        #[arg(short, long, default_value = "25")]
         epochs: usize,
 
         /// Path for overall loss plot
@@ -59,7 +59,7 @@ enum Commands {
         phase_loss_plot_path: String,
 
         /// Learning rate for training
-        #[arg(short = 'l', long, default_value = "0.0004")]
+        #[arg(short = 'l', long, default_value = "0.0005")]
         learning_rate: f32,
 
         /// Training ratio
@@ -67,38 +67,44 @@ enum Commands {
         train_ratio: f32,
     },
 
-    /// Test match: 100 games between PatternEvaluator and PhaseAwareEvaluator AIs.
-    TestMatch,
+    /// Test match: games between PatternEvaluator and PhaseAwareEvaluator AIs.
+    TestMatch {
+        /// Number of games to play in test match (default: 100)
+        #[arg(short, long, default_value = "100")]
+        games: usize,
+
+        /// Path to load the model (default: work/reversi_model.bin)
+        #[arg(short, long, default_value = "gen0/model.bin")]
+        black_model_path: String,
+
+        #[arg(short, long, default_value = "gen0/gen0_model.bin")]
+        white_model_path: String,
+    },
 }
 
-fn run_test_match() {
-    const NUM_GAMES: usize = 100;
+fn run_test_match(num_games: usize, black_model_path: &str, white_model_path: &str) {
     use rayon::prelude::*;
     use temp_reversi_ai::ai_decider::AiDecider;
-    use temp_reversi_ai::evaluation::{PatternEvaluator, PhaseAwareEvaluator, TempuraEvaluator};
-    use temp_reversi_ai::learning::Model;
-    use temp_reversi_ai::patterns::get_predefined_patterns;
+    use temp_reversi_ai::evaluation::TempuraEvaluator;
     use temp_reversi_ai::strategy::negamax::NegamaxStrategy;
     use temp_reversi_ai::strategy::Strategy;
     use temp_reversi_core::{Game, MoveDecider, Player};
 
     // Create evaluators and strategies.
-    let groups = get_predefined_patterns();
-    let pattern_model = Model::load("work/reversi_model.bin").unwrap();
-    let pattern_evaluator = PatternEvaluator::new(groups, pattern_model);
-    let tempura_evaluator = TempuraEvaluator::new(pattern_evaluator);
-    let phase_evaluator = PhaseAwareEvaluator;
-    let tempura_strategy = NegamaxStrategy::new(tempura_evaluator, 5);
-    let phase_strategy = NegamaxStrategy::new(phase_evaluator, 5);
+    let tempura_evaluator = TempuraEvaluator::new(black_model_path);
+    let black_strategy = NegamaxStrategy::new(tempura_evaluator, 5);
+    // let white_strategy = NegamaxStrategy::new(PhaseAwareEvaluator, 5);
+    let tempura_evaluator = TempuraEvaluator::new(white_model_path);
+    let white_strategy = NegamaxStrategy::new(tempura_evaluator, 5);
 
     // Run simulations in parallel.
-    let (pattern_wins, phase_wins, draws) = (0..NUM_GAMES)
+    let (pattern_wins, phase_wins, draws) = (0..num_games)
         .into_par_iter()
         .map(|_| {
             let mut game = Game::default();
             // Create local AI deciders by cloning strategies.
-            let mut local_pattern_ai = AiDecider::new(tempura_strategy.clone_box());
-            let mut local_phase_ai = AiDecider::new(phase_strategy.clone_box());
+            let mut local_pattern_ai = AiDecider::new(black_strategy.clone_box());
+            let mut local_phase_ai = AiDecider::new(white_strategy.clone_box());
             while !game.is_game_over() {
                 let current_ai = if game.current_player() == Player::Black {
                     &mut local_pattern_ai
@@ -123,8 +129,8 @@ fn run_test_match() {
         .reduce(|| (0, 0, 0), |a, b| (a.0 + b.0, a.1 + b.1, a.2 + b.2));
 
     println!("Test Match Results:");
-    println!("PatternEvaluator (Black) wins: {}", pattern_wins);
-    println!("PhaseAwareEvaluator (White) wins: {}", phase_wins);
+    println!("Black wins: {}", pattern_wins);
+    println!("White wins: {}", phase_wins);
     println!("Draws: {}", draws);
 }
 
@@ -193,9 +199,16 @@ fn main() {
 
             println!("✅ Model training completed.");
         }
-        Commands::TestMatch => {
-            println!("Starting test match: 100 games between PatternEvaluator (Black) and PhaseAwareEvaluator (White)...");
-            run_test_match();
+        Commands::TestMatch {
+            games,
+            black_model_path,
+            white_model_path,
+        } => {
+            println!(
+                "Starting test match: {} games with model from {}...",
+                games, black_model_path
+            );
+            run_test_match(games, &black_model_path, &white_model_path);
         }
     }
 }

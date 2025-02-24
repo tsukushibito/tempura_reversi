@@ -26,13 +26,20 @@ impl<L: LossFunction, O: Optimizer + Send + Sync + Clone> Trainer<L, O> {
         optimizer: O,
         batch_size: usize,
         epochs: usize,
+        model_path: Option<&str>,
     ) -> Self {
         let optimizers = vec![optimizer.clone(); 60];
-        Self {
-            model: Model {
+        let model = if let Some(path) = model_path {
+            Model::load(path).expect("Failed to load model.")
+        } else {
+            Model {
                 weights: vec![vec![0.0; feature_size]; 60],
                 bias: 0.0,
-            },
+            }
+        };
+
+        Self {
+            model,
             loss_fn,
             optimizers,
             batch_size,
