@@ -30,7 +30,14 @@ impl<L: LossFunction, O: Optimizer + Send + Sync + Clone> Trainer<L, O> {
     ) -> Self {
         let optimizers = vec![optimizer.clone(); 60];
         let model = if let Some(path) = model_path {
-            Model::load(path).expect("Failed to load model.")
+            if let Ok(m) = Model::load(path) {
+                m
+            } else {
+                Model {
+                    weights: vec![vec![0.0; feature_size]; 60],
+                    bias: 0.0,
+                }
+            }
         } else {
             Model {
                 weights: vec![vec![0.0; feature_size]; 60],
