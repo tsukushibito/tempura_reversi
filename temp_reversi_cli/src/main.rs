@@ -23,26 +23,36 @@ enum Commands {
     /// Generate self-play data
     Generate {
         /// Number of games to generate
-        #[arg(short, long, default_value = "10000")]
-        games: usize,
+        #[arg(long, default_value = "100000")]
+        num_train_games: usize,
+
+        /// Number of games to generate
+        #[arg(long, default_value = "50000")]
+        num_validation_games: usize,
 
         /// Path to save the generated dataset
-        #[arg(short = 'o', long, default_value = "work/self_play_dataset")]
-        dataset_base_path: String,
+        #[arg(short, long, default_value = "gen0/train_dataset")]
+        train_dataset_base_path: String,
+
+        #[arg(short, long, default_value = "gen0/validation_dataset")]
+        validation_dataset_base_path: String,
 
         // Path to model for self-play
-        #[arg(short = 'm', long, default_value = "work/reversi_model.bin")]
+        #[arg(short, long, default_value = "gen0/model.bin")]
         model_path: String,
     },
 
     /// Train the model
     Train {
         /// Path to load the dataset
-        #[arg(short, long, default_value = "work/self_play_dataset")]
-        dataset_base_path: String,
+        #[arg(short, long, default_value = "gen0/train_dataset")]
+        train_dataset_base_path: String,
+
+        #[arg(short, long, default_value = "gen0/validation_dataset")]
+        validation_dataset_base_path: String,
 
         /// Path to save the trained model
-        #[arg(short, long, default_value = "work/reversi_model.bin")]
+        #[arg(short, long, default_value = "gen0/model.bin")]
         model_path: String,
 
         /// Batch size for training
@@ -54,20 +64,16 @@ enum Commands {
         epochs: usize,
 
         /// Path for overall loss plot
-        #[arg(long, default_value = "work/loss_plot_overall.png")]
+        #[arg(long, default_value = "gen0/loss_plot_overall.png")]
         overall_loss_plot_path: String,
 
         /// Path for phase loss plot
-        #[arg(long, default_value = "work/loss_plot_phase.png")]
+        #[arg(long, default_value = "gen0/loss_plot_phase.png")]
         phase_loss_plot_path: String,
 
         /// Learning rate for training
         #[arg(short = 'l', long, default_value = "0.0005")]
         learning_rate: f32,
-
-        /// Training ratio
-        #[arg(short = 't', long, default_value = "0.8")]
-        train_ratio: f32,
     },
 
     /// Test match: games between PatternEvaluator and PhaseAwareEvaluator AIs.
@@ -95,51 +101,58 @@ fn main() {
             // ゲームロジックをここに実装
         }
         Commands::Generate {
-            games,
-            dataset_base_path: dataset_path,
+            num_train_games,
+            train_dataset_base_path,
+            num_validation_games,
+            validation_dataset_base_path,
             model_path,
         } => {
-            println!("🎯 Generating {} self-play games...", games);
+            println!("🎯 Generating {} train games...", num_train_games);
 
             let generation_reporter = Arc::new(GenerationReporter::new());
             let config = TrainingConfig {
-                num_games: games,
+                num_train_games,
+                num_validation_games,
                 batch_size: 32, // デフォルト値
                 num_epochs: 10, // デフォルト値
                 model_path,
-                dataset_base_path: dataset_path,
-                train_ratio: 0.8,
+                train_dataset_base_path,
+                validation_dataset_base_path,
                 overall_loss_plot_path: Default::default(),
                 phase_loss_plot_path: Default::default(),
                 learning_rate: 0.0001,
             };
 
             let pipeline = TrainingPipeline::new(config);
-            pipeline.generate_self_play_data(Some(generation_reporter));
+            pipeline.generate_dataset(Some(generation_reporter));
 
             println!("✅ Data generation completed.");
         }
         Commands::Train {
-            dataset_base_path: dataset_path,
+            train_dataset_base_path,
+            validation_dataset_base_path,
             model_path,
             batch_size,
             epochs,
             overall_loss_plot_path,
             phase_loss_plot_path,
             learning_rate,
-            train_ratio,
         } => {
-            println!("📊 Starting training with dataset: {}", dataset_path);
+            println!(
+                "📊 Starting training with dataset: {}",
+                train_dataset_base_path
+            );
 
             let training_reporter = Arc::new(TrainingReporter::new());
 
             let config = TrainingConfig {
-                num_games: 0,
+                num_train_games: 0,
+                num_validation_games: 0,
                 batch_size,
                 num_epochs: epochs,
                 model_path,
-                dataset_base_path: dataset_path,
-                train_ratio, // updated value from CLI argument
+                train_dataset_base_path,
+                validation_dataset_base_path,
                 overall_loss_plot_path,
                 phase_loss_plot_path,
                 learning_rate, // new field added

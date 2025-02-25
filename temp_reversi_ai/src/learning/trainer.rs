@@ -2,7 +2,10 @@ use std::sync::Arc;
 
 use rayon::prelude::*;
 
-use super::{loss_function::LossFunction, optimizer::Optimizer, Dataset, GameDataset, Model};
+use super::{
+    loss_function::LossFunction, optimizer::Optimizer, Dataset, GameDataset, Model,
+    StreamingDatasetReader,
+};
 use crate::utils::SparseVector;
 
 /// Trainer responsible for managing epochs, batches, and model updates
@@ -64,28 +67,29 @@ impl<L: LossFunction, O: Optimizer + Send + Sync + Clone> Trainer<L, O> {
     /// Trains the model on the training dataset and evaluates it on the validation dataset after each epoch.
     pub fn train(
         &mut self,
-        train_dataset: &mut GameDataset,
-        validation_dataset: &GameDataset,
+        train_dataset_base_path: &str,
+        validation_dataset_base_path: &str,
         reporter: Option<Arc<dyn crate::utils::ProgressReporter + Send + Sync>>,
     ) {
         if let Some(r) = &reporter {
             r.on_start(self.epochs);
         }
         // Pre-expand validation data once
-        let validation_data = validation_dataset.extract_all_training_data();
+        let validation_game_dataset =
+            GameDataset::load_auto(validation_dataset_base_path).expect("");
+        let validation_data = validation_game_dataset.extract_all_training_data();
 
         for epoch in 0..self.epochs {
             // println!("🚀 Starting Epoch {}/{}", epoch + 1, self.epochs);
             let start_time = std::time::Instant::now();
 
-            train_dataset.shuffle();
+            let mut train_reader =
+                StreamingDatasetReader::new(train_dataset_base_path, self.batch_size);
 
-            let batches = train_dataset.extract_training_data_in_batches(self.batch_size);
-
-            for (_batch_idx, batch) in batches.enumerate() {
+            while let Some(batch) = train_reader.next() {
                 self.train_batch(&batch);
-                // println!("Batch {} completed.", _batch_idx + 1);
             }
+
             let duration = start_time.elapsed();
             // println!(
             //     "✅ Epoch {}/{} completed. {:?}",
