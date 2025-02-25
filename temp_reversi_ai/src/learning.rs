@@ -5,6 +5,8 @@ mod game_generator;
 pub mod loss_function;
 mod model;
 pub mod optimizer;
+mod streaming_dataset_reader;
+mod streaming_dataset_writer;
 mod trainer;
 mod training_pipeline;
 
@@ -13,5 +15,7 @@ pub use feature_extraction::*;
 pub use game_dataset::*;
 pub use game_generator::*;
 pub use model::*;
+pub use streaming_dataset_reader::*;
+pub use streaming_dataset_writer::*;
 pub use trainer::*;
 pub use training_pipeline::*;

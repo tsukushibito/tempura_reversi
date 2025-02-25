@@ -300,7 +300,7 @@ impl GameDataset {
         self.records.shuffle(&mut rand::thread_rng());
     }
 
-    fn process_record(record: &GameRecord, groups: &[PatternGroup]) -> Vec<(Feature, f32)> {
+    pub fn process_record(record: &GameRecord, groups: &[PatternGroup]) -> Vec<(Feature, f32)> {
         let final_score = (record.final_score.0 as f32) - (record.final_score.1 as f32);
         let mut samples = Vec::new();
         let mut game = Game::default();
