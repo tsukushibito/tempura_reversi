@@ -1,3 +1,4 @@
+use rand::prelude::*;
 use rayon::prelude::*;
 use std::path::Path;
 
@@ -70,7 +71,8 @@ impl StreamingDatasetReader {
         }
         let file_path = &self.file_paths[self.current_file_index];
         match GameDataset::load_bin(file_path) {
-            Ok(dataset) => {
+            Ok(mut dataset) => {
+                dataset.records.shuffle(&mut rand::thread_rng());
                 self.current_records = Some(dataset.records);
                 self.record_cursor = 0;
                 self.current_file_index += 1;
