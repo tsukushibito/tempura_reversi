@@ -160,7 +160,7 @@ mod tests {
 
     impl NegamaxMoveDecider {
         pub fn new(depth: u32) -> Self {
-            let evaluator = PhaseAwareEvaluator;
+            let evaluator = PhaseAwareEvaluator::default();
             let strategy = NegamaxStrategy::new(evaluator, depth);
             Self { strategy }
         }
@@ -188,7 +188,7 @@ mod tests {
     #[test]
     fn test_nodes_searched() {
         let game = Game::default();
-        let evaluator = PhaseAwareEvaluator;
+        let evaluator = PhaseAwareEvaluator::default();
         let mut strategy = NegamaxStrategy::new(evaluator, 9);
 
         strategy.evaluate_and_decide(&game);

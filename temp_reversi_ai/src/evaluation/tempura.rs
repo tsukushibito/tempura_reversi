@@ -18,12 +18,12 @@ impl TempuraEvaluator {
         if let Ok(model) = Model::load(model_path) {
             let pattern_evaluator = PatternEvaluator::new(get_predefined_patterns(), model);
             Self {
-                phase_aware: PhaseAwareEvaluator,
+                phase_aware: PhaseAwareEvaluator::default(),
                 pattern: Some(pattern_evaluator),
             }
         } else {
             Self {
-                phase_aware: PhaseAwareEvaluator,
+                phase_aware: PhaseAwareEvaluator::default(),
                 pattern: None,
             }
         }

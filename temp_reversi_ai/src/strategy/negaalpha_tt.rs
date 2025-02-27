@@ -232,7 +232,7 @@ mod tests {
     #[test]
     fn test_visited_nodes() {
         let game = Game::default();
-        let evaluator = PhaseAwareEvaluator;
+        let evaluator = PhaseAwareEvaluator::default();
         let mut strategy = NegamaxStrategy::new(evaluator, 10);
 
         let start = std::time::Instant::now();
@@ -246,7 +246,7 @@ mod tests {
         println!("[Negamax] Visited nodes: {}", strategy.nodes_searched);
 
         let game = Game::default();
-        let evaluator = PhaseAwareEvaluator;
+        let evaluator = PhaseAwareEvaluator::default();
         let mut strategy = NegaAlphaTTStrategy::new(evaluator, 10);
 
         let start = std::time::Instant::now();
