@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::{player::*, position::*};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Bitboard {
     black: u64, // Bitboard for black stones
     white: u64, // Bitboard for white stones
@@ -194,6 +194,24 @@ impl Bitboard {
         }
 
         positions
+    }
+
+    /// Computes and returns a hash value for the current board state.
+    /// This function combines the black and white bitboards using a variant
+    /// of the FNV-1a hash algorithm.
+    pub fn get_hash(&self) -> u64 {
+        // FNV-1a 64-bit offset basis.
+        let mut hash: u64 = 0xcbf29ce484222325;
+
+        // Incorporate the black bitboard.
+        hash ^= self.black;
+        hash = hash.wrapping_mul(0x100000001b3);
+
+        // Incorporate the white bitboard.
+        hash ^= self.white;
+        hash = hash.wrapping_mul(0x100000001b3);
+
+        hash
     }
 }
 

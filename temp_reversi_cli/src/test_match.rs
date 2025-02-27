@@ -1,7 +1,7 @@
 use rayon::prelude::*;
 use temp_reversi_ai::ai_decider::AiDecider;
 use temp_reversi_ai::evaluation::TempuraEvaluator;
-use temp_reversi_ai::strategy::negamax::NegamaxStrategy;
+use temp_reversi_ai::strategy::NegamaxStrategy;
 use temp_reversi_ai::strategy::Strategy;
 use temp_reversi_core::{Game, MoveDecider, Player};
 

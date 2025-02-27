@@ -1,6 +1,7 @@
-pub mod negamax;
-pub mod random;
-pub mod simple;
+mod negaalpha_tt;
+mod negamax;
+mod random;
+mod simple;
 
 use temp_reversi_core::{Game, Position};
 
@@ -25,3 +26,8 @@ impl Clone for Box<dyn Strategy> {
         self.clone_box()
     }
 }
+
+pub use negaalpha_tt::*;
+pub use negamax::*;
+pub use random::*;
+pub use simple::*;

@@ -10,8 +10,9 @@ use super::Strategy;
 /// Randomness is introduced to shuffle valid moves for variability in decision-making.
 #[derive(Clone)]
 pub struct NegamaxStrategy<E: EvaluationFunction + Send + Sync> {
-    pub depth: u32,   // The depth to search in the game tree.
-    pub evaluator: E, // The evaluation function to use.
+    pub depth: u32,          // The depth to search in the game tree.
+    pub evaluator: E,        // The evaluation function to use.
+    pub nodes_searched: u64, // The number of nodes searched in the game tree.
 }
 
 impl<E: EvaluationFunction + Send + Sync> NegamaxStrategy<E> {
@@ -21,7 +22,11 @@ impl<E: EvaluationFunction + Send + Sync> NegamaxStrategy<E> {
     /// * `evaluator` - The evaluation function to score board states.
     /// * `depth` - The maximum depth of the search tree.
     pub fn new(evaluator: E, depth: u32) -> Self {
-        Self { depth, evaluator }
+        Self {
+            depth,
+            evaluator,
+            nodes_searched: 0,
+        }
     }
 
     /// Negamax recursive function with alpha-beta pruning.
@@ -46,6 +51,8 @@ impl<E: EvaluationFunction + Send + Sync> NegamaxStrategy<E> {
         beta: i32,
         player: Player,
     ) -> i32 {
+        self.nodes_searched += 1;
+
         // Base case: Leaf node or depth limit reached
         if depth == 0 || board.is_game_over() {
             let score = self.evaluator.evaluate(board, player);
@@ -90,6 +97,8 @@ where
     ///
     /// This method ensures randomness in decision-making by shuffling valid moves.
     fn evaluate_and_decide(&mut self, game: &Game) -> Option<Position> {
+        self.nodes_searched = 0;
+
         let mut best_move = None;
         let mut best_score = std::i32::MIN + 1;
         let mut alpha = std::i32::MIN + 1;
@@ -174,5 +183,20 @@ mod tests {
             Ok(()) => println!("Game over!"),
             Err(err) => eprintln!("Error: {}", err),
         }
+    }
+
+    #[test]
+    fn test_nodes_searched() {
+        let game = Game::default();
+        let evaluator = PhaseAwareEvaluator;
+        let mut strategy = NegamaxStrategy::new(evaluator, 9);
+
+        strategy.evaluate_and_decide(&game);
+        assert!(
+            strategy.nodes_searched > 0,
+            "Nodes searched should be greater than 0."
+        );
+
+        println!("Nodes searched: {}", strategy.nodes_searched);
     }
 }
