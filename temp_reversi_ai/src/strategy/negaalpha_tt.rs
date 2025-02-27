@@ -18,6 +18,7 @@ struct SearchState {
 const FNV_OFFSET: u64 = 0xcbf29ce484222325;
 const FNV_PRIME: u64 = 0x100000001b3;
 
+/// Hashes a Player to a u64 using FNV hash parameters.
 fn hash_player(player: Player) -> u64 {
     let mut hash = FNV_OFFSET;
     let player_byte: u8 = match player {
@@ -46,7 +47,7 @@ impl Hash for SearchState {
     }
 }
 
-/// ヘルパー関数: 指定の着手を適用して新たな探索局面を返す。
+/// Helper function: applies the specified move and returns a new search state.
 fn apply_move_state(state: &SearchState, pos: Position) -> Option<SearchState> {
     let mut new_board = state.board.clone();
     if new_board.apply_move(pos, state.current_player).is_ok() {
@@ -59,7 +60,7 @@ fn apply_move_state(state: &SearchState, pos: Position) -> Option<SearchState> {
     }
 }
 
-/// 置換表とムーブオーダリング付きネガアルファ探索を実現する戦略
+/// Strategy implementing Negalpha search with a transposition table and move ordering.
 #[derive(Clone)]
 pub struct NegaAlphaTTStrategy<E: EvaluationFunction + Send + Sync> {
     evaluator: E,
@@ -70,7 +71,7 @@ pub struct NegaAlphaTTStrategy<E: EvaluationFunction + Send + Sync> {
 }
 
 impl<E: EvaluationFunction + Send + Sync> NegaAlphaTTStrategy<E> {
-    /// コンストラクタ
+    /// Constructor.
     pub fn new(evaluator: E, max_depth: i32) -> Self {
         Self {
             evaluator,
@@ -81,18 +82,18 @@ impl<E: EvaluationFunction + Send + Sync> NegaAlphaTTStrategy<E> {
         }
     }
 
-    /// ムーブオーダリング用の評価値計算（MobilityEvaluatorを使用）
+    /// Calculates move ordering value using MobilityEvaluator.
     fn calc_move_ordering_value(&self, state: &SearchState) -> i32 {
         if let Some(&score) = self.former_transposition_table.get(state) {
             CACHE_HIT_BONUS - score
         } else {
-            // MobilityEvaluator による評価値（符号反転して有望な手を先に探索）
+            // Use MobilityEvaluator for evaluation.
             let evaluator = MobilityEvaluator;
             -evaluator.evaluate(&state.board, state.current_player)
         }
     }
 
-    /// 置換表とムーブオーダリングを利用したネガアルファ探索（再帰関数）
+    /// Negalpha search using transposition table and move ordering (recursive function).
     fn nega_alpha_transpose(
         &mut self,
         state: SearchState,
@@ -111,18 +112,19 @@ impl<E: EvaluationFunction + Send + Sync> NegaAlphaTTStrategy<E> {
             return score;
         }
 
-        // 現在の局面から合法手を取得
         let valid_moves = state.board.valid_moves(state.current_player);
         if valid_moves.is_empty() {
             if passed {
+                // Game over
                 return self.evaluator.evaluate(&state.board, state.current_player);
             }
-            // パス処理：手番を交代して再帰呼び出し
+
+            // Pass
             let next_state = SearchState::new(state.board.clone(), state.current_player.opponent());
             return -self.nega_alpha_transpose(next_state, depth, true, -beta, -alpha);
         }
 
-        // 各合法手に対して、子局面とムーブオーダリング用の評価値を計算
+        // Generate children and sort them by move ordering value
         let mut children: Vec<(Position, SearchState, i32)> = Vec::new();
         for pos in valid_moves {
             if let Some(child_state) = apply_move_state(&state, pos) {
@@ -130,7 +132,6 @@ impl<E: EvaluationFunction + Send + Sync> NegaAlphaTTStrategy<E> {
                 children.push((pos, child_state, ordering));
             }
         }
-        // ムーブオーダリング：複数候補なら評価値順にソート
         if children.len() >= 2 {
             children.sort_by(|a, b| b.2.cmp(&a.2));
         }
@@ -155,7 +156,7 @@ impl<E: EvaluationFunction + Send + Sync> NegaAlphaTTStrategy<E> {
         value
     }
 
-    /// 反復深化探索により最善手を求める
+    /// Finds the best move using iterative deepening search.
     fn search(&mut self, state: SearchState) -> Option<Position> {
         self.visited_nodes = 0;
         self.transposition_table.clear();
@@ -198,10 +199,10 @@ impl<E: EvaluationFunction + Send + Sync> NegaAlphaTTStrategy<E> {
             self.transposition_table.clear();
 
             // Print for debug
-            println!(
-                "Depth {}: best_move: {:?}, visited_nodes: {}",
-                depth, best_move, self.visited_nodes
-            );
+            // println!(
+            //     "Depth {}: best_move: {:?}, visited_nodes: {}",
+            //     depth, best_move, self.visited_nodes
+            // );
         }
         best_move
     }
@@ -211,7 +212,7 @@ impl<E> Strategy for NegaAlphaTTStrategy<E>
 where
     E: EvaluationFunction + Send + Sync + Clone + 'static,
 {
-    /// ゲーム状態を評価し、次の着手を決定する
+    /// Evaluates the game state and decides the next move.
     fn evaluate_and_decide(&mut self, game: &Game) -> Option<Position> {
         let state = SearchState::new(game.board_state().clone(), game.current_player());
         self.search(state)
