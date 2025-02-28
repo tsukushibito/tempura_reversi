@@ -3,7 +3,7 @@ use std::sync::Arc;
 use clap::{Parser, Subcommand};
 use temp_reversi_ai::learning::{TrainingConfig, TrainingPipeline};
 use temp_reversi_cli::{
-    run_test_match,
+    run_test_match, shuffle_dataset,
     utils::{GenerationReporter, TrainingReporter},
 };
 
@@ -89,6 +89,15 @@ enum Commands {
         #[arg(short, long, default_value = "gen0/gen0_model.bin")]
         white_model_path: String,
     },
+
+    // Shuffle the dataset
+    Shuffle {
+        #[arg(short, long, default_value = "gen0/dataset/dataset")]
+        dataset_base_path: String,
+
+        #[arg(short, long, default_value = "gen0/dataset/dataset")]
+        outpu_dataset_base_path: String,
+    },
 }
 
 fn main() {
@@ -173,6 +182,13 @@ fn main() {
                 games, black_model_path
             );
             run_test_match(games, &black_model_path, &white_model_path);
+        }
+        Commands::Shuffle {
+            dataset_base_path,
+            outpu_dataset_base_path,
+        } => {
+            shuffle_dataset(&dataset_base_path, &outpu_dataset_base_path)
+                .expect("Failed to shuffle dataset");
         }
     }
 }
