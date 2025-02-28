@@ -45,10 +45,10 @@ enum Commands {
     /// Train the model
     Train {
         /// Path to load the dataset
-        #[arg(short, long, default_value = "gen0/train_dataset")]
+        #[arg(short, long, default_value = "gen0/dataset/dataset")]
         train_dataset_base_path: String,
 
-        #[arg(short, long, default_value = "gen0/validation_dataset")]
+        #[arg(short, long, default_value = "gen0/dataset/validation_dataset")]
         validation_dataset_base_path: String,
 
         /// Path to save the trained model
