@@ -15,7 +15,7 @@ use temp_reversi_core::{Game, MoveDecider, Player};
 ///
 /// # Returns
 /// - `GameDataset` containing generated game records.
-pub fn generate_self_play_data(
+pub fn generate_game_dataset(
     num_games: usize,
     black_strategy: Box<dyn Strategy>,
     white_strategy: Box<dyn Strategy>,

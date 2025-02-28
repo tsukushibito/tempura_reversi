@@ -1,5 +1,5 @@
 pub mod ai_decider;
-pub mod evaluation;
+pub mod evaluator;
 pub mod learning;
 pub mod patterns;
 pub mod plotter;

@@ -1,13 +1,13 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::evaluation::TempuraEvaluator;
+use crate::evaluator::TempuraEvaluator;
 use crate::learning::loss_function::MSELoss;
 use crate::learning::optimizer::Adam;
-use crate::learning::{extract_features, generate_self_play_data, Trainer};
+use crate::learning::{extract_features, generate_game_dataset, Trainer};
 use crate::patterns::get_predefined_patterns;
 use crate::plotter::{plot_overall_loss, plot_phase_losses};
-use crate::strategy::NegamaxStrategy;
+use crate::strategy::NegaAlphaStrategy;
 use crate::utils::ProgressReporter;
 
 use super::{Model, StreamingDatasetWriter};
@@ -144,10 +144,10 @@ impl TrainingPipeline {
         let mut remain_games = num_games;
         while remain_games > 0 {
             let num_games = remain_games.min(100000);
-            let game_dataset = generate_self_play_data(
+            let game_dataset = generate_game_dataset(
                 num_games,
-                Box::new(NegamaxStrategy::new(tempura_evaluator.clone(), 5)),
-                Box::new(NegamaxStrategy::new(tempura_evaluator.clone(), 5)),
+                Box::new(NegaAlphaStrategy::new(tempura_evaluator.clone(), 5)),
+                Box::new(NegaAlphaStrategy::new(tempura_evaluator.clone(), 5)),
                 reporter.clone(),
             );
 

@@ -1,5 +1,5 @@
-mod negaalpha_tt;
-mod negamax;
+mod nega_alpha;
+mod nega_alpha_tt;
 mod random;
 mod simple;
 
@@ -27,7 +27,7 @@ impl Clone for Box<dyn Strategy> {
     }
 }
 
-pub use negaalpha_tt::*;
-pub use negamax::*;
+pub use nega_alpha::*;
+pub use nega_alpha_tt::*;
 pub use random::*;
 pub use simple::*;

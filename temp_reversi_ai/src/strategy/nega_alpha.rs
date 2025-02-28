@@ -1,21 +1,18 @@
-use crate::evaluation::EvaluationFunction;
+use crate::evaluator::EvaluationFunction;
 use rand::{seq::SliceRandom, thread_rng};
 use temp_reversi_core::{Bitboard, Game, Player, Position};
 
 use super::Strategy;
 
-/// Negamax-based strategy for decision making with alpha-beta pruning.
-///
-/// This strategy employs the Negamax algorithm with alpha-beta pruning to search the game tree.
-/// Randomness is introduced to shuffle valid moves for variability in decision-making.
+/// The Negamax strategy with alpha-beta pruning.
 #[derive(Clone)]
-pub struct NegamaxStrategy<E: EvaluationFunction + Send + Sync> {
+pub struct NegaAlphaStrategy<E: EvaluationFunction + Send + Sync> {
     pub depth: u32,          // The depth to search in the game tree.
     pub evaluator: E,        // The evaluation function to use.
     pub nodes_searched: u64, // The number of nodes searched in the game tree.
 }
 
-impl<E: EvaluationFunction + Send + Sync> NegamaxStrategy<E> {
+impl<E: EvaluationFunction + Send + Sync> NegaAlphaStrategy<E> {
     /// Creates a new NegamaxStrategy.
     ///
     /// # Arguments
@@ -83,7 +80,7 @@ impl<E: EvaluationFunction + Send + Sync> NegamaxStrategy<E> {
     }
 }
 
-impl<E> Strategy for NegamaxStrategy<E>
+impl<E> Strategy for NegaAlphaStrategy<E>
 where
     E: EvaluationFunction + Clone + Send + Sync + 'static,
 {
@@ -134,7 +131,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::evaluation::{PhaseAwareEvaluator, SimpleEvaluator};
+    use crate::evaluator::{PhaseAwareEvaluator, SimpleEvaluator};
 
     use super::*;
     use temp_reversi_cli::cli_display;
@@ -144,7 +141,7 @@ mod tests {
     fn test_negamax_with_alpha_beta() {
         let game = Game::default();
         let evaluator = SimpleEvaluator;
-        let mut strategy = NegamaxStrategy::new(evaluator, 1);
+        let mut strategy = NegaAlphaStrategy::new(evaluator, 1);
 
         let move_option = strategy.evaluate_and_decide(&game);
         assert!(
@@ -155,13 +152,13 @@ mod tests {
 
     /// A wrapper to use NegamaxStrategy with MoveDecider trait.
     pub struct NegamaxMoveDecider {
-        strategy: NegamaxStrategy<PhaseAwareEvaluator>,
+        strategy: NegaAlphaStrategy<PhaseAwareEvaluator>,
     }
 
     impl NegamaxMoveDecider {
         pub fn new(depth: u32) -> Self {
             let evaluator = PhaseAwareEvaluator::default();
-            let strategy = NegamaxStrategy::new(evaluator, depth);
+            let strategy = NegaAlphaStrategy::new(evaluator, depth);
             Self { strategy }
         }
     }
@@ -189,7 +186,7 @@ mod tests {
     fn test_nodes_searched() {
         let game = Game::default();
         let evaluator = PhaseAwareEvaluator::default();
-        let mut strategy = NegamaxStrategy::new(evaluator, 9);
+        let mut strategy = NegaAlphaStrategy::new(evaluator, 9);
 
         strategy.evaluate_and_decide(&game);
         assert!(

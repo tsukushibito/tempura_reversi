@@ -4,7 +4,7 @@ use std::i32;
 use std::{cmp, hash::Hash};
 
 use super::Strategy;
-use crate::evaluation::{EvaluationFunction, MobilityEvaluator};
+use crate::evaluator::{EvaluationFunction, MobilityEvaluator};
 use temp_reversi_core::{Bitboard, Game, Player, Position};
 
 const CACHE_HIT_BONUS: i32 = 1000;
@@ -225,7 +225,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{evaluation::PhaseAwareEvaluator, strategy::NegamaxStrategy};
+    use crate::{evaluator::PhaseAwareEvaluator, strategy::NegaAlphaStrategy};
 
     use super::*;
 
@@ -233,7 +233,7 @@ mod tests {
     fn test_visited_nodes() {
         let game = Game::default();
         let evaluator = PhaseAwareEvaluator::default();
-        let mut strategy = NegamaxStrategy::new(evaluator, 10);
+        let mut strategy = NegaAlphaStrategy::new(evaluator, 10);
 
         let start = std::time::Instant::now();
         strategy.evaluate_and_decide(&game);
