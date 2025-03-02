@@ -7,7 +7,8 @@ edition = "2021"
 bincode = "1.3.3"
 lz4_flex = "0.11.3"
 plotters = "0.3.7"
-rand = "0.8.5"
+rand = "0.9.0"
+rand_distr = "0.5.1"
 rayon = "1.10.0"
 serde = { version = "1.0.217", features = ["derive"] }
 temp_reversi_core = { path = "../temp_reversi_core" }

@@ -216,7 +216,7 @@ impl GameDataset {
         }
 
         let mut records = combined_dataset.records;
-        records.shuffle(&mut rand::thread_rng());
+        records.shuffle(&mut rand::rng());
 
         Ok(GameDataset { records })
     }
@@ -276,7 +276,7 @@ impl GameDataset {
 
     /// Shuffles the game records in the dataset.
     pub fn shuffle(&mut self) {
-        self.records.shuffle(&mut rand::thread_rng());
+        self.records.shuffle(&mut rand::rng());
     }
 
     pub fn process_record(record: &GameRecord, groups: &[PatternGroup]) -> Vec<(Feature, f32)> {

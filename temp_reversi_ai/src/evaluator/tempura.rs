@@ -36,15 +36,12 @@ impl EvaluationFunction for TempuraEvaluator {
             // Determine phase by counting stones.
             let (black, white) = board.count_stones();
             let total = black + white;
-            if total <= 35 {
-                // Early phase: use PhaseAwareEvaluator.
+            if total <= 20 {
                 self.phase_aware.evaluate(board, player)
             } else {
-                // Mid and Late phases: use PatternEvaluator.
                 pattern.evaluate(board, player)
             }
         } else {
-            // Fallback to PhaseAwareEvaluator.
             self.phase_aware.evaluate(board, player)
         }
     }

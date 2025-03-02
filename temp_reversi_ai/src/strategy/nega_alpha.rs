@@ -1,5 +1,5 @@
 use crate::evaluator::EvaluationFunction;
-use rand::{seq::SliceRandom, thread_rng};
+use rand::{rng, seq::SliceRandom};
 use temp_reversi_core::{Bitboard, Game, Player, Position};
 
 use super::Strategy;
@@ -60,7 +60,7 @@ impl<E: EvaluationFunction + Send + Sync> NegaAlphaStrategy<E> {
         let mut valid_moves = board.valid_moves(player);
 
         // Shuffle the moves to introduce randomness
-        valid_moves.shuffle(&mut thread_rng());
+        valid_moves.shuffle(&mut rng());
 
         for mv in valid_moves {
             let mut new_board = board.clone();
@@ -104,7 +104,7 @@ where
         let player = game.current_player();
 
         let mut valid_moves = board.valid_moves(player);
-        valid_moves.shuffle(&mut thread_rng()); // Shuffle moves for variability
+        valid_moves.shuffle(&mut rng()); // Shuffle moves for variability
 
         for &mv in &valid_moves {
             let mut new_board = board.clone();

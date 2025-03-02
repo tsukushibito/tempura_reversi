@@ -88,7 +88,7 @@ impl EvaluationFunction for PhaseAwareEvaluator {
 mod tests {
     use crate::{
         ai_decider::AiDecider,
-        strategy::{NegamaxStrategy, Strategy},
+        strategy::{NegaAlphaStrategy, Strategy},
     };
 
     use super::*;
@@ -130,7 +130,7 @@ mod tests {
     fn test_parameters() {
         // 対戦させてどのパラメータが強いかを確認する
         let evaluator1 = PhaseAwareEvaluator::default();
-        let strategy1 = NegamaxStrategy::new(evaluator1, 4);
+        let strategy1 = NegaAlphaStrategy::new(evaluator1, 4);
 
         let evaluator2 = PhaseAwareEvaluator {
             phase_thresholds: (30, 60),
@@ -138,7 +138,7 @@ mod tests {
             mid_phase_weights: (4, 1, 2),
             late_phase_weights: (1, 1, 2),
         };
-        let strategy2 = NegamaxStrategy::new(evaluator2, 4);
+        let strategy2 = NegaAlphaStrategy::new(evaluator2, 4);
 
         let results: Vec<(usize, usize)> = (0..100)
             .into_par_iter()

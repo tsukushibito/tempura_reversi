@@ -23,7 +23,7 @@ enum Commands {
     /// Generate self-play data
     Generate {
         /// Number of games to generate
-        #[arg(long, default_value = "100000")]
+        #[arg(long, default_value = "1000000")]
         num_train_games: usize,
 
         /// Number of games to generate
@@ -31,14 +31,14 @@ enum Commands {
         num_validation_games: usize,
 
         /// Path to save the generated dataset
-        #[arg(short, long, default_value = "gen0/train_dataset")]
+        #[arg(short, long, default_value = "gen0/dataset/temp_dataset")]
         train_dataset_base_path: String,
 
-        #[arg(short, long, default_value = "gen0/validation_dataset")]
+        #[arg(short, long, default_value = "gen0/dataset/temp_validation_dataset")]
         validation_dataset_base_path: String,
 
         // Path to model for self-play
-        #[arg(short, long, default_value = "gen0/model.bin")]
+        #[arg(short, long, default_value = "gen0/temp_model.bin")]
         model_path: String,
     },
 
@@ -56,7 +56,7 @@ enum Commands {
         model_path: String,
 
         /// Batch size for training
-        #[arg(short, long, default_value = "64")]
+        #[arg(short, long, default_value = "1024")]
         batch_size: usize,
 
         /// Number of epochs
@@ -78,11 +78,11 @@ enum Commands {
 
     /// Test match: games between PatternEvaluator and PhaseAwareEvaluator AIs.
     TestMatch {
-        /// Number of games to play in test match (default: 100)
+        /// Number of games to play in test match
         #[arg(short, long, default_value = "100")]
         games: usize,
 
-        /// Path to load the model (default: work/reversi_model.bin)
+        /// Path to load the model
         #[arg(short, long, default_value = "gen0/model.bin")]
         black_model_path: String,
 

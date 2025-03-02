@@ -7,7 +7,7 @@ use crate::learning::optimizer::Adam;
 use crate::learning::{extract_features, generate_game_dataset, Trainer};
 use crate::patterns::get_predefined_patterns;
 use crate::plotter::{plot_overall_loss, plot_phase_losses};
-use crate::strategy::NegaAlphaStrategy;
+use crate::strategy::NegaAlphaTTStrategy;
 use crate::utils::ProgressReporter;
 
 use super::{Model, StreamingDatasetWriter};
@@ -144,10 +144,10 @@ impl TrainingPipeline {
         let mut remain_games = num_games;
         while remain_games > 0 {
             let num_games = remain_games.min(100000);
+            println!("Generating {}/{} games...", num_games, remain_games);
             let game_dataset = generate_game_dataset(
                 num_games,
-                Box::new(NegaAlphaStrategy::new(tempura_evaluator.clone(), 5)),
-                Box::new(NegaAlphaStrategy::new(tempura_evaluator.clone(), 5)),
+                Box::new(NegaAlphaTTStrategy::new(tempura_evaluator.clone(), 5, 0.0)),
                 reporter.clone(),
             );
 

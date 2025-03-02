@@ -239,7 +239,7 @@ impl std::fmt::Display for Bitboard {
 
 #[cfg(test)]
 mod tests {
-    use rand::{seq::SliceRandom, thread_rng};
+    use rand::{prelude::*, rng};
 
     use super::*;
 
@@ -736,7 +736,7 @@ mod tests {
     #[test]
     fn test_random_simulation() {
         let mut board = Bitboard::default();
-        let mut rng = thread_rng();
+        let mut rng = rng();
 
         let mut current_player = Player::Black;
 

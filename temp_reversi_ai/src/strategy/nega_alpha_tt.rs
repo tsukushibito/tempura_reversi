@@ -5,6 +5,8 @@ use std::{cmp, hash::Hash};
 
 use super::Strategy;
 use crate::evaluator::{EvaluationFunction, MobilityEvaluator};
+use rand::rng;
+use rand_distr::{Distribution, Normal};
 use temp_reversi_core::{Bitboard, Game, Player, Position};
 
 const CACHE_HIT_BONUS: i32 = 1000;
@@ -68,17 +70,20 @@ pub struct NegaAlphaTTStrategy<E: EvaluationFunction + Send + Sync> {
     former_transposition_table: HashMap<SearchState, i32>,
     visited_nodes: u64,
     max_depth: i32,
+
+    normal: Normal<f64>,
 }
 
 impl<E: EvaluationFunction + Send + Sync> NegaAlphaTTStrategy<E> {
     /// Constructor.
-    pub fn new(evaluator: E, max_depth: i32) -> Self {
+    pub fn new(evaluator: E, max_depth: i32, sigma: f64) -> Self {
         Self {
             evaluator,
             transposition_table: HashMap::new(),
             former_transposition_table: HashMap::new(),
             visited_nodes: 0,
             max_depth,
+            normal: Normal::new(0.0, sigma).unwrap(),
         }
     }
 
@@ -105,7 +110,9 @@ impl<E: EvaluationFunction + Send + Sync> NegaAlphaTTStrategy<E> {
         self.visited_nodes += 1;
 
         if depth == 0 {
-            return self.evaluator.evaluate(&state.board, state.current_player);
+            let mut rng = rng();
+            let fluctuation = self.normal.sample(&mut rng) as i32;
+            return self.evaluator.evaluate(&state.board, state.current_player) + fluctuation;
         }
 
         if let Some(&score) = self.transposition_table.get(&state) {
@@ -238,16 +245,16 @@ mod tests {
         let start = std::time::Instant::now();
         strategy.evaluate_and_decide(&game);
         let elapsed = start.elapsed();
-        println!("[Negamax] Elapsed: {:?}", elapsed);
+        println!("[NegaAlpha] Elapsed: {:?}", elapsed);
         assert!(
             strategy.nodes_searched > 0,
             "Nodes searched should be greater than 0."
         );
-        println!("[Negamax] Visited nodes: {}", strategy.nodes_searched);
+        println!("[NegaAlpha] Visited nodes: {}", strategy.nodes_searched);
 
         let game = Game::default();
         let evaluator = PhaseAwareEvaluator::default();
-        let mut strategy = NegaAlphaTTStrategy::new(evaluator, 10);
+        let mut strategy = NegaAlphaTTStrategy::new(evaluator, 10, 0.0);
 
         let start = std::time::Instant::now();
         strategy.evaluate_and_decide(&game);
@@ -258,5 +265,40 @@ mod tests {
             "Visited nodes should be greater than 0."
         );
         println!("[NegaAlphaTT] Visited nodes: {}", strategy.visited_nodes);
+    }
+
+    #[test]
+    fn test_self_play() {
+        let mut game = Game::default();
+        let evaluator = PhaseAwareEvaluator::default();
+        let mut strategy = NegaAlphaTTStrategy::new(evaluator, 6, 0.0);
+
+        let start = std::time::Instant::now();
+        while !game.is_game_over() {
+            if let Some(chosen_move) = strategy.evaluate_and_decide(&game) {
+                game.apply_move(chosen_move).unwrap();
+            } else {
+                break;
+            }
+        }
+        let elapsed = start.elapsed();
+
+        println!("[NegaAlphaTT] Elapsed: {:?}", elapsed);
+
+        let mut game = Game::default();
+        let evaluator = PhaseAwareEvaluator::default();
+        let mut strategy = NegaAlphaStrategy::new(evaluator, 6);
+
+        let start = std::time::Instant::now();
+        while !game.is_game_over() {
+            if let Some(chosen_move) = strategy.evaluate_and_decide(&game) {
+                game.apply_move(chosen_move).unwrap();
+            } else {
+                break;
+            }
+        }
+        let elapsed = start.elapsed();
+
+        println!("[NegaAlpha] Elapsed: {:?}", elapsed);
     }
 }
