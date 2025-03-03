@@ -30,6 +30,9 @@ enum Commands {
         #[arg(long, default_value = "50000")]
         num_validation_games: usize,
 
+        #[arg(short, long, default_value = "10")]
+        init_random_moves: usize,
+
         /// Path to save the generated dataset
         #[arg(short, long, default_value = "gen0/dataset/temp_dataset")]
         train_dataset_base_path: String,
@@ -111,8 +114,9 @@ fn main() {
         }
         Commands::Generate {
             num_train_games,
-            train_dataset_base_path,
             num_validation_games,
+            init_random_moves,
+            train_dataset_base_path,
             validation_dataset_base_path,
             model_path,
         } => {
@@ -122,6 +126,7 @@ fn main() {
             let config = TrainingConfig {
                 num_train_games,
                 num_validation_games,
+                init_random_moves,
                 batch_size: 32, // デフォルト値
                 num_epochs: 10, // デフォルト値
                 model_path,
@@ -157,6 +162,7 @@ fn main() {
             let config = TrainingConfig {
                 num_train_games: 0,
                 num_validation_games: 0,
+                init_random_moves: 0,
                 batch_size,
                 num_epochs: epochs,
                 model_path,

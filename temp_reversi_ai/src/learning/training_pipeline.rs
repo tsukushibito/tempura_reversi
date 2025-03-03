@@ -17,6 +17,7 @@ pub struct TrainingConfig {
     /// Number of self-play games to generate.
     pub num_train_games: usize,
     pub num_validation_games: usize,
+    pub init_random_moves: usize,
     /// Batch size for training.
     pub batch_size: usize,
     /// Number of epochs for model training.
@@ -148,6 +149,7 @@ impl TrainingPipeline {
             let game_dataset = generate_game_dataset(
                 num_games,
                 Box::new(NegaAlphaTTStrategy::new(tempura_evaluator.clone(), 5, 0.0)),
+                self.config.init_random_moves,
                 reporter.clone(),
             );
 
