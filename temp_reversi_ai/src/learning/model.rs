@@ -18,10 +18,14 @@ pub struct Model {
 impl Model {
     /// Predicts outputs for a batch of feature vectors
     pub fn predict(&self, features: &[Feature]) -> Vec<f32> {
-        features
-            .par_iter()
-            .map(|feature| self.bias + feature.vector.dot(&self.weights[feature.phase]))
-            .collect()
+        if features.len() == 1 {
+            return vec![self.bias + features[0].vector.dot(&self.weights[features[0].phase])];
+        } else {
+            features
+                .par_iter()
+                .map(|feature| self.bias + feature.vector.dot(&self.weights[feature.phase]))
+                .collect()
+        }
     }
 
     /// Saves the model to a file
