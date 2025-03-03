@@ -110,8 +110,12 @@ impl<E: EvaluationFunction + Send + Sync> NegaAlphaTTStrategy<E> {
         self.visited_nodes += 1;
 
         if depth == 0 {
+            // Add random fluctuation to the evaluation score
+            // (scaled by the total number of stones on the board).
+            let stones = state.board.count_stones();
+            let total = (stones.0 + stones.1) as f64;
             let mut rng = rng();
-            let fluctuation = self.normal.sample(&mut rng) as i32;
+            let fluctuation = (self.normal.sample(&mut rng) * total / 64.0) as i32;
             return self.evaluator.evaluate(&state.board, state.current_player) + fluctuation;
         }
 
