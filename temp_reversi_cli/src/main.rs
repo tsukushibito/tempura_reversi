@@ -3,7 +3,7 @@ use std::sync::Arc;
 use clap::{Parser, Subcommand};
 use temp_reversi_ai::learning::{TrainingConfig, TrainingPipeline};
 use temp_reversi_cli::{
-    run_test_match, shuffle_dataset,
+    play_game, run_test_match, shuffle_dataset,
     utils::{GenerationReporter, TrainingReporter},
 };
 
@@ -109,8 +109,7 @@ fn main() {
 
     match cli.command {
         Commands::Play => {
-            println!("Starting a new game...");
-            // ゲームロジックをここに実装
+            play_game();
         }
         Commands::Generate {
             num_train_games,
