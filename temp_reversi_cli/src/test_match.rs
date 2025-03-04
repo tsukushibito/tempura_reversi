@@ -3,6 +3,7 @@ use rand::rng;
 use rayon::prelude::*;
 use temp_reversi_ai::ai_decider::AiDecider;
 use temp_reversi_ai::evaluator::TempuraEvaluator;
+// use temp_reversi_ai::strategy::NegaAlphaStrategy;
 use temp_reversi_ai::strategy::NegaAlphaTTStrategy;
 use temp_reversi_ai::strategy::Strategy;
 use temp_reversi_core::{Game, MoveDecider, Player};
@@ -11,8 +12,10 @@ pub fn run_test_match(num_games: usize, black_model_path: &str, white_model_path
     // Create evaluators and strategies.
     let tempura_evaluator = TempuraEvaluator::new(black_model_path);
     let black_strategy = NegaAlphaTTStrategy::new(tempura_evaluator, 5, 0.0);
+    // let black_strategy = NegaAlphaStrategy::new(tempura_evaluator, 5);
     let tempura_evaluator = TempuraEvaluator::new(white_model_path);
     let white_strategy = NegaAlphaTTStrategy::new(tempura_evaluator, 5, 0.0);
+    // let white_strategy = NegaAlphaStrategy::new(tempura_evaluator, 5);
 
     // Run simulations in parallel.
     let (pattern_wins, phase_wins, draws) = (0..num_games)

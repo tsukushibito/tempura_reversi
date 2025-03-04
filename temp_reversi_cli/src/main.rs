@@ -41,21 +41,21 @@ enum Commands {
         validation_dataset_base_path: String,
 
         // Path to model for self-play
-        #[arg(short, long, default_value = "gen0/temp_model.bin")]
+        #[arg(short, long, default_value = "gen0/models/temp_model.bin")]
         model_path: String,
     },
 
     /// Train the model
     Train {
         /// Path to load the dataset
-        #[arg(short, long, default_value = "gen0/dataset/dataset")]
+        #[arg(short, long, default_value = "gen0/dataset/temp_dataset")]
         train_dataset_base_path: String,
 
-        #[arg(short, long, default_value = "gen0/dataset/validation_dataset")]
+        #[arg(short, long, default_value = "gen0/dataset/temp_validation_dataset")]
         validation_dataset_base_path: String,
 
         /// Path to save the trained model
-        #[arg(short, long, default_value = "gen0/model.bin")]
+        #[arg(short, long, default_value = "gen0/models/temp_model.bin")]
         model_path: String,
 
         /// Batch size for training
