@@ -75,7 +75,7 @@ enum Commands {
         phase_loss_plot_path: String,
 
         /// Learning rate for training
-        #[arg(short = 'l', long, default_value = "0.0005")]
+        #[arg(short = 'l', long, default_value = "0.0003")]
         learning_rate: f32,
     },
 
