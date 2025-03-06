@@ -1,5 +1,5 @@
-use std::collections::HashMap;
-use std::{cmp, i32};
+use std::i32;
+use std::{cmp, collections::HashMap};
 
 use super::search_state::SearchState;
 use super::Strategy;

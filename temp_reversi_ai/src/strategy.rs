@@ -1,6 +1,8 @@
 mod nega_alpha;
 mod nega_alpha_tt;
+mod nega_scout;
 mod random;
+mod search_state;
 mod simple;
 
 use temp_reversi_core::{Game, Position};
