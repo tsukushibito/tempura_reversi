@@ -9,6 +9,7 @@ use rand_distr::{Distribution, Normal};
 use temp_reversi_core::{Game, Position};
 
 const CACHE_HIT_BONUS: i32 = 1000;
+const INF: i32 = i32::MAX;
 
 /// Strategy implementing Negalpha search with a transposition table and move ordering.
 #[derive(Clone)]
@@ -16,7 +17,7 @@ pub struct NegaAlphaTTStrategy<E: EvaluationFunction + Send + Sync> {
     evaluator: E,
     transposition_table: HashMap<SearchState, i32>,
     former_transposition_table: HashMap<SearchState, i32>,
-    visited_nodes: u64,
+    pub visited_nodes: u64,
     max_depth: i32,
 
     normal: Normal<f64>,
@@ -95,7 +96,7 @@ impl<E: EvaluationFunction + Send + Sync> NegaAlphaTTStrategy<E> {
             children.sort_by(|a, b| b.2.cmp(&a.2));
         }
 
-        let mut value = i32::MIN + 1;
+        let mut value = -INF;
         let mut alpha_local = alpha;
         for (_, child_state, _) in children.iter() {
             let score =
@@ -129,8 +130,8 @@ impl<E: EvaluationFunction + Send + Sync> NegaAlphaTTStrategy<E> {
         let mut best_move = None;
         let start_depth = cmp::max(1, self.max_depth - 3);
         for depth in start_depth..=self.max_depth {
-            let mut alpha = i32::MIN + 1;
-            let beta = i32::MAX;
+            let mut alpha = -INF;
+            let beta = INF;
             let mut children: Vec<(Position, SearchState, i32)> = Vec::new();
             for pos in &valid_moves {
                 if let Some(child_state) = state.apply_move(*pos) {
