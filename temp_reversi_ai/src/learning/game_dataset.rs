@@ -11,7 +11,7 @@ use std::{
     fs::{self, metadata},
     path::Path,
 };
-use temp_reversi_core::{Game, Position};
+use temp_reversi_core::{Bitboard, Game, Position};
 
 /// Represents a game record containing move history and final score.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -288,13 +288,25 @@ impl GameDataset {
             if let Ok(pos) = Position::from_u8(pos_idx) {
                 if game.is_valid_move(pos) {
                     game.apply_move(pos).unwrap();
-                    let feature_vector = extract_features(&game.board_state(), groups);
+                    let board = game.board_state();
+                    let feature_vector = extract_features(&board, groups);
                     samples.push((
                         Feature {
                             phase,
                             vector: feature_vector,
                         },
                         final_score,
+                    ));
+
+                    // Add the inverted board state as well
+                    let inverted_board = Bitboard::new(board.bits().1, board.bits().0);
+                    let feature_vector = extract_features(&inverted_board, groups);
+                    samples.push((
+                        Feature {
+                            phase,
+                            vector: feature_vector,
+                        },
+                        -final_score,
                     ));
                     phase += 1;
                 }
