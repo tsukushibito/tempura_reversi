@@ -1,18 +1,19 @@
-use crate::{Game, Player, Position};
+use crate::{Board, Game, Player, Position};
 
-pub trait MoveDecider {
-    fn select_move(&mut self, game: &Game) -> Option<Position>;
+pub trait MoveDecider<B: Board> {
+    fn select_move(&mut self, game: &Game<B>) -> Option<Position>;
 }
 
 /// Main game loop for Reversi, allowing for human or AI players.
-pub fn run_game<D1, D2>(
+pub fn run_game<D1, D2, B>(
     mut black_decider: D1,
     mut white_decider: D2,
-    mut display: impl FnMut(&Game),
+    mut display: impl FnMut(&Game<B>),
 ) -> Result<(), String>
 where
-    D1: MoveDecider,
-    D2: MoveDecider,
+    D1: MoveDecider<B>,
+    D2: MoveDecider<B>,
+    B: Board,
 {
     let mut game = Game::default();
 

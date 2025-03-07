@@ -3,7 +3,7 @@ use crate::{learning::Model, patterns::get_predefined_patterns};
 use super::pattern::PatternEvaluator;
 use super::phase_aware::PhaseAwareEvaluator;
 use super::EvaluationFunction;
-use temp_reversi_core::{Bitboard, Player};
+use temp_reversi_core::{Board, Player};
 
 #[derive(Debug, Clone)]
 pub struct TempuraEvaluator {
@@ -33,7 +33,7 @@ impl TempuraEvaluator {
 }
 
 impl EvaluationFunction for TempuraEvaluator {
-    fn evaluate(&self, board: &Bitboard, player: Player) -> i32 {
+    fn evaluate(&self, board: &impl Board, player: Player) -> i32 {
         if let Some(pattern) = &self.pattern {
             // Determine phase by counting stones.
             let (black, white) = board.count_stones();

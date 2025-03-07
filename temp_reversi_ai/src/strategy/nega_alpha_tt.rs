@@ -6,24 +6,32 @@ use super::Strategy;
 use crate::evaluator::{EvaluationFunction, MobilityEvaluator};
 use rand::rng;
 use rand_distr::{Distribution, Normal};
-use temp_reversi_core::{Game, Position};
+use temp_reversi_core::{Board, Game, Position};
 
 const CACHE_HIT_BONUS: i32 = 1000;
 const INF: i32 = i32::MAX;
 
 /// Strategy implementing Negalpha search with a transposition table and move ordering.
 #[derive(Clone)]
-pub struct NegaAlphaTTStrategy<E: EvaluationFunction + Send + Sync> {
+pub struct NegaAlphaTTStrategy<E, B>
+where
+    E: EvaluationFunction + Send + Sync,
+    B: Board,
+{
     evaluator: E,
-    transposition_table: HashMap<SearchState, i32>,
-    former_transposition_table: HashMap<SearchState, i32>,
+    transposition_table: HashMap<SearchState<B>, i32>,
+    former_transposition_table: HashMap<SearchState<B>, i32>,
     pub visited_nodes: u64,
     max_depth: i32,
 
     normal: Normal<f64>,
 }
 
-impl<E: EvaluationFunction + Send + Sync> NegaAlphaTTStrategy<E> {
+impl<E, B> NegaAlphaTTStrategy<E, B>
+where
+    E: EvaluationFunction + Send + Sync,
+    B: Board,
+{
     /// Constructor.
     pub fn new(evaluator: E, max_depth: i32, sigma: f64) -> Self {
         Self {
@@ -37,7 +45,7 @@ impl<E: EvaluationFunction + Send + Sync> NegaAlphaTTStrategy<E> {
     }
 
     /// Calculates move ordering value using MobilityEvaluator.
-    fn calc_move_ordering_value(&self, state: &SearchState) -> i32 {
+    fn calc_move_ordering_value(&self, state: &SearchState<B>) -> i32 {
         if let Some(&score) = self.former_transposition_table.get(state) {
             CACHE_HIT_BONUS - score
         } else {
@@ -50,7 +58,7 @@ impl<E: EvaluationFunction + Send + Sync> NegaAlphaTTStrategy<E> {
     /// Negalpha search using transposition table and move ordering (recursive function).
     fn nega_alpha_transpose(
         &mut self,
-        state: SearchState,
+        state: &SearchState<B>,
         depth: i32,
         passed: bool,
         alpha: i32,
@@ -81,11 +89,11 @@ impl<E: EvaluationFunction + Send + Sync> NegaAlphaTTStrategy<E> {
 
             // Pass
             let next_state = SearchState::new(state.board.clone(), state.current_player.opponent());
-            return -self.nega_alpha_transpose(next_state, depth, true, -beta, -alpha);
+            return -self.nega_alpha_transpose(&next_state, depth, true, -beta, -alpha);
         }
 
         // Generate children and sort them by move ordering value
-        let mut children: Vec<(Position, SearchState, i32)> = Vec::new();
+        let mut children: Vec<(Position, SearchState<B>, i32)> = Vec::new();
         for pos in valid_moves {
             if let Some(child_state) = state.apply_move(pos) {
                 let ordering = self.calc_move_ordering_value(&child_state);
@@ -100,9 +108,9 @@ impl<E: EvaluationFunction + Send + Sync> NegaAlphaTTStrategy<E> {
         let mut alpha_local = alpha;
         for (_, child_state, _) in children.iter() {
             let score =
-                -self.nega_alpha_transpose(*child_state, depth - 1, false, -beta, -alpha_local);
+                -self.nega_alpha_transpose(child_state, depth - 1, false, -beta, -alpha_local);
             if score >= beta {
-                self.transposition_table.insert(state, score);
+                self.transposition_table.insert(state.clone(), score);
                 return score;
             }
             if score > value {
@@ -112,12 +120,12 @@ impl<E: EvaluationFunction + Send + Sync> NegaAlphaTTStrategy<E> {
                 alpha_local = score;
             }
         }
-        self.transposition_table.insert(state, value);
+        self.transposition_table.insert(state.clone(), value);
         value
     }
 
     /// Finds the best move using iterative deepening search.
-    fn search(&mut self, state: SearchState) -> Option<Position> {
+    fn search(&mut self, state: SearchState<B>) -> Option<Position> {
         self.visited_nodes = 0;
         self.transposition_table.clear();
         self.former_transposition_table.clear();
@@ -132,7 +140,7 @@ impl<E: EvaluationFunction + Send + Sync> NegaAlphaTTStrategy<E> {
         for depth in start_depth..=self.max_depth {
             let mut alpha = -INF;
             let beta = INF;
-            let mut children: Vec<(Position, SearchState, i32)> = Vec::new();
+            let mut children: Vec<(Position, SearchState<B>, i32)> = Vec::new();
             for pos in &valid_moves {
                 if let Some(child_state) = state.apply_move(*pos) {
                     let ordering = self.calc_move_ordering_value(&child_state);
@@ -144,7 +152,7 @@ impl<E: EvaluationFunction + Send + Sync> NegaAlphaTTStrategy<E> {
             }
             for (pos, child_state, _) in children.iter() {
                 let score =
-                    -self.nega_alpha_transpose(*child_state, depth - 1, false, -beta, -alpha);
+                    -self.nega_alpha_transpose(child_state, depth - 1, false, -beta, -alpha);
                 if score > alpha {
                     alpha = score;
                     best_move = Some(*pos);
@@ -168,30 +176,33 @@ impl<E: EvaluationFunction + Send + Sync> NegaAlphaTTStrategy<E> {
     }
 }
 
-impl<E> Strategy for NegaAlphaTTStrategy<E>
+impl<E, B> Strategy<B> for NegaAlphaTTStrategy<E, B>
 where
     E: EvaluationFunction + Send + Sync + Clone + 'static,
+    B: Board + Send + Sync + 'static,
 {
     /// Evaluates the game state and decides the next move.
-    fn evaluate_and_decide(&mut self, game: &Game) -> Option<Position> {
+    fn evaluate_and_decide(&mut self, game: &Game<B>) -> Option<Position> {
         let state = SearchState::new(game.board_state().clone(), game.current_player());
         self.search(state)
     }
 
-    fn clone_box(&self) -> Box<dyn Strategy> {
+    fn clone_box(&self) -> Box<dyn Strategy<B>> {
         Box::new((*self).clone())
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use temp_reversi_core::Bitboard;
+
     use crate::{evaluator::PhaseAwareEvaluator, strategy::NegaAlphaStrategy};
 
     use super::*;
 
     #[test]
     fn test_visited_nodes() {
-        let game = Game::default();
+        let game = Game::<Bitboard>::default();
         let evaluator = PhaseAwareEvaluator::default();
         let mut strategy = NegaAlphaStrategy::new(evaluator, 10);
 
@@ -205,7 +216,7 @@ mod tests {
         );
         println!("[NegaAlpha] Visited nodes: {}", strategy.nodes_searched);
 
-        let game = Game::default();
+        let game = Game::<Bitboard>::default();
         let evaluator = PhaseAwareEvaluator::default();
         let mut strategy = NegaAlphaTTStrategy::new(evaluator, 10, 0.0);
 
@@ -222,7 +233,7 @@ mod tests {
 
     #[test]
     fn test_self_play() {
-        let mut game = Game::default();
+        let mut game = Game::<Bitboard>::default();
         let evaluator = PhaseAwareEvaluator::default();
         let mut strategy = NegaAlphaTTStrategy::new(evaluator, 6, 0.0);
 
@@ -238,7 +249,7 @@ mod tests {
 
         println!("[NegaAlphaTT] Elapsed: {:?}", elapsed);
 
-        let mut game = Game::default();
+        let mut game = Game::<Bitboard>::default();
         let evaluator = PhaseAwareEvaluator::default();
         let mut strategy = NegaAlphaStrategy::new(evaluator, 6);
 

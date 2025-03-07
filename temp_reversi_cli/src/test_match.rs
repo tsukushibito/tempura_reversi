@@ -6,6 +6,7 @@ use temp_reversi_ai::evaluator::TempuraEvaluator;
 // use temp_reversi_ai::strategy::NegaAlphaStrategy;
 use temp_reversi_ai::strategy::NegaAlphaTTStrategy;
 use temp_reversi_ai::strategy::Strategy;
+use temp_reversi_core::Bitboard;
 use temp_reversi_core::{Game, MoveDecider, Player};
 
 pub fn run_test_match(num_games: usize, black_model_path: &str, white_model_path: &str) {
@@ -21,7 +22,7 @@ pub fn run_test_match(num_games: usize, black_model_path: &str, white_model_path
     let (pattern_wins, phase_wins, draws) = (0..num_games)
         .into_par_iter()
         .map(|_| {
-            let mut game = Game::default();
+            let mut game = Game::<Bitboard>::default();
             // Create local AI deciders by cloning strategies.
             let mut local_pattern_ai = AiDecider::new(black_strategy.clone_box());
             let mut local_phase_ai = AiDecider::new(white_strategy.clone_box());

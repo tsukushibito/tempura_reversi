@@ -6,7 +6,7 @@ use crate::{
     patterns::PatternGroup,
     utils::Feature,
 };
-use temp_reversi_core::{Bitboard, Player};
+use temp_reversi_core::{Board, Player};
 
 /// Evaluates the board based on multiple pattern groups and their scores.
 #[derive(Debug, Clone)]
@@ -33,7 +33,7 @@ impl PatternEvaluator {
 }
 
 impl EvaluationFunction for PatternEvaluator {
-    fn evaluate(&self, board: &Bitboard, player: Player) -> i32 {
+    fn evaluate(&self, board: &impl Board, player: Player) -> i32 {
         let vector = extract_features(board, &self.groups);
 
         // phase[0] = 1手進めた盤面

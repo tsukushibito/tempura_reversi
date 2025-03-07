@@ -1,6 +1,6 @@
-use temp_reversi_core::{Game, Player};
+use temp_reversi_core::{Board, Game, Player};
 
-pub fn cli_display(game: &Game) {
+pub fn cli_display(game: &Game<impl Board>) {
     if game.is_game_over() {
         println!("Game over!");
         println!("Board:\n{}", game.board_state());

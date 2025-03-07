@@ -5,10 +5,10 @@ mod random;
 mod search_state;
 mod simple;
 
-use temp_reversi_core::{Game, Position};
+use temp_reversi_core::{Board, Game, Position};
 
 /// The `Strategy` trait defines the interface for different strategies.
-pub trait Strategy: Send + Sync {
+pub trait Strategy<B: Board>: Send + Sync {
     /// Evaluate the current game state and decide the next move.
     ///
     /// # Arguments
@@ -16,15 +16,15 @@ pub trait Strategy: Send + Sync {
     ///
     /// # Returns
     /// * `Option<Position>` - The chosen position or `None` if no move is possible.
-    fn evaluate_and_decide(&mut self, game: &Game) -> Option<Position>;
+    fn evaluate_and_decide(&mut self, game: &Game<B>) -> Option<Position>;
 
     /// Clones the strategy as a `Box<dyn Strategy>`.
-    fn clone_box(&self) -> Box<dyn Strategy>;
+    fn clone_box(&self) -> Box<dyn Strategy<B>>;
 }
 
 /// Implements `Clone` for `Box<dyn Strategy>` to enable safe cloning.
-impl Clone for Box<dyn Strategy> {
-    fn clone(&self) -> Box<dyn Strategy> {
+impl<B: Board> Clone for Box<dyn Strategy<B>> {
+    fn clone(&self) -> Box<dyn Strategy<B>> {
         self.clone_box()
     }
 }

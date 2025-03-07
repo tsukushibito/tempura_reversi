@@ -1,4 +1,4 @@
-use temp_reversi_core::{Bitboard, Player};
+use temp_reversi_core::{Board, Player};
 
 pub trait EvaluationFunction {
     /// Evaluate the current board state for a specific player.
@@ -9,7 +9,7 @@ pub trait EvaluationFunction {
     ///
     /// # Returns
     /// * `i32` - The evaluation score.
-    fn evaluate(&self, board: &Bitboard, player: Player) -> i32;
+    fn evaluate(&self, board: &impl Board, player: Player) -> i32;
 }
 
 mod mobility;

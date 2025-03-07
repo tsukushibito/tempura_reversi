@@ -6,26 +6,34 @@ use super::Strategy;
 use crate::evaluator::{EvaluationFunction, MobilityEvaluator};
 use rand::rng;
 use rand_distr::{Distribution, Normal};
-use temp_reversi_core::{Game, Position};
+use temp_reversi_core::{Board, Game, Position};
 
 const CACHE_HIT_BONUS: i32 = 1000;
 const INF: i32 = i32::MAX;
 
 /// Strategy implementing Negalpha search with a transposition table and move ordering.
 #[derive(Clone)]
-pub struct NegaScoutStrategy<E: EvaluationFunction + Send + Sync> {
+pub struct NegaScoutStrategy<E, B>
+where
+    E: EvaluationFunction + Send + Sync,
+    B: Board,
+{
     evaluator: E,
-    transposition_table_upper: HashMap<SearchState, i32>,
-    transposition_table_lower: HashMap<SearchState, i32>,
-    former_transposition_table_upper: HashMap<SearchState, i32>,
-    former_transposition_table_lower: HashMap<SearchState, i32>,
+    transposition_table_upper: HashMap<SearchState<B>, i32>,
+    transposition_table_lower: HashMap<SearchState<B>, i32>,
+    former_transposition_table_upper: HashMap<SearchState<B>, i32>,
+    former_transposition_table_lower: HashMap<SearchState<B>, i32>,
     visited_nodes: u64,
     max_depth: i32,
 
     normal: Normal<f64>,
 }
 
-impl<E: EvaluationFunction + Send + Sync> NegaScoutStrategy<E> {
+impl<E, B> NegaScoutStrategy<E, B>
+where
+    E: EvaluationFunction + Send + Sync,
+    B: Board,
+{
     /// Constructor.
     pub fn new(evaluator: E, max_depth: i32, sigma: f64) -> Self {
         Self {
@@ -41,7 +49,7 @@ impl<E: EvaluationFunction + Send + Sync> NegaScoutStrategy<E> {
     }
 
     /// Calculates move ordering value using MobilityEvaluator.
-    fn calc_move_ordering_value(&self, state: &SearchState) -> i32 {
+    fn calc_move_ordering_value(&self, state: &SearchState<B>) -> i32 {
         if let Some(&score) = self.former_transposition_table_upper.get(state) {
             CACHE_HIT_BONUS - score
         } else if let Some(&score) = self.former_transposition_table_lower.get(state) {
@@ -56,7 +64,7 @@ impl<E: EvaluationFunction + Send + Sync> NegaScoutStrategy<E> {
 
     fn nega_alpha_transpose(
         &mut self,
-        state: SearchState,
+        state: &SearchState<B>,
         depth: i32,
         passed: bool,
         alpha: i32,
@@ -105,11 +113,11 @@ impl<E: EvaluationFunction + Send + Sync> NegaScoutStrategy<E> {
 
             // Pass
             let next_state = SearchState::new(state.board.clone(), state.current_player.opponent());
-            return -self.nega_alpha_transpose(next_state, depth, true, -beta, -alpha);
+            return -self.nega_alpha_transpose(&next_state, depth, true, -beta, -alpha);
         }
 
         // Generate children and sort them by move ordering value
-        let mut children: Vec<(Position, SearchState, i32)> = Vec::new();
+        let mut children: Vec<(Position, SearchState<B>, i32)> = Vec::new();
         for pos in valid_moves {
             if let Some(child_state) = state.apply_move(pos) {
                 let ordering = self.calc_move_ordering_value(&child_state);
@@ -124,10 +132,10 @@ impl<E: EvaluationFunction + Send + Sync> NegaScoutStrategy<E> {
         let mut alpha_local = alpha;
         for (_, child_state, _) in children.iter() {
             let score =
-                -self.nega_alpha_transpose(*child_state, depth - 1, false, -beta, -alpha_local);
+                -self.nega_alpha_transpose(child_state, depth - 1, false, -beta, -alpha_local);
             if score >= beta {
                 if score > lower {
-                    self.transposition_table_lower.insert(state, score);
+                    self.transposition_table_lower.insert(state.clone(), score);
                 }
                 return score;
             }
@@ -137,10 +145,13 @@ impl<E: EvaluationFunction + Send + Sync> NegaScoutStrategy<E> {
         }
 
         if max_score < alpha_local {
-            self.transposition_table_upper.insert(state, max_score);
+            self.transposition_table_upper
+                .insert(state.clone(), max_score);
         } else {
-            self.transposition_table_upper.insert(state, max_score);
-            self.transposition_table_lower.insert(state, max_score);
+            self.transposition_table_upper
+                .insert(state.clone(), max_score);
+            self.transposition_table_lower
+                .insert(state.clone(), max_score);
         }
 
         max_score
@@ -148,7 +159,7 @@ impl<E: EvaluationFunction + Send + Sync> NegaScoutStrategy<E> {
 
     fn nega_scout(
         &mut self,
-        state: SearchState,
+        state: &SearchState<B>,
         depth: i32,
         passed: bool,
         alpha: i32,
@@ -193,11 +204,11 @@ impl<E: EvaluationFunction + Send + Sync> NegaScoutStrategy<E> {
 
             // Pass
             let next_state = SearchState::new(state.board.clone(), state.current_player.opponent());
-            return -self.nega_scout(next_state, depth, true, -beta, -alpha);
+            return -self.nega_scout(&next_state, depth, true, -beta, -alpha);
         }
 
         // Generate children and sort them by move ordering value
-        let mut children: Vec<(Position, SearchState, i32)> = Vec::new();
+        let mut children: Vec<(Position, SearchState<B>, i32)> = Vec::new();
         for pos in valid_moves {
             if let Some(child_state) = state.apply_move(pos) {
                 let ordering = self.calc_move_ordering_value(&child_state);
@@ -210,10 +221,10 @@ impl<E: EvaluationFunction + Send + Sync> NegaScoutStrategy<E> {
 
         // 最善手候補は通常窓で探索
         let first_child = children.first().expect("No children found.");
-        let score = -self.nega_scout(first_child.1, depth - 1, false, -beta, -alpha);
+        let score = -self.nega_scout(&first_child.1, depth - 1, false, -beta, -alpha);
         if score >= beta {
             if score > lower {
-                self.transposition_table_lower.insert(state, score);
+                self.transposition_table_lower.insert(state.clone(), score);
             }
             return score;
         }
@@ -224,7 +235,7 @@ impl<E: EvaluationFunction + Send + Sync> NegaScoutStrategy<E> {
         // 次善手以降は窓を狭めて探索
         for (_, child_state, _) in children.iter().skip(1) {
             let mut score = -self.nega_alpha_transpose(
-                *child_state,
+                child_state,
                 depth - 1,
                 false,
                 -alpha_local - 1,
@@ -234,7 +245,7 @@ impl<E: EvaluationFunction + Send + Sync> NegaScoutStrategy<E> {
             // Fail-High
             if score >= beta {
                 if score > lower {
-                    self.transposition_table_lower.insert(state, score);
+                    self.transposition_table_lower.insert(state.clone(), score);
                 }
                 return score;
             }
@@ -242,11 +253,11 @@ impl<E: EvaluationFunction + Send + Sync> NegaScoutStrategy<E> {
             if score > alpha_local {
                 // より良い手が見つかった場合、再探索
                 alpha_local = score;
-                score = -self.nega_scout(*child_state, depth - 1, false, -beta, -alpha_local);
+                score = -self.nega_scout(child_state, depth - 1, false, -beta, -alpha_local);
                 // Fail-High
                 if score >= beta {
                     if score > lower {
-                        self.transposition_table_lower.insert(state, score);
+                        self.transposition_table_lower.insert(state.clone(), score);
                     }
                     return score;
                 }
@@ -257,17 +268,20 @@ impl<E: EvaluationFunction + Send + Sync> NegaScoutStrategy<E> {
         }
 
         if max_score < alpha_local {
-            self.transposition_table_upper.insert(state, max_score);
+            self.transposition_table_upper
+                .insert(state.clone(), max_score);
         } else {
-            self.transposition_table_upper.insert(state, max_score);
-            self.transposition_table_lower.insert(state, max_score);
+            self.transposition_table_upper
+                .insert(state.clone(), max_score);
+            self.transposition_table_lower
+                .insert(state.clone(), max_score);
         }
 
         max_score
     }
 
     /// Finds the best move using iterative deepening search.
-    fn search(&mut self, state: SearchState) -> Option<Position> {
+    fn search(&mut self, state: SearchState<B>) -> Option<Position> {
         self.visited_nodes = 0;
         self.transposition_table_upper.clear();
         self.transposition_table_lower.clear();
@@ -284,7 +298,7 @@ impl<E: EvaluationFunction + Send + Sync> NegaScoutStrategy<E> {
         for depth in start_depth..=self.max_depth {
             let mut alpha = -INF;
             let beta = INF;
-            let mut children: Vec<(Position, SearchState, i32)> = Vec::new();
+            let mut children: Vec<(Position, SearchState<B>, i32)> = Vec::new();
 
             for pos in &valid_moves {
                 if let Some(child_state) = state.apply_move(*pos) {
@@ -298,19 +312,19 @@ impl<E: EvaluationFunction + Send + Sync> NegaScoutStrategy<E> {
             }
 
             // 最善手候補は通常窓で探索
-            let score = -self.nega_scout(children[0].1, depth - 1, false, -beta, -alpha);
+            let score = -self.nega_scout(&children[0].1, depth - 1, false, -beta, -alpha);
             alpha = score;
             best_move = Some(children[0].0);
 
             // 次善手以降は窓を狭めて探索
             for (pos, child_state, _) in children.iter().skip(1) {
                 let score =
-                    -self.nega_alpha_transpose(*child_state, depth - 1, false, -alpha - 1, -alpha);
+                    -self.nega_alpha_transpose(child_state, depth - 1, false, -alpha - 1, -alpha);
 
                 if alpha < score {
                     // 良い手が見つかった場合、再探索
                     alpha = score;
-                    let _score = -self.nega_scout(*child_state, depth - 1, false, -beta, -alpha);
+                    let _score = -self.nega_scout(child_state, depth - 1, false, -beta, -alpha);
                     best_move = Some(*pos);
                 }
 
@@ -339,23 +353,26 @@ impl<E: EvaluationFunction + Send + Sync> NegaScoutStrategy<E> {
     }
 }
 
-impl<E> Strategy for NegaScoutStrategy<E>
+impl<E, B> Strategy<B> for NegaScoutStrategy<E, B>
 where
     E: EvaluationFunction + Send + Sync + Clone + 'static,
+    B: Board + Send + Sync + 'static,
 {
     /// Evaluates the game state and decides the next move.
-    fn evaluate_and_decide(&mut self, game: &Game) -> Option<Position> {
+    fn evaluate_and_decide(&mut self, game: &Game<B>) -> Option<Position> {
         let state = SearchState::new(game.board_state().clone(), game.current_player());
         self.search(state)
     }
 
-    fn clone_box(&self) -> Box<dyn Strategy> {
+    fn clone_box(&self) -> Box<dyn Strategy<B>> {
         Box::new((*self).clone())
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use temp_reversi_core::Bitboard;
+
     use crate::{
         evaluator::PhaseAwareEvaluator,
         strategy::{NegaAlphaStrategy, NegaAlphaTTStrategy},
@@ -381,7 +398,7 @@ mod tests {
         // );
         // println!("[NegaAlpha] Visited nodes: {}", strategy.nodes_searched);
 
-        let game = Game::default();
+        let game = Game::<Bitboard>::default();
         let evaluator = PhaseAwareEvaluator::default();
         let mut strategy = NegaAlphaTTStrategy::new(evaluator, depth, 0.0);
 
@@ -395,7 +412,7 @@ mod tests {
         );
         println!("[NegaAlphaTT] Visited nodes: {}", strategy.visited_nodes);
 
-        let game = Game::default();
+        let game = Game::<Bitboard>::default();
         let evaluator = PhaseAwareEvaluator::default();
         let mut strategy = NegaScoutStrategy::new(evaluator, depth, 0.0);
 
@@ -412,7 +429,7 @@ mod tests {
 
     #[test]
     fn test_self_play() {
-        let mut game = Game::default();
+        let mut game = Game::<Bitboard>::default();
         let evaluator = PhaseAwareEvaluator::default();
         let mut strategy = NegaScoutStrategy::new(evaluator, 6, 0.0);
 
@@ -428,7 +445,7 @@ mod tests {
 
         println!("[NegaAlphaTT] Elapsed: {:?}", elapsed);
 
-        let mut game = Game::default();
+        let mut game = Game::<Bitboard>::default();
         let evaluator = PhaseAwareEvaluator::default();
         let mut strategy = NegaAlphaStrategy::new(evaluator, 6);
 

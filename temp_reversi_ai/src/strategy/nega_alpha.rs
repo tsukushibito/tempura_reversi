@@ -1,6 +1,6 @@
 use crate::evaluator::EvaluationFunction;
 use rand::{rng, seq::SliceRandom};
-use temp_reversi_core::{Bitboard, Game, Player, Position};
+use temp_reversi_core::{Board, Game, Player, Position};
 
 use super::Strategy;
 
@@ -42,7 +42,7 @@ impl<E: EvaluationFunction + Send + Sync> NegaAlphaStrategy<E> {
     /// avoid deterministic behavior in symmetrical board states.
     fn negamax(
         &mut self,
-        board: &Bitboard,
+        board: &impl Board,
         depth: i32,
         mut alpha: i32,
         beta: i32,
@@ -66,7 +66,6 @@ impl<E: EvaluationFunction + Send + Sync> NegaAlphaStrategy<E> {
             let mut new_board = board.clone();
             let r = new_board.apply_move(mv, player);
             if let Err(_) = r {
-                println!("{new_board}");
                 panic!();
             }
             let eval = -self.negamax(&new_board, depth - 1, -beta, -alpha, player.opponent());
@@ -80,9 +79,10 @@ impl<E: EvaluationFunction + Send + Sync> NegaAlphaStrategy<E> {
     }
 }
 
-impl<E> Strategy for NegaAlphaStrategy<E>
+impl<E, B> Strategy<B> for NegaAlphaStrategy<E>
 where
     E: EvaluationFunction + Clone + Send + Sync + 'static,
+    B: Board + 'static,
 {
     /// Evaluates the game state and selects the best move using the Negamax algorithm.
     ///
@@ -93,7 +93,7 @@ where
     /// * `Option<Position>` - The position of the selected move or `None` if no valid move exists.
     ///
     /// This method ensures randomness in decision-making by shuffling valid moves.
-    fn evaluate_and_decide(&mut self, game: &Game) -> Option<Position> {
+    fn evaluate_and_decide(&mut self, game: &Game<B>) -> Option<Position> {
         self.nodes_searched = 0;
 
         let mut best_move = None;
@@ -124,7 +124,7 @@ where
         best_move
     }
 
-    fn clone_box(&self) -> Box<dyn Strategy> {
+    fn clone_box(&self) -> Box<dyn Strategy<B>> {
         Box::new((*self).clone())
     }
 }
@@ -135,11 +135,11 @@ mod tests {
 
     use super::*;
     use temp_reversi_cli::cli_display;
-    use temp_reversi_core::{run_game, Game, MoveDecider};
+    use temp_reversi_core::{run_game, Bitboard, Game, MoveDecider};
 
     #[test]
     fn test_negamax_with_alpha_beta() {
-        let game = Game::default();
+        let game = Game::<Bitboard>::default();
         let evaluator = SimpleEvaluator;
         let mut strategy = NegaAlphaStrategy::new(evaluator, 1);
 
@@ -163,8 +163,8 @@ mod tests {
         }
     }
 
-    impl MoveDecider for NegamaxMoveDecider {
-        fn select_move(&mut self, game: &Game) -> Option<Position> {
+    impl<B: Board + 'static> MoveDecider<B> for NegamaxMoveDecider {
+        fn select_move(&mut self, game: &Game<B>) -> Option<Position> {
             self.strategy.evaluate_and_decide(game)
         }
     }
@@ -176,7 +176,7 @@ mod tests {
         let white_player = NegamaxMoveDecider::new(3); // Depth of 3 for White
 
         // Run the game
-        match run_game(black_player, white_player, cli_display) {
+        match run_game::<_, _, Bitboard>(black_player, white_player, cli_display) {
             Ok(()) => println!("Game over!"),
             Err(err) => eprintln!("Error: {}", err),
         }
@@ -184,7 +184,7 @@ mod tests {
 
     #[test]
     fn test_nodes_searched() {
-        let game = Game::default();
+        let game = Game::<Bitboard>::default();
         let evaluator = PhaseAwareEvaluator::default();
         let mut strategy = NegaAlphaStrategy::new(evaluator, 9);
 

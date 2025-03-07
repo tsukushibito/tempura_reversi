@@ -1,4 +1,4 @@
-use temp_reversi_core::{Bitboard, Player};
+use temp_reversi_core::{Board, Player};
 
 use super::{mobility::MobilityEvaluator, EvaluationFunction, PositionalEvaluator};
 
@@ -32,7 +32,7 @@ impl Default for PhaseAwareEvaluator {
 
 impl PhaseAwareEvaluator {
     /// Determine the phase of the game based on the total number of stones.
-    fn determine_phase(&self, board: &Bitboard) -> Phase {
+    fn determine_phase(&self, board: &impl Board) -> Phase {
         let (black_count, white_count) = board.count_stones();
         let total_stones = black_count + white_count;
 
@@ -47,7 +47,7 @@ impl PhaseAwareEvaluator {
 }
 
 impl EvaluationFunction for PhaseAwareEvaluator {
-    fn evaluate(&self, board: &Bitboard, player: Player) -> i32 {
+    fn evaluate(&self, board: &impl Board, player: Player) -> i32 {
         let phase = self.determine_phase(board);
         let mobility_evaluator = MobilityEvaluator;
         let positional_evaluator = PositionalEvaluator;
@@ -143,7 +143,7 @@ mod tests {
         let results: Vec<(usize, usize)> = (0..100)
             .into_par_iter()
             .map(|_| {
-                let mut game = Game::default();
+                let mut game = Game::<Bitboard>::default();
                 let mut black_ai = AiDecider::new(strategy1.clone_box());
                 let mut white_ai = AiDecider::new(strategy2.clone_box());
 

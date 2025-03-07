@@ -1,4 +1,4 @@
-use temp_reversi_core::{Bitboard, Player};
+use temp_reversi_core::{Board, Player};
 
 use super::EvaluationFunction;
 
@@ -6,17 +6,17 @@ use super::EvaluationFunction;
 pub struct PositionalEvaluator;
 
 impl EvaluationFunction for PositionalEvaluator {
-    fn evaluate(&self, board: &Bitboard, player: Player) -> i32 {
+    fn evaluate(&self, board: &impl Board, player: Player) -> i32 {
         // Positional values for the board (example values for demonstration)
         let positional_values: [i32; 64] = [
-            100, -20, 10,  5,  5, 10, -20, 100,  // Row 1
-            -20, -50, -2, -2, -2, -2, -50, -20,  // Row 2
-             10,  -2,  3,  2,  2,  3,  -2,  10,  // Row 3
-              5,  -2,  2,  0,  0,  2,  -2,   5,  // Row 4
-              5,  -2,  2,  0,  0,  2,  -2,   5,  // Row 5
-             10,  -2,  3,  2,  2,  3,  -2,  10,  // Row 6
-            -20, -50, -2, -2, -2, -2, -50, -20,  // Row 7
-            100, -20, 10,  5,  5, 10, -20, 100,  // Row 8
+            100, -20, 10, 5, 5, 10, -20, 100, // Row 1
+            -20, -50, -2, -2, -2, -2, -50, -20, // Row 2
+            10, -2, 3, 2, 2, 3, -2, 10, // Row 3
+            5, -2, 2, 0, 0, 2, -2, 5, // Row 4
+            5, -2, 2, 0, 0, 2, -2, 5, // Row 5
+            10, -2, 3, 2, 2, 3, -2, 10, // Row 6
+            -20, -50, -2, -2, -2, -2, -50, -20, // Row 7
+            100, -20, 10, 5, 5, 10, -20, 100, // Row 8
         ];
 
         let (black_bits, white_bits) = board.bits();
@@ -52,10 +52,16 @@ mod tests {
 
         // Test Black's perspective
         let black_score = evaluator.evaluate(&board, Player::Black);
-        assert_eq!(black_score, 0, "Black should have a score of 0 on the default board.");
+        assert_eq!(
+            black_score, 0,
+            "Black should have a score of 0 on the default board."
+        );
 
         // Test White's perspective
         let white_score = evaluator.evaluate(&board, Player::White);
-        assert_eq!(white_score, 0, "White should have a score of 0 on the default board.");
+        assert_eq!(
+            white_score, 0,
+            "White should have a score of 0 on the default board."
+        );
     }
 }

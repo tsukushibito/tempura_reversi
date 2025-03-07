@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use temp_reversi_core::Bitboard;
+use temp_reversi_core::Board;
 
 use crate::{patterns::PatternGroup, utils::SparseVector};
 
@@ -24,7 +24,7 @@ use crate::{patterns::PatternGroup, utils::SparseVector};
 /// let features = extract_features(&board, &groups);
 /// assert!(!features.indices().is_empty());
 /// ```
-pub fn extract_features(board: &Bitboard, groups: &[PatternGroup]) -> SparseVector {
+pub fn extract_features(board: &impl Board, groups: &[PatternGroup]) -> SparseVector {
     let (black_mask, white_mask) = board.bits();
 
     let mut feature_counts: HashMap<usize, f32> = HashMap::new();
@@ -56,7 +56,7 @@ pub fn extract_features(board: &Bitboard, groups: &[PatternGroup]) -> SparseVect
 mod tests {
     use std::collections::HashSet;
 
-    use temp_reversi_core::{utils::rotate_mask_90_cw, Player, Position};
+    use temp_reversi_core::{utils::rotate_mask_90_cw, Bitboard, Player, Position};
 
     use crate::patterns::get_predefined_patterns;
 

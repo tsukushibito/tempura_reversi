@@ -4,7 +4,7 @@ use super::{GameDataset, GameRecord};
 use crate::{ai_decider::AiDecider, strategy::Strategy, utils::ProgressReporter};
 use rand::{prelude::*, rng};
 use rayon::prelude::*;
-use temp_reversi_core::{Game, MoveDecider};
+use temp_reversi_core::{Bitboard, Game, MoveDecider};
 
 /// Runs self-play games in parallel using AI players and generates game records.
 ///
@@ -18,7 +18,7 @@ use temp_reversi_core::{Game, MoveDecider};
 /// - `GameDataset` containing generated game records.
 pub fn generate_game_dataset(
     num_games: usize,
-    strategy: Box<dyn Strategy>,
+    strategy: Box<dyn Strategy<Bitboard>>,
     init_random_moves: usize,
     reporter: Option<Arc<dyn ProgressReporter + Send + Sync>>, // ProgressReporter を共有
 ) -> GameDataset {

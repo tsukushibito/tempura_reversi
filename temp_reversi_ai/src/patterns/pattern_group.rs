@@ -1,6 +1,6 @@
 use temp_reversi_core::{
     utils::{rotate_mask_180, rotate_mask_270_cw, rotate_mask_90_cw},
-    Bitboard,
+    Board,
 };
 
 use super::pattern::Pattern;
@@ -58,7 +58,7 @@ impl PatternGroup {
     ///
     /// # Returns
     /// * `i32` - The score contribution of this pattern group.
-    pub fn evaluate_score(&self, board: &Bitboard, phase: usize) -> i32 {
+    pub fn evaluate_score(&self, board: &impl Board, phase: usize) -> i32 {
         let mut score = 0;
         let (black_mask, white_mask) = board.bits(); // Get black and white bit masks
 
@@ -77,7 +77,10 @@ impl PatternGroup {
 
 #[cfg(test)]
 mod tests {
-    use temp_reversi_core::utils::{rotate_mask_270_ccw, rotate_mask_90_ccw};
+    use temp_reversi_core::{
+        utils::{rotate_mask_270_ccw, rotate_mask_90_ccw},
+        Bitboard,
+    };
 
     use super::*;
 
