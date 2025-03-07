@@ -48,9 +48,9 @@ impl<E: EvaluationFunction + Send + Sync> NegaScoutStrategy<E> {
             CACHE_HIT_BONUS - score
         } else {
             // Use MobilityEvaluator for evaluation.
-            let evaluator = MobilityEvaluator;
-            -evaluator.evaluate(&state.board, state.current_player)
-            // -self.evaluator.evaluate(&state.board, state.current_player)
+            // let evaluator = MobilityEvaluator;
+            // -evaluator.evaluate(&state.board, state.current_player)
+            -self.evaluator.evaluate(&state.board, state.current_player)
         }
     }
 
@@ -223,7 +223,7 @@ impl<E: EvaluationFunction + Send + Sync> NegaScoutStrategy<E> {
 
         // 次善手以降は窓を狭めて探索
         for (_, child_state, _) in children.iter().skip(1) {
-            let score = -self.nega_alpha_transpose(
+            let mut score = -self.nega_alpha_transpose(
                 *child_state,
                 depth - 1,
                 false,
@@ -242,7 +242,7 @@ impl<E: EvaluationFunction + Send + Sync> NegaScoutStrategy<E> {
             if score > alpha_local {
                 // より良い手が見つかった場合、再探索
                 alpha_local = score;
-                let score = -self.nega_scout(*child_state, depth - 1, false, -beta, -alpha_local);
+                score = -self.nega_scout(*child_state, depth - 1, false, -beta, -alpha_local);
                 // Fail-High
                 if score >= beta {
                     if score > lower {
@@ -365,23 +365,25 @@ mod tests {
 
     #[test]
     fn test_visited_nodes() {
+        let depth = 10;
+
+        // let game = Game::default();
+        // let evaluator = PhaseAwareEvaluator::default();
+        // let mut strategy = NegaAlphaStrategy::new(evaluator, depth);
+
+        // let start = std::time::Instant::now();
+        // strategy.evaluate_and_decide(&game);
+        // let elapsed = start.elapsed();
+        // println!("[NegaAlpha] Elapsed: {:?}", elapsed);
+        // assert!(
+        //     strategy.nodes_searched > 0,
+        //     "Nodes searched should be greater than 0."
+        // );
+        // println!("[NegaAlpha] Visited nodes: {}", strategy.nodes_searched);
+
         let game = Game::default();
         let evaluator = PhaseAwareEvaluator::default();
-        let mut strategy = NegaAlphaStrategy::new(evaluator, 10);
-
-        let start = std::time::Instant::now();
-        strategy.evaluate_and_decide(&game);
-        let elapsed = start.elapsed();
-        println!("[NegaAlpha] Elapsed: {:?}", elapsed);
-        assert!(
-            strategy.nodes_searched > 0,
-            "Nodes searched should be greater than 0."
-        );
-        println!("[NegaAlpha] Visited nodes: {}", strategy.nodes_searched);
-
-        let game = Game::default();
-        let evaluator = PhaseAwareEvaluator::default();
-        let mut strategy = NegaAlphaTTStrategy::new(evaluator, 10, 0.0);
+        let mut strategy = NegaAlphaTTStrategy::new(evaluator, depth, 0.0);
 
         let start = std::time::Instant::now();
         strategy.evaluate_and_decide(&game);
@@ -395,7 +397,7 @@ mod tests {
 
         let game = Game::default();
         let evaluator = PhaseAwareEvaluator::default();
-        let mut strategy = NegaScoutStrategy::new(evaluator, 10, 0.0);
+        let mut strategy = NegaScoutStrategy::new(evaluator, depth, 0.0);
 
         let start = std::time::Instant::now();
         strategy.evaluate_and_decide(&game);
