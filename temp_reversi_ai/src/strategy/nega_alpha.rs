@@ -7,7 +7,7 @@ use super::Strategy;
 /// The Negamax strategy with alpha-beta pruning.
 #[derive(Clone)]
 pub struct NegaAlphaStrategy<E: EvaluationFunction + Send + Sync> {
-    pub depth: u32,          // The depth to search in the game tree.
+    pub depth: i32,          // The depth to search in the game tree.
     pub evaluator: E,        // The evaluation function to use.
     pub nodes_searched: u64, // The number of nodes searched in the game tree.
 }
@@ -18,7 +18,7 @@ impl<E: EvaluationFunction + Send + Sync> NegaAlphaStrategy<E> {
     /// # Arguments
     /// * `evaluator` - The evaluation function to score board states.
     /// * `depth` - The maximum depth of the search tree.
-    pub fn new(evaluator: E, depth: u32) -> Self {
+    pub fn new(evaluator: E, depth: i32) -> Self {
         Self {
             depth,
             evaluator,
@@ -43,7 +43,7 @@ impl<E: EvaluationFunction + Send + Sync> NegaAlphaStrategy<E> {
     fn negamax(
         &mut self,
         board: &Bitboard,
-        depth: u32,
+        depth: i32,
         mut alpha: i32,
         beta: i32,
         player: Player,
@@ -156,7 +156,7 @@ mod tests {
     }
 
     impl NegamaxMoveDecider {
-        pub fn new(depth: u32) -> Self {
+        pub fn new(depth: i32) -> Self {
             let evaluator = PhaseAwareEvaluator::default();
             let strategy = NegaAlphaStrategy::new(evaluator, depth);
             Self { strategy }
