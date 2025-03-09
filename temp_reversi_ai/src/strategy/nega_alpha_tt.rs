@@ -15,7 +15,7 @@ const INF: i32 = i32::MAX;
 #[derive(Clone)]
 pub struct NegaAlphaTTStrategy<E, B>
 where
-    E: EvaluationFunction + Send + Sync,
+    E: EvaluationFunction<B> + Send + Sync,
     B: Board,
 {
     evaluator: E,
@@ -29,7 +29,7 @@ where
 
 impl<E, B> NegaAlphaTTStrategy<E, B>
 where
-    E: EvaluationFunction + Send + Sync,
+    E: EvaluationFunction<B> + Send + Sync,
     B: Board,
 {
     /// Constructor.
@@ -178,7 +178,7 @@ where
 
 impl<E, B> Strategy<B> for NegaAlphaTTStrategy<E, B>
 where
-    E: EvaluationFunction + Send + Sync + Clone + 'static,
+    E: EvaluationFunction<B> + Send + Sync + Clone + 'static,
     B: Board + Send + Sync + 'static,
 {
     /// Evaluates the game state and decides the next move.

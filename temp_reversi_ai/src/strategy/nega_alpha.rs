@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 use crate::evaluator::EvaluationFunction;
 use rand::{rng, seq::SliceRandom};
 use temp_reversi_core::{Board, Game, Player, Position};
@@ -6,13 +8,22 @@ use super::Strategy;
 
 /// The Negamax strategy with alpha-beta pruning.
 #[derive(Clone)]
-pub struct NegaAlphaStrategy<E: EvaluationFunction + Send + Sync> {
+pub struct NegaAlphaStrategy<E, B>
+where
+    E: EvaluationFunction<B> + Send + Sync,
+    B: Board,
+{
     pub depth: i32,          // The depth to search in the game tree.
     pub evaluator: E,        // The evaluation function to use.
     pub nodes_searched: u64, // The number of nodes searched in the game tree.
+    phantom: PhantomData<B>,
 }
 
-impl<E: EvaluationFunction + Send + Sync> NegaAlphaStrategy<E> {
+impl<E, B> NegaAlphaStrategy<E, B>
+where
+    E: EvaluationFunction<B> + Send + Sync,
+    B: Board,
+{
     /// Creates a new NegamaxStrategy.
     ///
     /// # Arguments
@@ -23,6 +34,7 @@ impl<E: EvaluationFunction + Send + Sync> NegaAlphaStrategy<E> {
             depth,
             evaluator,
             nodes_searched: 0,
+            phantom: PhantomData,
         }
     }
 
@@ -40,14 +52,7 @@ impl<E: EvaluationFunction + Send + Sync> NegaAlphaStrategy<E> {
     ///
     /// This function shuffles the valid moves to add stochasticity, which helps
     /// avoid deterministic behavior in symmetrical board states.
-    fn negamax(
-        &mut self,
-        board: &impl Board,
-        depth: i32,
-        mut alpha: i32,
-        beta: i32,
-        player: Player,
-    ) -> i32 {
+    fn negamax(&mut self, board: &B, depth: i32, mut alpha: i32, beta: i32, player: Player) -> i32 {
         self.nodes_searched += 1;
 
         // Base case: Leaf node or depth limit reached
@@ -79,10 +84,10 @@ impl<E: EvaluationFunction + Send + Sync> NegaAlphaStrategy<E> {
     }
 }
 
-impl<E, B> Strategy<B> for NegaAlphaStrategy<E>
+impl<E, B> Strategy<B> for NegaAlphaStrategy<E, B>
 where
-    E: EvaluationFunction + Clone + Send + Sync + 'static,
-    B: Board + 'static,
+    E: EvaluationFunction<B> + Clone + Send + Sync + 'static,
+    B: Board + Send + Sync + 'static,
 {
     /// Evaluates the game state and selects the best move using the Negamax algorithm.
     ///
@@ -151,11 +156,11 @@ mod tests {
     }
 
     /// A wrapper to use NegamaxStrategy with MoveDecider trait.
-    pub struct NegamaxMoveDecider {
-        strategy: NegaAlphaStrategy<PhaseAwareEvaluator>,
+    pub struct NegamaxMoveDecider<B: Board> {
+        strategy: NegaAlphaStrategy<PhaseAwareEvaluator, B>,
     }
 
-    impl NegamaxMoveDecider {
+    impl<B: Board> NegamaxMoveDecider<B> {
         pub fn new(depth: i32) -> Self {
             let evaluator = PhaseAwareEvaluator::default();
             let strategy = NegaAlphaStrategy::new(evaluator, depth);
@@ -163,7 +168,7 @@ mod tests {
         }
     }
 
-    impl<B: Board + 'static> MoveDecider<B> for NegamaxMoveDecider {
+    impl<B: Board + Send + Sync + 'static> MoveDecider<B> for NegamaxMoveDecider<B> {
         fn select_move(&mut self, game: &Game<B>) -> Option<Position> {
             self.strategy.evaluate_and_decide(game)
         }

@@ -46,8 +46,8 @@ impl PhaseAwareEvaluator {
     }
 }
 
-impl EvaluationFunction for PhaseAwareEvaluator {
-    fn evaluate(&self, board: &impl Board, player: Player) -> i32 {
+impl<B: Board> EvaluationFunction<B> for PhaseAwareEvaluator {
+    fn evaluate(&self, board: &B, player: Player) -> i32 {
         let phase = self.determine_phase(board);
         let mobility_evaluator = MobilityEvaluator;
         let positional_evaluator = PositionalEvaluator;

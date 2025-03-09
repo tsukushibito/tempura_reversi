@@ -32,8 +32,8 @@ impl PatternEvaluator {
     }
 }
 
-impl EvaluationFunction for PatternEvaluator {
-    fn evaluate(&self, board: &impl Board, player: Player) -> i32 {
+impl<B: Board> EvaluationFunction<B> for PatternEvaluator {
+    fn evaluate(&self, board: &B, player: Player) -> i32 {
         let vector = extract_features(board, &self.groups);
 
         // phase[0] = 1手進めた盤面

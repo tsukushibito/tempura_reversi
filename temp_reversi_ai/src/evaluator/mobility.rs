@@ -5,8 +5,8 @@ use super::EvaluationFunction;
 /// Mobility evaluator that considers the number of valid moves as the score.
 pub struct MobilityEvaluator;
 
-impl EvaluationFunction for MobilityEvaluator {
-    fn evaluate(&self, board: &impl Board, player: Player) -> i32 {
+impl<B: Board> EvaluationFunction<B> for MobilityEvaluator {
+    fn evaluate(&self, board: &B, player: Player) -> i32 {
         // Calculate mobility for the current player and opponent
         let player_mobility = board.valid_moves(player).len() as i32;
         let opponent_mobility = board.valid_moves(player.opponent()).len() as i32;

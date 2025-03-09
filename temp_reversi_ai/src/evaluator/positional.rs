@@ -5,8 +5,8 @@ use super::EvaluationFunction;
 /// Positional evaluator that considers board position values.
 pub struct PositionalEvaluator;
 
-impl EvaluationFunction for PositionalEvaluator {
-    fn evaluate(&self, board: &impl Board, player: Player) -> i32 {
+impl<B: Board> EvaluationFunction<B> for PositionalEvaluator {
+    fn evaluate(&self, board: &B, player: Player) -> i32 {
         // Positional values for the board (example values for demonstration)
         let positional_values: [i32; 64] = [
             100, -20, 10, 5, 5, 10, -20, 100, // Row 1

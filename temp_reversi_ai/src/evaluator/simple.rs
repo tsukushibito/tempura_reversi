@@ -5,8 +5,8 @@ use super::EvaluationFunction;
 #[derive(Clone)]
 pub struct SimpleEvaluator;
 
-impl EvaluationFunction for SimpleEvaluator {
-    fn evaluate(&self, board: &impl Board, player: Player) -> i32 {
+impl<B: Board> EvaluationFunction<B> for SimpleEvaluator {
+    fn evaluate(&self, board: &B, player: Player) -> i32 {
         let (black_count, white_count) = board.count_stones();
         match player {
             Player::Black => black_count as i32 - white_count as i32,
