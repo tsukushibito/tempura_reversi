@@ -35,14 +35,7 @@ impl TempuraEvaluator {
 impl<B: Board> EvaluationFunction<B> for TempuraEvaluator {
     fn evaluate(&self, board: &B, player: Player) -> i32 {
         if let Some(pattern) = &self.pattern {
-            // Determine phase by counting stones.
-            let (black, white) = board.count_stones();
-            let total = black + white;
-            if total <= 10 {
-                self.phase_aware.evaluate(board, player)
-            } else {
-                pattern.evaluate(board, player)
-            }
+            pattern.evaluate(board, player)
         } else {
             self.phase_aware.evaluate(board, player)
         }

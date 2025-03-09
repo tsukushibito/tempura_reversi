@@ -1,6 +1,7 @@
 mod nega_alpha;
 mod nega_alpha_tt;
 mod nega_scout;
+mod nega_scout2;
 mod random;
 mod search_state;
 mod simple;
