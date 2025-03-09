@@ -1,6 +1,6 @@
-use temp_reversi_core::{Board, Player};
+use temp_reversi_core::{Bitboard, Player};
 
-use super::{mobility::MobilityEvaluator, EvaluationFunction, PositionalEvaluator};
+use super::{mobility::MobilityEvaluator, Evaluator, PositionalEvaluator};
 
 /// Defines the phase of the game
 enum Phase {
@@ -32,7 +32,7 @@ impl Default for PhaseAwareEvaluator {
 
 impl PhaseAwareEvaluator {
     /// Determine the phase of the game based on the total number of stones.
-    fn determine_phase(&self, board: &impl Board) -> Phase {
+    fn determine_phase(&self, board: &Bitboard) -> Phase {
         let (black_count, white_count) = board.count_stones();
         let total_stones = black_count + white_count;
 
@@ -46,11 +46,11 @@ impl PhaseAwareEvaluator {
     }
 }
 
-impl<B: Board> EvaluationFunction<B> for PhaseAwareEvaluator {
-    fn evaluate(&self, board: &B, player: Player) -> i32 {
+impl Evaluator for PhaseAwareEvaluator {
+    fn evaluate(&mut self, board: &Bitboard, player: Player) -> i32 {
         let phase = self.determine_phase(board);
-        let mobility_evaluator = MobilityEvaluator;
-        let positional_evaluator = PositionalEvaluator;
+        let mut mobility_evaluator = MobilityEvaluator;
+        let mut positional_evaluator = PositionalEvaluator;
 
         // Evaluate each factor
         let mobility_score = mobility_evaluator.evaluate(board, player);
@@ -98,7 +98,7 @@ mod tests {
     #[test]
     fn test_phase_aware_evaluation() {
         let board = Bitboard::default(); // Initial board state
-        let evaluator = PhaseAwareEvaluator::default();
+        let mut evaluator = PhaseAwareEvaluator::default();
 
         // Test early phase
         let early_score = evaluator.evaluate(&board, Player::Black);
@@ -143,7 +143,7 @@ mod tests {
         let results: Vec<(usize, usize)> = (0..100)
             .into_par_iter()
             .map(|_| {
-                let mut game = Game::<Bitboard>::default();
+                let mut game = Game::default();
                 let mut black_ai = AiDecider::new(strategy1.clone_box());
                 let mut white_ai = AiDecider::new(strategy2.clone_box());
 

@@ -1,12 +1,12 @@
-use temp_reversi_core::{Board, Player};
+use temp_reversi_core::{Bitboard, Player};
 
-use super::EvaluationFunction;
+use super::Evaluator;
 
 /// Mobility evaluator that considers the number of valid moves as the score.
 pub struct MobilityEvaluator;
 
-impl<B: Board> EvaluationFunction<B> for MobilityEvaluator {
-    fn evaluate(&self, board: &B, player: Player) -> i32 {
+impl Evaluator for MobilityEvaluator {
+    fn evaluate(&mut self, board: &Bitboard, player: Player) -> i32 {
         // Calculate mobility for the current player and opponent
         let player_mobility = board.valid_moves(player).len() as i32;
         let opponent_mobility = board.valid_moves(player.opponent()).len() as i32;
@@ -24,7 +24,7 @@ mod tests {
     #[test]
     fn test_mobility_evaluation() {
         let board = Bitboard::default(); // Default board with initial setup
-        let evaluator = MobilityEvaluator;
+        let mut evaluator = MobilityEvaluator;
 
         // Test Black's perspective
         let black_score = evaluator.evaluate(&board, Player::Black);

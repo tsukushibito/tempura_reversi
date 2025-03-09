@@ -202,7 +202,7 @@ pub fn get_predefined_patterns() -> Vec<PatternGroup> {
     mask_and_names
         .iter()
         .map(|(mask, name)| {
-            let state_scores = vec![vec![0; 3_usize.pow(mask.count_ones())]; 60];
+            let state_scores = vec![vec![0.0; 3_usize.pow(mask.count_ones())]; 60];
             PatternGroup::new(*mask, state_scores, Some(*name))
         })
         .collect()

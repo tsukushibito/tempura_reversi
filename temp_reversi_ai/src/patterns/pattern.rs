@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use temp_game_ai::hasher::Fnv1aHashMap;
 use temp_reversi_core::utils::{rotate_mask_180, rotate_mask_270_ccw, rotate_mask_90_ccw};
 
 /// Represents a pattern used for evaluating board positions in Reversi.
@@ -10,7 +10,7 @@ pub struct Pattern {
     /// Bitmask representing the pattern on the board.
     pub mask: u64,
     /// Mapping from masked board states (black and white stones) to state indices.
-    pub key_to_index: HashMap<(u64, u64), usize>,
+    pub key_to_index: Fnv1aHashMap<(u64, u64), usize>,
 }
 
 impl Pattern {
@@ -30,6 +30,10 @@ impl Pattern {
         Self { mask, key_to_index }
     }
 
+    pub fn is_affected(&self, diff: u64) -> bool {
+        (self.mask & diff) != 0
+    }
+
     /// Precomputes the key-to-index mapping for a given pattern.
     ///
     /// # Arguments
@@ -44,8 +48,8 @@ impl Pattern {
     fn precompute_key_to_index(
         mask: u64,
         base_pattern: Option<(&Pattern, u8)>,
-    ) -> HashMap<(u64, u64), usize> {
-        let mut mapping = HashMap::new();
+    ) -> Fnv1aHashMap<(u64, u64), usize> {
+        let mut mapping = Fnv1aHashMap::default();
 
         // Collect positions of bits set in the mask.
         let cell_positions: Vec<u64> = (0..64).filter(|&i| mask & (1 << i) != 0).collect();

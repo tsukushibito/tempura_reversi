@@ -1,3 +1,11 @@
 [workspace]
 resolver = "2"
-members = ["temp_reversi_ai", "temp_reversi_cli", "temp_reversi_core"]
+members = [
+    "temp_reversi_ai",
+    "temp_reversi_cli",
+    "temp_reversi_core",
+    "temp_game_ai",
+]
+
+[profile.release]
+debug = true

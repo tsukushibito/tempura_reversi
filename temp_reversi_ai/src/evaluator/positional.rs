@@ -1,12 +1,12 @@
-use temp_reversi_core::{Board, Player};
+use temp_reversi_core::{Bitboard, Player};
 
-use super::EvaluationFunction;
+use super::Evaluator;
 
 /// Positional evaluator that considers board position values.
 pub struct PositionalEvaluator;
 
-impl<B: Board> EvaluationFunction<B> for PositionalEvaluator {
-    fn evaluate(&self, board: &B, player: Player) -> i32 {
+impl Evaluator for PositionalEvaluator {
+    fn evaluate(&mut self, board: &Bitboard, player: Player) -> i32 {
         // Positional values for the board (example values for demonstration)
         let positional_values: [i32; 64] = [
             100, -20, 10, 5, 5, 10, -20, 100, // Row 1
@@ -48,7 +48,7 @@ mod tests {
     #[test]
     fn test_positional_evaluation() {
         let board = Bitboard::default(); // Default board with initial setup
-        let evaluator = PositionalEvaluator;
+        let mut evaluator = PositionalEvaluator;
 
         // Test Black's perspective
         let black_score = evaluator.evaluate(&board, Player::Black);

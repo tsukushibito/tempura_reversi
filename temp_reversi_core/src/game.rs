@@ -1,19 +1,19 @@
 use crate::player::Player;
 use crate::position::Position;
-use crate::Board;
+use crate::Bitboard;
 
 /// Struct to manage the overall state of an Othello game.
 #[derive(Debug)]
-pub struct Game<B: Board> {
+pub struct Game {
     /// Current game board.
-    board: B,
+    board: Bitboard,
     /// Current player (Black or White).
     current_player: Player,
     /// History of moves.
     moves: Vec<Position>,
 }
 
-impl<B: Board> Default for Game<B> {
+impl Default for Game {
     /// Creates a new game in its default initial state.
     fn default() -> Self {
         Self {
@@ -24,13 +24,13 @@ impl<B: Board> Default for Game<B> {
     }
 }
 
-impl<B: Board> Game<B> {
+impl Game {
     /// Creates a new game with the specified board state and current player.
     ///
     /// # Arguments
     /// * `board` - Initial board state.
     /// * `current_player` - Initial player to start the game.
-    pub fn new(board: B, current_player: Player) -> Self {
+    pub fn new(board: Bitboard, current_player: Player) -> Self {
         Self {
             board,
             current_player,
@@ -124,7 +124,7 @@ impl<B: Board> Game<B> {
     }
 
     /// Returns the current state of the board.
-    pub fn board_state(&self) -> &B {
+    pub fn board_state(&self) -> &Bitboard {
         &self.board
     }
 
@@ -147,7 +147,7 @@ mod tests {
     #[test]
     fn test_game_initialization() {
         // Test if the default game state is correctly initialized.
-        let game = Game::<Bitboard>::default();
+        let game = Game::default();
 
         // Verify the initial stone counts.
         let (black_count, white_count) = game.current_score();
@@ -161,7 +161,7 @@ mod tests {
     #[test]
     fn test_valid_moves() {
         // Test valid moves for the initial state.
-        let game = Game::<Bitboard>::default();
+        let game = Game::default();
         let valid_moves = game.valid_moves();
 
         // Verify the expected valid moves.
@@ -175,7 +175,7 @@ mod tests {
     #[test]
     fn test_apply_move_and_turn_switch() {
         // Test if a move is applied correctly and turn switches.
-        let mut game = Game::<Bitboard>::default();
+        let mut game = Game::default();
 
         // Black places at D3.
         assert!(game.apply_move(Position::D3).is_ok());

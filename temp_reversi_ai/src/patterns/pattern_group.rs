@@ -1,6 +1,6 @@
 use temp_reversi_core::{
     utils::{rotate_mask_180, rotate_mask_270_cw, rotate_mask_90_cw},
-    Board,
+    Bitboard,
 };
 
 use super::pattern::Pattern;
@@ -15,9 +15,12 @@ pub struct PatternGroup {
     pub patterns: Vec<Pattern>,
     /// Shared state scores for all patterns in the group.
     /// Indexed as `state_scores[phase][state_index]`.
-    pub state_scores: Vec<Vec<i32>>,
+    pub state_scores: Vec<Vec<f32>>,
     /// Optional name for debugging or identification.
     pub name: Option<String>,
+
+    old_board: Bitboard,
+    old_score: f32,
 }
 
 impl PatternGroup {
@@ -30,7 +33,7 @@ impl PatternGroup {
     ///
     /// # Returns
     /// A `PatternGroup` struct containing the rotated patterns and shared state scores.
-    pub fn new(base_pattern: u64, state_scores: Vec<Vec<i32>>, name: Option<&str>) -> Self {
+    pub fn new(base_pattern: u64, state_scores: Vec<Vec<f32>>, name: Option<&str>) -> Self {
         let base_pattern_obj = Pattern::new(base_pattern, None);
 
         let rotated_90 = Pattern::new(
@@ -47,9 +50,12 @@ impl PatternGroup {
             patterns: vec![base_pattern_obj, rotated_90, rotated_180, rotated_270],
             state_scores,
             name: name.map(|s| s.to_string()),
+            old_board: Bitboard::new(0, 0),
+            old_score: 0.0,
         }
     }
 
+    /*
     /// Evaluates the score contribution of this pattern group for the given board state.
     ///
     /// # Arguments
@@ -58,7 +64,7 @@ impl PatternGroup {
     ///
     /// # Returns
     /// * `i32` - The score contribution of this pattern group.
-    pub fn evaluate_score(&self, board: &impl Board, phase: usize) -> i32 {
+    pub fn evaluate_score(&self, board: &Bitboard, phase: usize) -> i32 {
         let mut score = 0;
         let (black_mask, white_mask) = board.bits(); // Get black and white bit masks
 
@@ -70,6 +76,58 @@ impl PatternGroup {
                 score += self.state_scores[phase][state_index];
             }
         }
+
+        score
+    }
+    */
+
+    pub fn affected_patterns(&self, diff: u64) -> Vec<usize> {
+        self.patterns
+            .iter()
+            .enumerate()
+            .filter_map(|(i, pattern)| {
+                if pattern.is_affected(diff) {
+                    Some(i)
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+
+    pub fn pattern_score(&self, board: &Bitboard, phase: usize, pattern_index: usize) -> f32 {
+        if pattern_index >= self.patterns.len() {
+            return 0.0;
+        }
+        let pattern = &self.patterns[pattern_index];
+        let (black_mask, white_mask) = board.bits();
+        let masked_black = black_mask & pattern.mask;
+        let masked_white = white_mask & pattern.mask;
+        if let Some(&state_index) = pattern.key_to_index.get(&(masked_black, masked_white)) {
+            self.state_scores[phase][state_index]
+        } else {
+            0.0
+        }
+    }
+
+    pub fn evaluate_score(&mut self, new_board: &Bitboard, phase: usize) -> f32 {
+        let (old_black, old_white) = self.old_board.bits();
+        let (new_black, new_white) = new_board.bits();
+        let diff = (old_black ^ new_black) | (old_white ^ new_white);
+
+        let affected_indices = self.affected_patterns(diff);
+
+        let mut delta = 0.0;
+        for idx in affected_indices {
+            let old_pattern_score = self.pattern_score(&self.old_board, phase, idx);
+            let new_pattern_score = self.pattern_score(new_board, phase, idx);
+            delta += new_pattern_score - old_pattern_score;
+        }
+
+        let score = self.old_score + delta;
+
+        self.old_score = score;
+        self.old_board = new_board.clone();
 
         score
     }
@@ -91,7 +149,7 @@ mod tests {
     #[test]
     fn test_pattern_key_to_index_consistency() {
         let base_pattern: u64 = 0x0000000000070707; // Example pattern covering a 3x3 region
-        let state_scores = vec![vec![0; 3_usize.pow(9)]]; // Dummy scores
+        let state_scores = vec![vec![0.0; 3_usize.pow(9)]]; // Dummy scores
         let pattern_group = PatternGroup::new(base_pattern, state_scores, Some("TestPattern"));
 
         let base = &pattern_group.patterns[0]; // Base (0-degree rotation) pattern
@@ -158,15 +216,15 @@ mod tests {
         let base_pattern: u64 = 0x0000000000070707; // Example pattern covering a 3x3 region
 
         // Create state scores where the score is equal to the state index for easy verification
-        let mut state_scores = vec![vec![10; 3_usize.pow(9)]];
+        let mut state_scores = vec![vec![10.0; 3_usize.pow(9)]];
         state_scores[0]
             .iter_mut()
             .enumerate()
             .for_each(|(i, score)| {
-                *score = i as i32; // Assign state index as score
+                *score = i as f32; // Assign state index as score
             });
 
-        let pattern_group = PatternGroup::new(base_pattern, state_scores, Some("TestPattern"));
+        let mut pattern_group = PatternGroup::new(base_pattern, state_scores, Some("TestPattern"));
 
         // Example board with black pieces in the lower part and white in the upper
         let original_board = Bitboard::new(0x0000000000070000, 0x0000000000000700);

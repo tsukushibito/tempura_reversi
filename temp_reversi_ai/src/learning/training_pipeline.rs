@@ -148,7 +148,8 @@ impl TrainingPipeline {
             println!("Generating {}/{} games...", num_games, remain_games);
             let game_dataset = generate_game_dataset(
                 num_games,
-                Box::new(NegaAlphaTTStrategy::new(tempura_evaluator.clone(), 5, 0.0)),
+                // Box::new(NegaScoutStrategy::new(tempura_evaluator.clone(), 6, 0.0)),
+                Box::new(NegaAlphaTTStrategy::new(tempura_evaluator.clone(), 5, 2.0)),
                 self.config.init_random_moves,
                 reporter.clone(),
             );

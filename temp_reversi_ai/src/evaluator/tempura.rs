@@ -1,9 +1,9 @@
-use crate::{learning::Model, patterns::get_predefined_patterns};
+use crate::learning::Model;
 
 use super::pattern::PatternEvaluator;
 use super::phase_aware::PhaseAwareEvaluator;
-use super::EvaluationFunction;
-use temp_reversi_core::{Board, Player};
+use super::Evaluator;
+use temp_reversi_core::{Bitboard, Player};
 
 #[derive(Debug, Clone)]
 pub struct TempuraEvaluator {
@@ -17,7 +17,7 @@ impl TempuraEvaluator {
     pub fn new(model_path: &str) -> Self {
         if let Ok(model) = Model::load(model_path) {
             println!("Model loaded from: {}", model_path);
-            let pattern_evaluator = PatternEvaluator::new(get_predefined_patterns(), model);
+            let pattern_evaluator = PatternEvaluator::new(model);
             Self {
                 phase_aware: PhaseAwareEvaluator::default(),
                 pattern: Some(pattern_evaluator),
@@ -32,17 +32,10 @@ impl TempuraEvaluator {
     }
 }
 
-impl<B: Board> EvaluationFunction<B> for TempuraEvaluator {
-    fn evaluate(&self, board: &B, player: Player) -> i32 {
-        if let Some(pattern) = &self.pattern {
-            // Determine phase by counting stones.
-            let (black, white) = board.count_stones();
-            let total = black + white;
-            if total <= 10 {
-                self.phase_aware.evaluate(board, player)
-            } else {
-                pattern.evaluate(board, player)
-            }
+impl Evaluator for TempuraEvaluator {
+    fn evaluate(&mut self, board: &Bitboard, player: Player) -> i32 {
+        if let Some(pattern) = &mut self.pattern {
+            pattern.evaluate(board, player)
         } else {
             self.phase_aware.evaluate(board, player)
         }

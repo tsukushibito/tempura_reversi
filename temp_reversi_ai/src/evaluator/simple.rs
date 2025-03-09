@@ -1,12 +1,12 @@
-use temp_reversi_core::{Board, Player};
+use temp_reversi_core::{Bitboard, Player};
 
-use super::EvaluationFunction;
+use super::Evaluator;
 
 #[derive(Clone)]
 pub struct SimpleEvaluator;
 
-impl<B: Board> EvaluationFunction<B> for SimpleEvaluator {
-    fn evaluate(&self, board: &B, player: Player) -> i32 {
+impl Evaluator for SimpleEvaluator {
+    fn evaluate(&mut self, board: &Bitboard, player: Player) -> i32 {
         let (black_count, white_count) = board.count_stones();
         match player {
             Player::Black => black_count as i32 - white_count as i32,

@@ -1,10 +1,10 @@
 use std::hash::{Hash, Hasher};
 
-use temp_reversi_core::{Board, Player, Position};
+use temp_reversi_core::{Bitboard, Player, Position};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub(crate) struct SearchState<B: Board> {
-    pub board: B,
+pub(crate) struct SearchState {
+    pub board: Bitboard,
     pub current_player: Player,
 }
 
@@ -23,15 +23,15 @@ fn hash_player(player: Player) -> u64 {
     hash
 }
 
-impl<B: Board> SearchState<B> {
-    pub fn new(board: B, current_player: Player) -> Self {
+impl SearchState {
+    pub fn new(board: Bitboard, current_player: Player) -> Self {
         Self {
             board,
             current_player,
         }
     }
 
-    pub fn apply_move(&self, pos: Position) -> Option<SearchState<B>> {
+    pub fn apply_move(&self, pos: Position) -> Option<SearchState> {
         let mut new_board = self.board.clone();
         if new_board.apply_move(pos, self.current_player).is_ok() {
             Some(SearchState {
@@ -44,7 +44,7 @@ impl<B: Board> SearchState<B> {
     }
 }
 
-impl<B: Board> Hash for SearchState<B> {
+impl Hash for SearchState {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.board.get_hash().hash(state);
         let player_hash = hash_player(self.current_player);

@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::{player::*, position::*, Board};
+use crate::{player::*, position::*};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Bitboard {
@@ -34,6 +34,77 @@ impl Bitboard {
     /// Creates a new Bitboard with the specified black and white stone positions.
     pub fn new(black: u64, white: u64) -> Self {
         Self { black, white }
+    }
+
+    pub fn bits(&self) -> (u64, u64) {
+        (self.black, self.white)
+    }
+
+    pub fn valid_moves(&self, player: Player) -> Vec<Position> {
+        let bitmask = self.valid_moves_bitmask(player);
+        self.bitmask_to_positions(bitmask)
+    }
+
+    pub fn count_stones(&self) -> (usize, usize) {
+        (
+            self.black.count_ones() as usize,
+            self.white.count_ones() as usize,
+        )
+    }
+
+    pub fn is_game_over(&self) -> bool {
+        self.valid_moves(Player::Black).is_empty() && self.valid_moves(Player::White).is_empty()
+    }
+
+    pub fn apply_move(&mut self, position: Position, player: Player) -> Result<(), &'static str> {
+        let move_bit = position.to_bit();
+
+        // Check if the position is already occupied.
+        if self.black & move_bit != 0 || self.white & move_bit != 0 {
+            return Err("Invalid move: position is already occupied");
+        }
+
+        let (player_bits, opponent_bits) = match player {
+            Player::Black => (&mut self.black, &mut self.white),
+            Player::White => (&mut self.white, &mut self.black),
+        };
+
+        // Calculate the stones to flip for the move.
+        let flips = Self::get_flips_bits(move_bit, *player_bits, *opponent_bits);
+
+        // If no stones can be flipped, the move is invalid.
+        if flips == 0 {
+            return Err("Invalid move: no stones to flip");
+        }
+
+        // Update the board with the move.
+        *player_bits |= move_bit | flips;
+        *opponent_bits &= !flips;
+
+        Ok(())
+    }
+
+    pub fn get_hash(&self) -> u64 {
+        // FNV-1a 64-bit offset basis.
+        let mut hash: u64 = 0xcbf29ce484222325;
+
+        // Incorporate the black bitboard.
+        hash ^= self.black;
+        hash = hash.wrapping_mul(0x100000001b3);
+
+        // Incorporate the white bitboard.
+        hash ^= self.white;
+        hash = hash.wrapping_mul(0x100000001b3);
+
+        hash
+    }
+
+    pub fn diff(&self, other: &Self) -> u64 {
+        (self.black ^ other.black) | (self.white ^ other.white)
+    }
+
+    pub fn diff_positions(&self, other: &Self) -> Vec<Position> {
+        self.bitmask_to_positions(self.diff(other))
     }
 
     /// Safely shifts bits in a specified direction, applying a mask to prevent invalid shifts.
@@ -128,71 +199,6 @@ impl Bitboard {
         }
 
         positions
-    }
-}
-
-impl Board for Bitboard {
-    fn bits(&self) -> (u64, u64) {
-        (self.black, self.white)
-    }
-
-    fn valid_moves(&self, player: Player) -> Vec<Position> {
-        let bitmask = self.valid_moves_bitmask(player);
-        self.bitmask_to_positions(bitmask)
-    }
-
-    fn count_stones(&self) -> (usize, usize) {
-        (
-            self.black.count_ones() as usize,
-            self.white.count_ones() as usize,
-        )
-    }
-
-    fn is_game_over(&self) -> bool {
-        self.valid_moves(Player::Black).is_empty() && self.valid_moves(Player::White).is_empty()
-    }
-
-    fn apply_move(&mut self, position: Position, player: Player) -> Result<(), &'static str> {
-        let move_bit = position.to_bit();
-
-        // Check if the position is already occupied.
-        if self.black & move_bit != 0 || self.white & move_bit != 0 {
-            return Err("Invalid move: position is already occupied");
-        }
-
-        let (player_bits, opponent_bits) = match player {
-            Player::Black => (&mut self.black, &mut self.white),
-            Player::White => (&mut self.white, &mut self.black),
-        };
-
-        // Calculate the stones to flip for the move.
-        let flips = Self::get_flips_bits(move_bit, *player_bits, *opponent_bits);
-
-        // If no stones can be flipped, the move is invalid.
-        if flips == 0 {
-            return Err("Invalid move: no stones to flip");
-        }
-
-        // Update the board with the move.
-        *player_bits |= move_bit | flips;
-        *opponent_bits &= !flips;
-
-        Ok(())
-    }
-
-    fn get_hash(&self) -> u64 {
-        // FNV-1a 64-bit offset basis.
-        let mut hash: u64 = 0xcbf29ce484222325;
-
-        // Incorporate the black bitboard.
-        hash ^= self.black;
-        hash = hash.wrapping_mul(0x100000001b3);
-
-        // Incorporate the white bitboard.
-        hash ^= self.white;
-        hash = hash.wrapping_mul(0x100000001b3);
-
-        hash
     }
 }
 

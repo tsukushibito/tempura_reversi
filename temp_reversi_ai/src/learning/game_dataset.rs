@@ -11,7 +11,7 @@ use std::{
     fs::{self, metadata},
     path::Path,
 };
-use temp_reversi_core::{Bitboard, Board, Game, Position};
+use temp_reversi_core::{Bitboard, Game, Position};
 
 /// Represents a game record containing move history and final score.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -24,7 +24,7 @@ pub struct GameRecord {
 
 impl GameRecord {
     /// Creates a new `GameRecord` from a completed game.
-    pub fn new<B: Board>(game: &Game<B>) -> Self {
+    pub fn new(game: &Game) -> Self {
         let moves = game.history().iter().map(|m| m.to_u8()).collect();
         let (black_score, white_score) = game.current_score();
 

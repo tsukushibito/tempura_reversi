@@ -4,7 +4,7 @@ use std::io::{self, Write};
 use temp_reversi_ai::ai_decider::AiDecider;
 use temp_reversi_ai::evaluator::TempuraEvaluator;
 use temp_reversi_ai::strategy::NegaAlphaTTStrategy;
-use temp_reversi_core::{Bitboard, Game, MoveDecider, Player};
+use temp_reversi_core::{Game, MoveDecider, Player};
 
 pub fn play_game() {
     let mut input = String::new();
@@ -23,7 +23,7 @@ pub fn play_game() {
     let white_choice = input.trim().to_lowercase();
 
     // Initialize deciders.
-    let mut black_decider: Box<dyn MoveDecider<Bitboard>> = if black_choice == "human" {
+    let mut black_decider: Box<dyn MoveDecider> = if black_choice == "human" {
         Box::new(CliPlayer)
     } else {
         let evaluator = TempuraEvaluator::new("gen0/models/best_model.bin");
@@ -31,7 +31,7 @@ pub fn play_game() {
         Box::new(AiDecider::new(Box::new(strategy)))
     };
 
-    let mut white_decider: Box<dyn MoveDecider<Bitboard>> = if white_choice == "human" {
+    let mut white_decider: Box<dyn MoveDecider> = if white_choice == "human" {
         Box::new(CliPlayer)
     } else {
         let evaluator = TempuraEvaluator::new("gen0/models/best_model.bin");
@@ -43,12 +43,11 @@ pub fn play_game() {
     let mut game = Game::default();
     while !game.is_game_over() {
         cli_display(&game);
-        let current_decider: &mut dyn MoveDecider<Bitboard> =
-            if game.current_player() == Player::Black {
-                &mut *black_decider
-            } else {
-                &mut *white_decider
-            };
+        let current_decider: &mut dyn MoveDecider = if game.current_player() == Player::Black {
+            &mut *black_decider
+        } else {
+            &mut *white_decider
+        };
         if let Some(chosen_move) = current_decider.select_move(&game) {
             game.apply_move(chosen_move).expect("Invalid move");
         } else {
