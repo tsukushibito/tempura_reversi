@@ -3,7 +3,7 @@ use std::{cmp, i32};
 
 use super::search_state::SearchState;
 use super::Strategy;
-use crate::evaluator::{EvaluationFunction, MobilityEvaluator};
+use crate::evaluator::{EvaluationFunction, PhaseAwareEvaluator};
 use rand::rng;
 use rand_distr::{Distribution, Normal};
 use temp_reversi_core::{Board, Game, Position};
@@ -49,8 +49,7 @@ where
         if let Some(&score) = self.former_transposition_table.get(state) {
             CACHE_HIT_BONUS - score
         } else {
-            // Use MobilityEvaluator for evaluation.
-            let evaluator = MobilityEvaluator;
+            let evaluator = PhaseAwareEvaluator::default();
             -evaluator.evaluate(&state.board, state.current_player)
         }
     }
@@ -72,7 +71,7 @@ where
             let stones = state.board.count_stones();
             let total = (stones.0 + stones.1) as f64;
             let mut rng = rng();
-            let fluctuation = (self.normal.sample(&mut rng) * total / 64.0) as i32;
+            let fluctuation = (self.normal.sample(&mut rng) * total / 30.0) as i32;
             return self.evaluator.evaluate(&state.board, state.current_player) + fluctuation;
         }
 

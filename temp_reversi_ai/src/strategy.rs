@@ -31,5 +31,6 @@ impl<B: Board> Clone for Box<dyn Strategy<B>> {
 
 pub use nega_alpha::*;
 pub use nega_alpha_tt::*;
+pub use nega_scout::*;
 pub use random::*;
 pub use simple::*;

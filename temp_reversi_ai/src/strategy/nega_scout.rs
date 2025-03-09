@@ -3,7 +3,7 @@ use std::{cmp, collections::HashMap};
 
 use super::search_state::SearchState;
 use super::Strategy;
-use crate::evaluator::{EvaluationFunction, MobilityEvaluator};
+use crate::evaluator::{EvaluationFunction, PhaseAwareEvaluator};
 use rand::rng;
 use rand_distr::{Distribution, Normal};
 use temp_reversi_core::{Board, Game, Position};
@@ -55,10 +55,8 @@ where
         } else if let Some(&score) = self.former_transposition_table_lower.get(state) {
             CACHE_HIT_BONUS - score
         } else {
-            // Use MobilityEvaluator for evaluation.
-            let evaluator = MobilityEvaluator;
+            let evaluator = PhaseAwareEvaluator::default();
             -evaluator.evaluate(&state.board, state.current_player)
-            // -self.evaluator.evaluate(&state.board, state.current_player)
         }
     }
 
@@ -78,7 +76,7 @@ where
             let stones = state.board.count_stones();
             let total = (stones.0 + stones.1) as f64;
             let mut rng = rng();
-            let fluctuation = (self.normal.sample(&mut rng) * total / 64.0) as i32;
+            let fluctuation = (self.normal.sample(&mut rng) * total / 30.0) as i32;
             return self.evaluator.evaluate(&state.board, state.current_player) + fluctuation;
         }
 
@@ -375,10 +373,7 @@ where
 mod tests {
     use temp_reversi_core::{Bitboard, Player};
 
-    use crate::{
-        evaluator::{PhaseAwareEvaluator, TempuraEvaluator},
-        strategy::NegaAlphaTTStrategy,
-    };
+    use crate::{evaluator::TempuraEvaluator, strategy::NegaAlphaTTStrategy};
 
     use super::*;
 
@@ -441,7 +436,7 @@ mod tests {
     fn test_self_play() {
         let mut game = Game::<Bitboard>::default();
         let evaluator = TempuraEvaluator::new("../gen0/models/temp_model.bin");
-        let mut strategy = NegaScoutStrategy::new(evaluator, 5, 0.0);
+        let mut strategy = NegaScoutStrategy::new(evaluator, 6, 0.0);
 
         let start = std::time::Instant::now();
         while !game.is_game_over() {
@@ -457,7 +452,7 @@ mod tests {
 
         let mut game = Game::<Bitboard>::default();
         let evaluator = TempuraEvaluator::new("../gen0/models/temp_model.bin");
-        let mut strategy = NegaAlphaTTStrategy::new(evaluator, 5, 0.0);
+        let mut strategy = NegaAlphaTTStrategy::new(evaluator, 6, 0.0);
 
         let start = std::time::Instant::now();
         while !game.is_game_over() {
