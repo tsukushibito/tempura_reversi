@@ -80,6 +80,13 @@ mod tests {
         fn generate_children(&self) -> Vec<Self> {
             self.children.clone()
         }
+        fn generate_children_with_move(&self) -> Vec<(Self, Self::Move)> {
+            self.children
+                .iter()
+                .enumerate()
+                .map(|(i, c)| (c.clone(), i as u32))
+                .collect()
+        }
     }
 
     struct DummyEvaluator;

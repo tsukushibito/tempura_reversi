@@ -81,7 +81,7 @@ where
         if children.is_empty() {
             return self.evaluator.evaluate(state);
         }
-        let mut ordered = self.order_moves(&children);
+        let mut ordered = self.order_states(&children);
 
         // Process the first child.
         let first = ordered.remove(0);
@@ -158,6 +158,39 @@ where
         max_value
     }
 
+    pub fn find_best_move(&mut self, state: &S, depth: usize) -> Option<S::Move> {
+        let children = state.generate_children_with_move();
+        if children.is_empty() {
+            return None;
+        }
+
+        let mut ordered = self.order_state_with_moves(&children);
+
+        // Process the first child.
+        let mut alpha = -INF;
+        let mut beta = INF;
+        let first = ordered.remove(0);
+        let mut v = -self.nega_scout(&first.0, -beta, -alpha, depth - 1);
+        alpha = v;
+        let mut best_move = Some(first.1);
+
+        // Process remaining children.
+        for (child, mov) in ordered {
+            v = -self.nega_scout(&child, -alpha - 1, -alpha, depth - 1);
+            if alpha < v {
+                alpha = v;
+                v = -self.nega_scout(&child, -beta, -alpha, depth - 1);
+                best_move = Some(mov);
+            }
+
+            if alpha < v {
+                alpha = v;
+            }
+        }
+
+        best_move
+    }
+
     /// Iterative deepening search from depth = 1 to max_depth.
     pub fn iterative_deepening(&mut self, root: &S, max_depth: usize) -> i32 {
         let mut best_value = -INF;
@@ -170,7 +203,7 @@ where
         best_value
     }
 
-    fn order_moves(&self, states: &[S]) -> Vec<S> {
+    fn order_states(&self, states: &[S]) -> Vec<S> {
         // Compute (score, state) tuples using TT info if available.
         let mut scored: Vec<(i32, S)> = states
             .iter()
@@ -187,6 +220,23 @@ where
         // Sort in descending order (higher score first).
         scored.sort_by(|a, b| b.0.cmp(&a.0));
         // Return only the states in sorted order.
+        scored.into_iter().map(|(_, s)| s).collect()
+    }
+
+    fn order_state_with_moves(&self, state_with_moves: &[(S, S::Move)]) -> Vec<(S, S::Move)> {
+        let mut scored: Vec<(i32, (S, S::Move))> = state_with_moves
+            .iter()
+            .cloned()
+            .map(|s| {
+                let score = if let Some(entry) = self.tt_snapshot.get(&s.0) {
+                    -entry.value + TT_BIAS
+                } else {
+                    -self.evaluator.order_evaluate(&s.0)
+                };
+                (score, s)
+            })
+            .collect();
+        scored.sort_by(|a, b| b.0.cmp(&a.0));
         scored.into_iter().map(|(_, s)| s).collect()
     }
 }
@@ -211,6 +261,13 @@ mod tests {
         }
         fn generate_children(&self) -> Vec<Self> {
             self.children.clone()
+        }
+        fn generate_children_with_move(&self) -> Vec<(Self, Self::Move)> {
+            self.children
+                .iter()
+                .enumerate()
+                .map(|(i, c)| (c.clone(), i as u32))
+                .collect()
         }
     }
 
@@ -268,7 +325,7 @@ mod tests {
 
         // order_moves() should return children sorted in descending order.
         let children = root.generate_children();
-        let ordered = ns.order_moves(&children);
+        let ordered = ns.order_states(&children);
         // child2's ordering score = 200 + TT_BIAS, and child1's score = child1.order_evaluate() (80).
         assert_eq!(ordered[0], child2, "Child2 should be first due to TT bias");
         assert_eq!(ordered[1], child1, "Child1 should be second");
@@ -306,7 +363,7 @@ mod tests {
         );
         // order_moves takes a slice of states and returns sorted Vec.
         let children = parent.generate_children();
-        let ordered = ns.order_moves(&children);
+        let ordered = ns.order_states(&children);
         // child2's ordering score = 200 + TT_BIAS, child1's ordering score = child1.order_evaluate() (50).
         // Therefore, child2 should be first.
         assert_eq!(

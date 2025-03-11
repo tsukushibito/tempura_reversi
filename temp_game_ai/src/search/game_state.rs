@@ -3,4 +3,5 @@ pub trait GameState: Clone + Eq + std::hash::Hash {
 
     fn is_terminal(&self) -> bool;
     fn generate_children(&self) -> Vec<Self>;
+    fn generate_children_with_move(&self) -> Vec<(Self, Self::Move)>;
 }

@@ -33,6 +33,10 @@ impl GameState for ReversiState {
     fn generate_children(&self) -> Vec<Self> {
         todo!()
     }
+
+    fn generate_children_with_move(&self) -> Vec<(Self, Self::Move)> {
+        todo!()
+    }
 }
 
 struct ReversiEvaluator {
