@@ -12,6 +12,4 @@ rand_distr = "0.5.1"
 rayon = "1.10.0"
 serde = { version = "1.0.217", features = ["derive"] }
 temp_reversi_core = { path = "../temp_reversi_core" }
-
-[dev-dependencies]
-temp_reversi_cli = { path = "../temp_reversi_cli" }
+temp_game_ai = { path = "../temp_game_ai" }

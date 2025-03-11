@@ -1,7 +1,7 @@
 use crate::hasher::Fnv1aHashMap;
 use std::cmp::max;
 
-use super::GameState;
+use super::{Evaluator, GameState};
 
 #[derive(Debug, Clone)]
 struct TTEntry {
@@ -22,20 +22,30 @@ type TranspositionTable<S> = Fnv1aHashMap<S, TTEntry>;
 const INF: i32 = i32::MAX;
 const TT_BIAS: i32 = 1000;
 
-pub struct NegaAlphaTT<S: GameState> {
+pub struct NegaAlphaTT<S, E>
+where
+    S: GameState,
+    E: Evaluator<S>,
+{
     pub visited_nodes: usize,
     pub tt_hits: usize,
     tt: TranspositionTable<S>,
     tt_snapshot: TranspositionTable<S>,
+    evaluator: E,
 }
 
-impl<S: GameState> NegaAlphaTT<S> {
-    pub fn new() -> Self {
+impl<S, E> NegaAlphaTT<S, E>
+where
+    S: GameState,
+    E: Evaluator<S>,
+{
+    pub fn new(evaluator: E) -> Self {
         Self {
             visited_nodes: 0,
             tt_hits: 0,
             tt: Default::default(),
             tt_snapshot: Default::default(),
+            evaluator,
         }
     }
 
@@ -43,7 +53,7 @@ impl<S: GameState> NegaAlphaTT<S> {
         self.visited_nodes += 1;
 
         if depth == 0 || state.is_terminal() {
-            return state.evaluate();
+            return self.evaluator.evaluate(state);
         }
 
         if let Some(entry) = self.tt.get(state) {
@@ -66,7 +76,7 @@ impl<S: GameState> NegaAlphaTT<S> {
 
         let children = state.generate_children();
         if children.is_empty() {
-            return state.evaluate();
+            return self.evaluator.evaluate(state);
         }
         let ordered = self.order_moves(&children);
 
@@ -118,7 +128,7 @@ impl<S: GameState> NegaAlphaTT<S> {
                 let score = if let Some(entry) = self.tt_snapshot.get(&s) {
                     -entry.value + TT_BIAS
                 } else {
-                    -s.order_evaluate()
+                    -self.evaluator.order_evaluate(&s)
                 };
                 (score, s)
             })
@@ -140,17 +150,25 @@ mod tests {
     }
 
     impl GameState for DummyState {
+        type Move = u32;
+
         fn is_terminal(&self) -> bool {
             self.depth == 0
-        }
-        fn evaluate(&self) -> i32 {
-            self.eval
         }
         fn generate_children(&self) -> Vec<Self> {
             self.children.clone()
         }
-        fn order_evaluate(&self) -> i32 {
-            self.evaluate()
+    }
+
+    struct DummyEvaluator;
+
+    impl Evaluator<DummyState> for DummyEvaluator {
+        fn evaluate(&self, state: &DummyState) -> i32 {
+            state.eval
+        }
+
+        fn order_evaluate(&self, state: &DummyState) -> i32 {
+            state.eval
         }
     }
 
@@ -172,7 +190,7 @@ mod tests {
             children: vec![child1.clone(), child2.clone()],
         };
 
-        let mut na = NegaAlphaTT::<DummyState>::new();
+        let mut na = NegaAlphaTT::<DummyState, DummyEvaluator>::new(DummyEvaluator);
         na.tt_snapshot.insert(
             child2.clone(),
             TTEntry {
@@ -213,7 +231,7 @@ mod tests {
             children: vec![child1, child2],
         };
 
-        let mut na = NegaAlphaTT::<DummyState>::new();
+        let mut na = NegaAlphaTT::<DummyState, DummyEvaluator>::new(DummyEvaluator);
         let result = na.nega_alpha_tt(&root, -INF, INF, 2);
         assert_eq!(result, 10, "The final evaluation should be 10");
         assert!(na.tt_hits > 0, "TT hit count should be > 0");
@@ -276,7 +294,7 @@ mod tests {
             children: vec![branch1, branch2, branch3],
         };
 
-        let mut na = NegaAlphaTT::<DummyState>::new();
+        let mut na = NegaAlphaTT::<DummyState, DummyEvaluator>::new(DummyEvaluator);
         let result = na.iterative_deepening(&root, 2);
         assert_eq!(result, 10, "Expected root evaluation to be 10");
     }

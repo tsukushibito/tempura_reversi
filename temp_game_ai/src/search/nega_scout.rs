@@ -2,7 +2,7 @@ use std::cmp::max;
 
 use crate::hasher::Fnv1aHashMap;
 
-use super::GameState;
+use super::{Evaluator, GameState};
 
 /// TTEntry stores the search depth, evaluation value, and node type.
 #[derive(Debug, Clone)]
@@ -24,20 +24,30 @@ type TranspositionTable<S> = Fnv1aHashMap<S, TTEntry>;
 const INF: i32 = i32::MAX;
 const TT_BIAS: i32 = 1000;
 
-pub struct NegaScout<S: GameState> {
+pub struct NegaScout<S, E>
+where
+    S: GameState,
+    E: Evaluator<S>,
+{
     pub visited_nodes: usize,
     pub tt_hits: usize,
     tt: TranspositionTable<S>,
     tt_snapshot: TranspositionTable<S>,
+    evaluator: E,
 }
 
-impl<S: GameState> NegaScout<S> {
-    pub fn new() -> Self {
+impl<S, E> NegaScout<S, E>
+where
+    S: GameState,
+    E: Evaluator<S>,
+{
+    pub fn new(evaluator: E) -> Self {
         Self {
             visited_nodes: 0,
             tt_hits: 0,
             tt: Default::default(),
             tt_snapshot: Default::default(),
+            evaluator,
         }
     }
 
@@ -45,7 +55,7 @@ impl<S: GameState> NegaScout<S> {
         self.visited_nodes += 1;
 
         if depth == 0 || state.is_terminal() {
-            return state.evaluate();
+            return self.evaluator.evaluate(state);
         }
 
         // Transposition table lookup.
@@ -69,7 +79,7 @@ impl<S: GameState> NegaScout<S> {
 
         let children = state.generate_children();
         if children.is_empty() {
-            return state.evaluate();
+            return self.evaluator.evaluate(state);
         }
         let mut ordered = self.order_moves(&children);
 
@@ -169,7 +179,7 @@ impl<S: GameState> NegaScout<S> {
                 let score = if let Some(entry) = self.tt_snapshot.get(&s) {
                     -entry.value + TT_BIAS
                 } else {
-                    -s.order_evaluate()
+                    -self.evaluator.order_evaluate(&s)
                 };
                 (score, s)
             })
@@ -194,18 +204,25 @@ mod tests {
     }
 
     impl GameState for DummyState {
+        type Move = u32;
+
         fn is_terminal(&self) -> bool {
             self.depth == 0
-        }
-        fn evaluate(&self) -> i32 {
-            self.eval
         }
         fn generate_children(&self) -> Vec<Self> {
             self.children.clone()
         }
-        fn order_evaluate(&self) -> i32 {
-            // For move ordering, simply use evaluate() here.
-            self.evaluate()
+    }
+
+    struct DummyEvaluator;
+
+    impl Evaluator<DummyState> for DummyEvaluator {
+        fn evaluate(&self, state: &DummyState) -> i32 {
+            state.eval
+        }
+
+        fn order_evaluate(&self, state: &DummyState) -> i32 {
+            state.eval
         }
     }
 
@@ -237,7 +254,7 @@ mod tests {
             children: vec![child1.clone(), child2.clone()],
         };
 
-        let mut ns = NegaScout::<DummyState>::new();
+        let mut ns = NegaScout::<DummyState, DummyEvaluator>::new(DummyEvaluator);
 
         // Set TT snapshot so that child2 is favored (its TT value is 200).
         ns.tt_snapshot.insert(
@@ -277,7 +294,7 @@ mod tests {
             children: vec![child1.clone(), child2.clone()],
         };
 
-        let mut ns = NegaScout::<DummyState>::new();
+        let mut ns = NegaScout::<DummyState, DummyEvaluator>::new(DummyEvaluator);
         // Simulate TT snapshot: For child2, TT entry with high value (e.g., 200).
         ns.tt_snapshot.insert(
             child2.clone(),
@@ -328,7 +345,7 @@ mod tests {
             children: vec![child1, child2],
         };
 
-        let mut ns = NegaScout::<DummyState>::new();
+        let mut ns = NegaScout::<DummyState, DummyEvaluator>::new(DummyEvaluator);
 
         // Use standard search window (here max_depth = 2)
         let result = ns.nega_scout(&root, -INF, INF, 2);
@@ -407,7 +424,7 @@ mod tests {
             children: vec![branch1, branch2, branch3],
         };
 
-        let mut ns = NegaScout::<DummyState>::new();
+        let mut ns = NegaScout::<DummyState, DummyEvaluator>::new(DummyEvaluator);
 
         let result = ns.iterative_deepening(&root, 2);
         assert_eq!(

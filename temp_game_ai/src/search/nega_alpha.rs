@@ -1,18 +1,28 @@
 use std::cmp::max;
 
-use super::GameState;
+use super::{Evaluator, GameState};
 
 const INF: i32 = i32::MAX;
 
-pub struct NegaAlpha<S: GameState> {
+pub struct NegaAlpha<S, E>
+where
+    S: GameState,
+    E: Evaluator<S>,
+{
     pub visited_nodes: usize,
+    evaluator: E,
     phantom: std::marker::PhantomData<S>,
 }
 
-impl<S: GameState> NegaAlpha<S> {
-    pub fn new() -> Self {
+impl<S, E> NegaAlpha<S, E>
+where
+    S: GameState,
+    E: Evaluator<S>,
+{
+    pub fn new(evaluator: E) -> Self {
         Self {
             visited_nodes: 0,
+            evaluator,
             phantom: std::marker::PhantomData,
         }
     }
@@ -20,12 +30,12 @@ impl<S: GameState> NegaAlpha<S> {
     fn nega_alpha(&mut self, state: &S, mut alpha: i32, beta: i32, depth: usize) -> i32 {
         self.visited_nodes += 1;
         if depth == 0 || state.is_terminal() {
-            return state.evaluate();
+            return self.evaluator.evaluate(state);
         }
 
         let children = state.generate_children();
         if children.is_empty() {
-            return state.evaluate();
+            return self.evaluator.evaluate(state);
         }
 
         let mut best = -INF;
@@ -62,18 +72,25 @@ mod tests {
     }
 
     impl GameState for DummyState {
+        type Move = u32;
+
         fn is_terminal(&self) -> bool {
             self.depth == 0
-        }
-        fn evaluate(&self) -> i32 {
-            self.eval
         }
         fn generate_children(&self) -> Vec<Self> {
             self.children.clone()
         }
+    }
 
-        fn order_evaluate(&self) -> i32 {
-            self.evaluate()
+    struct DummyEvaluator;
+
+    impl Evaluator<DummyState> for DummyEvaluator {
+        fn evaluate(&self, state: &DummyState) -> i32 {
+            state.eval
+        }
+
+        fn order_evaluate(&self, state: &DummyState) -> i32 {
+            state.eval
         }
     }
 
@@ -95,7 +112,7 @@ mod tests {
             children: vec![child1, child2],
         };
 
-        let mut ns = NegaAlpha::<DummyState>::new();
+        let mut ns = NegaAlpha::<DummyState, DummyEvaluator>::new(DummyEvaluator);
         let result = ns.iterative_deepening(&root, 1);
         assert_eq!(result, -10, "The evaluation should be -10");
     }
@@ -156,7 +173,7 @@ mod tests {
             children: vec![branch1, branch2, branch3],
         };
 
-        let mut ns = NegaAlpha::<DummyState>::new();
+        let mut ns = NegaAlpha::<DummyState, DummyEvaluator>::new(DummyEvaluator);
         let result = ns.iterative_deepening(&root, 2);
         assert_eq!(result, 10, "Expected root evaluation to be 10");
     }

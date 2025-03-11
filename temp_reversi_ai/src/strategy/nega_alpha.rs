@@ -139,8 +139,7 @@ mod tests {
     use crate::evaluator::{PhaseAwareEvaluator, SimpleEvaluator};
 
     use super::*;
-    use temp_reversi_cli::cli_display;
-    use temp_reversi_core::{run_game, Bitboard, Game, MoveDecider};
+    use temp_reversi_core::{Bitboard, Game};
 
     #[test]
     fn test_negamax_with_alpha_beta() {
@@ -153,38 +152,6 @@ mod tests {
             move_option.is_some(),
             "NegamaxStrategy with alpha-beta pruning should return a valid move."
         );
-    }
-
-    /// A wrapper to use NegamaxStrategy with MoveDecider trait.
-    pub struct NegamaxMoveDecider<B: Board> {
-        strategy: NegaAlphaStrategy<PhaseAwareEvaluator, B>,
-    }
-
-    impl<B: Board> NegamaxMoveDecider<B> {
-        pub fn new(depth: i32) -> Self {
-            let evaluator = PhaseAwareEvaluator::default();
-            let strategy = NegaAlphaStrategy::new(evaluator, depth);
-            Self { strategy }
-        }
-    }
-
-    impl<B: Board + Send + Sync + 'static> MoveDecider<B> for NegamaxMoveDecider<B> {
-        fn select_move(&mut self, game: &Game<B>) -> Option<Position> {
-            self.strategy.evaluate_and_decide(game)
-        }
-    }
-
-    #[test]
-    fn test_negamax_with_run_game() {
-        // Initialize players
-        let black_player = NegamaxMoveDecider::new(3); // Depth of 3 for Black
-        let white_player = NegamaxMoveDecider::new(3); // Depth of 3 for White
-
-        // Run the game
-        match run_game::<_, _, Bitboard>(black_player, white_player, cli_display) {
-            Ok(()) => println!("Game over!"),
-            Err(err) => eprintln!("Error: {}", err),
-        }
     }
 
     #[test]
