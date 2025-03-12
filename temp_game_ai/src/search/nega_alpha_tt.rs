@@ -1,7 +1,7 @@
 use crate::hasher::Fnv1aHashMap;
 use std::cmp::max;
 
-use super::{Evaluator, GameState};
+use super::{Evaluator, GameState, GameStateAndMove};
 
 #[derive(Debug, Clone)]
 struct TTEntry {
@@ -83,7 +83,7 @@ where
         let mut best = -INF;
         let mut current_alpha = alpha;
         for child in ordered {
-            let score = -self.nega_alpha_tt(&child, -beta, -current_alpha, depth - 1);
+            let score = -self.nega_alpha_tt(&child.0, -beta, -current_alpha, depth - 1);
             best = max(best, score);
             current_alpha = max(current_alpha, score);
             if current_alpha >= beta {
@@ -120,15 +120,15 @@ where
         best_value
     }
 
-    fn order_moves(&self, states: &[S]) -> Vec<S> {
-        let mut scored: Vec<(i32, S)> = states
+    fn order_moves(&self, states: &[GameStateAndMove<S>]) -> Vec<GameStateAndMove<S>> {
+        let mut scored: Vec<(i32, GameStateAndMove<S>)> = states
             .iter()
             .cloned()
             .map(|s| {
-                let score = if let Some(entry) = self.tt_snapshot.get(&s) {
+                let score = if let Some(entry) = self.tt_snapshot.get(&s.0) {
                     -entry.value + TT_BIAS
                 } else {
-                    -self.evaluator.order_evaluate(&s)
+                    -self.evaluator.order_evaluate(&s.0)
                 };
                 (score, s)
             })
@@ -155,10 +155,7 @@ mod tests {
         fn is_terminal(&self) -> bool {
             self.depth == 0
         }
-        fn generate_children(&self) -> Vec<Self> {
-            self.children.clone()
-        }
-        fn generate_children_with_move(&self) -> Vec<(Self, Self::Move)> {
+        fn generate_children(&self) -> Vec<(Self, Self::Move)> {
             self.children
                 .iter()
                 .enumerate()
@@ -209,8 +206,11 @@ mod tests {
 
         let children = parent.generate_children();
         let ordered = na.order_moves(&children);
-        assert_eq!(ordered[0], child2, "Child2 should be first due to TT bias");
-        assert_eq!(ordered[1], child1, "Child1 should be second");
+        assert_eq!(
+            ordered[0].0, child2,
+            "Child2 should be first due to TT bias"
+        );
+        assert_eq!(ordered[1].0, child1, "Child1 should be second");
     }
 
     #[test]

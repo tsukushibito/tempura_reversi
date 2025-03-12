@@ -85,7 +85,7 @@ where
 
         // Process the first child.
         let first = ordered.remove(0);
-        let mut v = -self.nega_scout(&first, -beta, -alpha, depth - 1);
+        let mut v = -self.nega_scout(&first.0, -beta, -alpha, depth - 1);
         let mut max_value = v;
         if beta <= v {
             self.tt.insert(
@@ -104,7 +104,7 @@ where
 
         // Process remaining children.
         for child in ordered {
-            v = -self.nega_scout(&child, -alpha - 1, -alpha, depth - 1);
+            v = -self.nega_scout(&child.0, -alpha - 1, -alpha, depth - 1);
             if beta <= v {
                 self.tt.insert(
                     state.clone(),
@@ -118,7 +118,7 @@ where
             }
             if alpha < v {
                 alpha = v;
-                v = -self.nega_scout(&child, -beta, -alpha, depth - 1);
+                v = -self.nega_scout(&child.0, -beta, -alpha, depth - 1);
                 if beta <= v {
                     self.tt.insert(
                         state.clone(),
@@ -158,41 +158,34 @@ where
         max_value
     }
 
-    pub fn find_best_move(&mut self, state: &S, depth: usize) -> Option<S::Move> {
-        let children = state.generate_children_with_move();
+    pub fn search_best_move_at_depth(&mut self, state: &S, depth: usize) -> Option<S::Move> {
+        let children = state.generate_children();
         if children.is_empty() {
             return None;
         }
+        let mut ordered = self.order_states(&children);
 
-        let mut ordered = self.order_state_with_moves(&children);
+        let (first_state, first_move) = ordered.remove(0);
+        let mut best_score = -self.nega_scout(&first_state, -INF, INF, depth - 1);
+        let mut best_move = first_move;
+        let mut alpha = best_score;
 
-        // Process the first child.
-        let mut alpha = -INF;
-        let mut beta = INF;
-        let first = ordered.remove(0);
-        let mut v = -self.nega_scout(&first.0, -beta, -alpha, depth - 1);
-        alpha = v;
-        let mut best_move = Some(first.1);
-
-        // Process remaining children.
-        for (child, mov) in ordered {
-            v = -self.nega_scout(&child, -alpha - 1, -alpha, depth - 1);
-            if alpha < v {
-                alpha = v;
-                v = -self.nega_scout(&child, -beta, -alpha, depth - 1);
-                best_move = Some(mov);
+        for (child_state, child_move) in ordered {
+            let mut score = -self.nega_scout(&child_state, -alpha - 1, -alpha, depth - 1);
+            if score > alpha && score < INF {
+                score = -self.nega_scout(&child_state, -INF, -alpha, depth - 1);
             }
-
-            if alpha < v {
-                alpha = v;
+            if score > best_score {
+                best_score = score;
+                best_move = child_move;
             }
+            alpha = max(alpha, score);
         }
-
-        best_move
+        Some(best_move)
     }
 
     /// Iterative deepening search from depth = 1 to max_depth.
-    pub fn iterative_deepening(&mut self, root: &S, max_depth: usize) -> i32 {
+    pub fn search_best_move(&mut self, root: &S, max_depth: usize) -> i32 {
         let mut best_value = -INF;
         for depth in 1..=max_depth {
             self.tt.clear();
@@ -203,28 +196,9 @@ where
         best_value
     }
 
-    fn order_states(&self, states: &[S]) -> Vec<S> {
+    fn order_states(&self, states: &[(S, S::Move)]) -> Vec<(S, S::Move)> {
         // Compute (score, state) tuples using TT info if available.
-        let mut scored: Vec<(i32, S)> = states
-            .iter()
-            .cloned()
-            .map(|s| {
-                let score = if let Some(entry) = self.tt_snapshot.get(&s) {
-                    -entry.value + TT_BIAS
-                } else {
-                    -self.evaluator.order_evaluate(&s)
-                };
-                (score, s)
-            })
-            .collect();
-        // Sort in descending order (higher score first).
-        scored.sort_by(|a, b| b.0.cmp(&a.0));
-        // Return only the states in sorted order.
-        scored.into_iter().map(|(_, s)| s).collect()
-    }
-
-    fn order_state_with_moves(&self, state_with_moves: &[(S, S::Move)]) -> Vec<(S, S::Move)> {
-        let mut scored: Vec<(i32, (S, S::Move))> = state_with_moves
+        let mut scored: Vec<(i32, (S, S::Move))> = states
             .iter()
             .cloned()
             .map(|s| {
@@ -236,7 +210,9 @@ where
                 (score, s)
             })
             .collect();
+        // Sort in descending order (higher score first).
         scored.sort_by(|a, b| b.0.cmp(&a.0));
+        // Return only the states in sorted order.
         scored.into_iter().map(|(_, s)| s).collect()
     }
 }
@@ -259,10 +235,7 @@ mod tests {
         fn is_terminal(&self) -> bool {
             self.depth == 0
         }
-        fn generate_children(&self) -> Vec<Self> {
-            self.children.clone()
-        }
-        fn generate_children_with_move(&self) -> Vec<(Self, Self::Move)> {
+        fn generate_children(&self) -> Vec<(Self, Self::Move)> {
             self.children
                 .iter()
                 .enumerate()
@@ -327,8 +300,11 @@ mod tests {
         let children = root.generate_children();
         let ordered = ns.order_states(&children);
         // child2's ordering score = 200 + TT_BIAS, and child1's score = child1.order_evaluate() (80).
-        assert_eq!(ordered[0], child2, "Child2 should be first due to TT bias");
-        assert_eq!(ordered[1], child1, "Child1 should be second");
+        assert_eq!(
+            ordered[0].0, child2,
+            "Child2 should be first due to TT bias"
+        );
+        assert_eq!(ordered[1].0, child1, "Child1 should be second");
     }
 
     /// Test that order_moves uses the TT snapshot for move ordering.
@@ -367,10 +343,10 @@ mod tests {
         // child2's ordering score = 200 + TT_BIAS, child1's ordering score = child1.order_evaluate() (50).
         // Therefore, child2 should be first.
         assert_eq!(
-            ordered[0], child2,
+            ordered[0].0, child2,
             "Child2 should be ordered first due to TT snapshot bias"
         );
-        assert_eq!(ordered[1], child1, "Child1 should come second");
+        assert_eq!(ordered[1].0, child1, "Child1 should come second");
     }
 
     /// Test duplicate states in TT and TT hit count.
@@ -483,7 +459,7 @@ mod tests {
 
         let mut ns = NegaScout::<DummyState, DummyEvaluator>::new(DummyEvaluator);
 
-        let result = ns.iterative_deepening(&root, 2);
+        let result = ns.search_best_move(&root, 2);
         assert_eq!(
             result, 10,
             "Expected root evaluation to be 10 due to pruning"

@@ -30,11 +30,7 @@ impl GameState for ReversiState {
             && self.board.valid_moves(self.player.opponent()).is_empty()
     }
 
-    fn generate_children(&self) -> Vec<Self> {
-        todo!()
-    }
-
-    fn generate_children_with_move(&self) -> Vec<(Self, Self::Move)> {
+    fn generate_children(&self) -> Vec<(Self, Self::Move)> {
         todo!()
     }
 }

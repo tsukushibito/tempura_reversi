@@ -40,7 +40,7 @@ where
 
         let mut best = -INF;
         for child in children {
-            let score = -self.nega_alpha(&child, -beta, -alpha, depth - 1);
+            let score = -self.nega_alpha(&child.0, -beta, -alpha, depth - 1);
             best = max(best, score);
             alpha = max(alpha, score);
             if alpha >= beta {
@@ -77,10 +77,7 @@ mod tests {
         fn is_terminal(&self) -> bool {
             self.depth == 0
         }
-        fn generate_children(&self) -> Vec<Self> {
-            self.children.clone()
-        }
-        fn generate_children_with_move(&self) -> Vec<(Self, Self::Move)> {
+        fn generate_children(&self) -> Vec<(Self, Self::Move)> {
             self.children
                 .iter()
                 .enumerate()
