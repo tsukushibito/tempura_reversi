@@ -3,12 +3,14 @@ use std::hash::Hash;
 use temp_game_ai::search::{Evaluator, GameState, NegaScout};
 use temp_reversi_core::{Bitboard, Board, Player, Position};
 
-use crate::evaluator::{EvaluationFunction, TempuraEvaluator};
+use crate::evaluator::{
+    EvaluationFunction, MobilityEvaluator, PhaseAwareEvaluator, TempuraEvaluator,
+};
 
 use super::Strategy;
 
 #[derive(Clone, PartialEq, Eq)]
-struct ReversiState {
+pub struct ReversiState {
     board: Bitboard,
     player: Player,
 }
@@ -31,11 +33,25 @@ impl GameState for ReversiState {
     }
 
     fn generate_children(&self) -> Vec<(Self, Self::Move)> {
-        todo!()
+        self.board
+            .valid_moves(self.player)
+            .iter()
+            .map(|&pos| {
+                let mut board = self.board.clone();
+                board.apply_move(pos, self.player).unwrap();
+                (
+                    ReversiState {
+                        board,
+                        player: self.player.opponent(),
+                    },
+                    pos,
+                )
+            })
+            .collect()
     }
 }
 
-struct ReversiEvaluator {
+pub struct ReversiEvaluator {
     evaluator: TempuraEvaluator,
 }
 
@@ -53,17 +69,18 @@ impl Evaluator<ReversiState> for ReversiEvaluator {
     }
 
     fn order_evaluate(&self, state: &ReversiState) -> i32 {
-        self.evaluator.evaluate(&state.board, state.player)
+        PhaseAwareEvaluator::default().evaluate(&state.board, state.player)
+        // self.evaluator.evaluate(&state.board, state.player)
     }
 }
 
 pub struct NegaScoutStrategy2 {
-    nega_scout: NegaScout<ReversiState, ReversiEvaluator>,
-    max_depth: i32,
+    pub nega_scout: NegaScout<ReversiState, ReversiEvaluator>,
+    max_depth: usize,
 }
 
 impl NegaScoutStrategy2 {
-    pub fn new(model_path: &str, max_depth: i32) -> Self {
+    pub fn new(model_path: &str, max_depth: usize) -> Self {
         let evaluator = ReversiEvaluator::new(model_path);
         let nega_scout = NegaScout::new(evaluator);
         Self {
@@ -88,11 +105,95 @@ where
             player: game.current_player(),
         };
 
-        // self.nega_scout.iterative_deepening(root, self.max_depth)
-        None
+        let best_move = self.nega_scout.search_best_move(&root, self.max_depth);
+        best_move
     }
 
     fn clone_box(&self) -> Box<dyn Strategy<B>> {
         todo!()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use temp_reversi_core::{Bitboard, Game};
+
+    use crate::strategy::{NegaAlphaTTStrategy, NegaScoutStrategy};
+
+    use super::*;
+
+    #[test]
+    fn test_visited_nodes() {
+        let depth = 9;
+
+        // let game = Game::default();
+        // let evaluator = PhaseAwareEvaluator::default();
+        // let mut strategy = NegaAlphaStrategy::new(evaluator, depth);
+
+        // let start = std::time::Instant::now();
+        // strategy.evaluate_and_decide(&game);
+        // let elapsed = start.elapsed();
+        // println!("[NegaAlpha] Elapsed: {:?}", elapsed);
+        // assert!(
+        //     strategy.nodes_searched > 0,
+        //     "Nodes searched should be greater than 0."
+        // );
+        // println!("[NegaAlpha] Visited nodes: {}", strategy.nodes_searched);
+
+        let mut game = Game::<Bitboard>::default();
+        let valid_moves = game.valid_moves();
+        game.apply_move(valid_moves[0]).unwrap();
+        let valid_moves = game.valid_moves();
+        game.apply_move(valid_moves[0]).unwrap();
+        let evaluator = TempuraEvaluator::new("../gen0/models/temp_model.bin");
+        let mut strategy = NegaAlphaTTStrategy::new(evaluator, depth, 0.0);
+
+        let start = std::time::Instant::now();
+        strategy.evaluate_and_decide(&game);
+        let elapsed = start.elapsed();
+        println!("[NegaAlphaTT] Elapsed: {:?}", elapsed);
+        assert!(
+            strategy.visited_nodes > 0,
+            "Visited nodes should be greater than 0."
+        );
+        println!("[NegaAlphaTT] Visited nodes: {}", strategy.visited_nodes);
+
+        let mut game = Game::<Bitboard>::default();
+        let valid_moves = game.valid_moves();
+        game.apply_move(valid_moves[0]).unwrap();
+        let valid_moves = game.valid_moves();
+        game.apply_move(valid_moves[0]).unwrap();
+        let evaluator = TempuraEvaluator::new("../gen0/models/temp_model.bin");
+        let mut strategy = NegaScoutStrategy::new(evaluator, depth, 0.0);
+
+        let start = std::time::Instant::now();
+        strategy.evaluate_and_decide(&game);
+        let elapsed = start.elapsed();
+        println!("[NegaScout] Elapsed: {:?}", elapsed);
+        assert!(
+            strategy.visited_nodes > 0,
+            "Visited nodes should be greater than 0."
+        );
+        println!("[NegaScout] Visited nodes: {}", strategy.visited_nodes);
+
+        let mut game = Game::<Bitboard>::default();
+        let valid_moves = game.valid_moves();
+        game.apply_move(valid_moves[0]).unwrap();
+        let valid_moves = game.valid_moves();
+        game.apply_move(valid_moves[0]).unwrap();
+        let mut strategy = NegaScoutStrategy2::new("../gen0/models/temp_model.bin", depth as usize);
+
+        let start = std::time::Instant::now();
+        strategy.evaluate_and_decide(&game);
+        let elapsed = start.elapsed();
+        println!("[NegaScout2] Elapsed: {:?}", elapsed);
+        assert!(
+            strategy.nega_scout.visited_nodes > 0,
+            "Visited nodes should be greater than 0."
+        );
+        println!(
+            "[NegaScout2] Visited nodes: {}",
+            strategy.nega_scout.visited_nodes
+        );
     }
 }

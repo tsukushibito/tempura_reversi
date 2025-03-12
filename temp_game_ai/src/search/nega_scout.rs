@@ -1,4 +1,4 @@
-use std::cmp::max;
+use std::{cmp::max, time::Instant};
 
 use crate::hasher::Fnv1aHashMap;
 
@@ -185,15 +185,16 @@ where
     }
 
     /// Iterative deepening search from depth = 1 to max_depth.
-    pub fn search_best_move(&mut self, root: &S, max_depth: usize) -> i32 {
-        let mut best_value = -INF;
-        for depth in 1..=max_depth {
-            self.tt.clear();
-            best_value = self.nega_scout(root, -INF, INF, depth);
-            println!("Depth {}: best_value = {}", depth, best_value);
+    pub fn search_best_move(&mut self, root: &S, max_depth: usize) -> Option<S::Move> {
+        self.visited_nodes = 0;
+        let mut best_move = None;
+        let begin_depth = if max_depth > 3 { max_depth - 3 } else { 1 };
+        // let begin_depth = 1;
+        for depth in begin_depth..=max_depth {
+            best_move = self.search_best_move_at_depth(root, depth);
             self.tt_snapshot = std::mem::take(&mut self.tt);
         }
-        best_value
+        best_move
     }
 
     fn order_states(&self, states: &[(S, S::Move)]) -> Vec<(S, S::Move)> {
@@ -460,13 +461,12 @@ mod tests {
         let mut ns = NegaScout::<DummyState, DummyEvaluator>::new(DummyEvaluator);
 
         let result = ns.search_best_move(&root, 2);
-        assert_eq!(
-            result, 10,
-            "Expected root evaluation to be 10 due to pruning"
-        );
+        assert!(result.is_some(), "Best move should be found");
+
+        assert_eq!(result.unwrap(), 1, "Best move should be 1 (branch2)");
 
         assert!(
-            ns.visited_nodes == 12,
+            ns.visited_nodes == 10,
             "Visited nodes should be relatively low due to pruning"
         );
     }

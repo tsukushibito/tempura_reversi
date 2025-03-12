@@ -23,7 +23,7 @@ where
     transposition_table_lower: HashMap<SearchState<B>, i32>,
     former_transposition_table_upper: HashMap<SearchState<B>, i32>,
     former_transposition_table_lower: HashMap<SearchState<B>, i32>,
-    visited_nodes: u64,
+    pub visited_nodes: u64,
     max_depth: i32,
 
     normal: Normal<f64>,
