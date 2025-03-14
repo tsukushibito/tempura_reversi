@@ -51,6 +51,7 @@ where
         } else {
             let evaluator = PhaseAwareEvaluator::default();
             -evaluator.evaluate(&state.board, state.current_player)
+            // -self.evaluator.evaluate(&state.board, state.current_player)
         }
     }
 

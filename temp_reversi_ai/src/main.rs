@@ -6,7 +6,7 @@ use temp_reversi_ai::{
 use temp_reversi_core::{Bitboard, Game};
 
 fn main() {
-    let depth = 8;
+    let depth = 10;
 
     let mut game = Game::<Bitboard>::default();
     let valid_moves = game.valid_moves();
