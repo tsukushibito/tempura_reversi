@@ -208,7 +208,7 @@ where
                 } else {
                     -self.evaluator.order_evaluate(&s.0)
                 };
-                (score, s)
+                (score, s.clone())
             })
             .collect();
         // Sort in descending order (higher score first).

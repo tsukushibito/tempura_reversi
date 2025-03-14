@@ -69,8 +69,8 @@ impl Evaluator<ReversiState> for ReversiEvaluator {
     }
 
     fn order_evaluate(&self, state: &ReversiState) -> i32 {
-        PhaseAwareEvaluator::default().evaluate(&state.board, state.player)
-        // self.evaluator.evaluate(&state.board, state.player)
+        // PhaseAwareEvaluator::default().evaluate(&state.board, state.player)
+        self.evaluator.evaluate(&state.board, state.player)
     }
 }
 

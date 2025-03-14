@@ -6,3 +6,6 @@ members = [
     "temp_reversi_core",
     "temp_game_ai",
 ]
+
+[profile.release]
+debug = true

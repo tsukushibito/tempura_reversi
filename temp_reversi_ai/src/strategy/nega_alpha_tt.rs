@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::{cmp, i32};
 
 use super::search_state::SearchState;
@@ -6,6 +5,7 @@ use super::Strategy;
 use crate::evaluator::{EvaluationFunction, PhaseAwareEvaluator};
 use rand::rng;
 use rand_distr::{Distribution, Normal};
+use temp_game_ai::hasher::Fnv1aHashMap;
 use temp_reversi_core::{Board, Game, Position};
 
 const CACHE_HIT_BONUS: i32 = 1000;
@@ -19,8 +19,8 @@ where
     B: Board,
 {
     evaluator: E,
-    transposition_table: HashMap<SearchState<B>, i32>,
-    former_transposition_table: HashMap<SearchState<B>, i32>,
+    transposition_table: Fnv1aHashMap<SearchState<B>, i32>,
+    former_transposition_table: Fnv1aHashMap<SearchState<B>, i32>,
     pub visited_nodes: u64,
     max_depth: i32,
 
@@ -36,8 +36,8 @@ where
     pub fn new(evaluator: E, max_depth: i32, sigma: f64) -> Self {
         Self {
             evaluator,
-            transposition_table: HashMap::new(),
-            former_transposition_table: HashMap::new(),
+            transposition_table: Default::default(),
+            former_transposition_table: Default::default(),
             visited_nodes: 0,
             max_depth,
             normal: Normal::new(0.0, sigma).unwrap(),
