@@ -52,12 +52,15 @@ impl GameState for ReversiState {
 
 pub struct ReversiEvaluator {
     evaluator: TempuraEvaluator,
+    order_evaluator: TempuraEvaluator,
 }
 
 impl ReversiEvaluator {
     fn new(model_path: &str) -> Self {
+        let evaluator = TempuraEvaluator::new(model_path);
         Self {
-            evaluator: TempuraEvaluator::new(model_path),
+            evaluator: evaluator.clone(),
+            order_evaluator: evaluator.clone(),
         }
     }
 }
@@ -67,9 +70,9 @@ impl Evaluator<ReversiState> for ReversiEvaluator {
         self.evaluator.evaluate(&state.board, state.player)
     }
 
-    fn order_evaluate(&self, state: &ReversiState) -> i32 {
+    fn order_evaluate(&mut self, state: &ReversiState) -> i32 {
         PhaseAwareEvaluator::default().evaluate(&state.board, state.player)
-        // self.evaluator.evaluate(&state.board, state.player)
+        // self.order_evaluator.evaluate(&state.board, state.player)
     }
 }
 

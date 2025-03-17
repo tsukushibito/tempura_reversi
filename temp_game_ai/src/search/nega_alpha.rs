@@ -93,7 +93,7 @@ mod tests {
             state.eval
         }
 
-        fn order_evaluate(&self, state: &DummyState) -> i32 {
+        fn order_evaluate(&mut self, state: &DummyState) -> i32 {
             state.eval
         }
     }

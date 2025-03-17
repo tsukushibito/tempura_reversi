@@ -120,7 +120,7 @@ where
         best_value
     }
 
-    fn order_moves(&self, states: &[GameStateAndMove<S>]) -> Vec<GameStateAndMove<S>> {
+    fn order_moves(&mut self, states: &[GameStateAndMove<S>]) -> Vec<GameStateAndMove<S>> {
         let mut scored: Vec<(i32, GameStateAndMove<S>)> = states
             .iter()
             .cloned()
@@ -171,7 +171,7 @@ mod tests {
             state.eval
         }
 
-        fn order_evaluate(&self, state: &DummyState) -> i32 {
+        fn order_evaluate(&mut self, state: &DummyState) -> i32 {
             state.eval
         }
     }

@@ -197,7 +197,7 @@ where
         best_move
     }
 
-    fn order_states(&self, states: &[(S, S::Move)]) -> Vec<(S, S::Move)> {
+    fn order_states(&mut self, states: &[(S, S::Move)]) -> Vec<(S, S::Move)> {
         // Compute (score, state) tuples using TT info if available.
         let mut scored: Vec<(i32, (S, S::Move))> = states
             .iter()
@@ -252,7 +252,7 @@ mod tests {
             state.eval
         }
 
-        fn order_evaluate(&self, state: &DummyState) -> i32 {
+        fn order_evaluate(&mut self, state: &DummyState) -> i32 {
             state.eval
         }
     }
