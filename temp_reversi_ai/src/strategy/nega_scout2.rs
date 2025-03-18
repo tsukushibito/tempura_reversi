@@ -53,7 +53,6 @@ impl GameState for ReversiState {
 
 pub struct ReversiEvaluator {
     evaluator: TempuraEvaluator,
-    order_evaluator: TempuraEvaluator,
 }
 
 impl ReversiEvaluator {
@@ -61,7 +60,6 @@ impl ReversiEvaluator {
         let evaluator = TempuraEvaluator::new(model_path);
         Self {
             evaluator: evaluator.clone(),
-            order_evaluator: evaluator.clone(),
         }
     }
 }
@@ -70,22 +68,36 @@ impl Evaluator<ReversiState> for ReversiEvaluator {
     fn evaluate(&mut self, state: &ReversiState) -> i32 {
         self.evaluator.evaluate(&state.board, state.player)
     }
+}
 
-    fn order_evaluate(&mut self, state: &ReversiState) -> i32 {
-        PhaseAwareEvaluator::default().evaluate(&state.board, state.player)
-        // self.order_evaluator.evaluate(&state.board, state.player)
+pub struct ReversiOrderEvaluator {
+    evaluator: PhaseAwareEvaluator,
+}
+
+impl ReversiOrderEvaluator {
+    fn new() -> Self {
+        Self {
+            evaluator: PhaseAwareEvaluator::default(),
+        }
+    }
+}
+
+impl Evaluator<ReversiState> for ReversiOrderEvaluator {
+    fn evaluate(&mut self, state: &ReversiState) -> i32 {
+        self.evaluator.evaluate(&state.board, state.player)
     }
 }
 
 pub struct NegaScoutStrategy2 {
-    pub nega_scout: NegaScout<ReversiState, ReversiEvaluator>,
+    pub nega_scout: NegaScout<ReversiState, ReversiEvaluator, ReversiOrderEvaluator>,
     max_depth: usize,
 }
 
 impl NegaScoutStrategy2 {
     pub fn new(model_path: &str, max_depth: usize) -> Self {
         let evaluator = ReversiEvaluator::new(model_path);
-        let nega_scout = NegaScout::new(evaluator);
+        let order_evaluator = ReversiOrderEvaluator::new();
+        let nega_scout = NegaScout::new(evaluator, order_evaluator);
         Self {
             nega_scout,
             max_depth,
@@ -194,5 +206,27 @@ mod tests {
             "[NegaScout2] Visited nodes: {}",
             strategy.nega_scout.visited_nodes
         );
+    }
+
+    #[test]
+    fn test_self_play() {
+        let depth = 5;
+
+        let mut game = Game::default();
+        let mut strategy1 =
+            NegaScoutStrategy2::new("../gen0/models/temp_model.bin", depth as usize);
+
+        let start = std::time::Instant::now();
+        while !game.is_game_over() {
+            let best_move =
+                strategy1.evaluate_and_decide(&game.board_state(), game.current_player());
+            if let Some(best_move) = best_move {
+                game.apply_move(best_move).unwrap();
+            } else {
+                break;
+            }
+        }
+        let elapsed = start.elapsed();
+        println!("[NegaScout2] Elapsed: {:?}", elapsed);
     }
 }

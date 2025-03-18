@@ -7,8 +7,8 @@ use temp_reversi_core::{Bitboard, Player};
 
 #[derive(Debug, Clone)]
 pub struct TempuraEvaluator {
-    phase_aware: PhaseAwareEvaluator,
-    pattern: Option<PatternEvaluator>,
+    pub phase_aware: PhaseAwareEvaluator,
+    pub pattern: Option<PatternEvaluator>,
 }
 
 impl TempuraEvaluator {

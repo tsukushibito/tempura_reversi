@@ -22,30 +22,34 @@ type TranspositionTable<S> = Fnv1aHashMap<S, TTEntry>;
 const INF: i32 = i32::MAX;
 const TT_BIAS: i32 = 1000;
 
-pub struct NegaScout<S, E>
+pub struct NegaScout<S, E, O>
 where
     S: GameState,
     E: Evaluator<S>,
+    O: Evaluator<S>,
 {
     pub visited_nodes: usize,
     pub tt_hits: usize,
     tt: TranspositionTable<S>,
     tt_snapshot: TranspositionTable<S>,
-    evaluator: E,
+    pub evaluator: E,
+    pub order_evaluator: O,
 }
 
-impl<S, E> NegaScout<S, E>
+impl<S, E, O> NegaScout<S, E, O>
 where
     S: GameState,
     E: Evaluator<S>,
+    O: Evaluator<S>,
 {
-    pub fn new(evaluator: E) -> Self {
+    pub fn new(evaluator: E, order_evaluator: O) -> Self {
         Self {
             visited_nodes: 0,
             tt_hits: 0,
             tt: Default::default(),
             tt_snapshot: Default::default(),
             evaluator,
+            order_evaluator,
         }
     }
 
@@ -204,7 +208,7 @@ where
                 let score = if let Some(entry) = self.tt_snapshot.get(&s.0) {
                     -entry.value + TT_BIAS
                 } else {
-                    -self.evaluator.order_evaluate(&s.0)
+                    -self.order_evaluator.evaluate(&s.0)
                 };
                 (score, s.clone())
             })
@@ -249,10 +253,6 @@ mod tests {
         fn evaluate(&mut self, state: &DummyState) -> i32 {
             state.eval
         }
-
-        fn order_evaluate(&mut self, state: &DummyState) -> i32 {
-            state.eval
-        }
     }
 
     /// Test that move ordering uses the TT snapshot and that pruning occurs.
@@ -283,7 +283,10 @@ mod tests {
             children: vec![child1.clone(), child2.clone()],
         };
 
-        let mut ns = NegaScout::<DummyState, DummyEvaluator>::new(DummyEvaluator);
+        let mut ns = NegaScout::<DummyState, DummyEvaluator, DummyEvaluator>::new(
+            DummyEvaluator,
+            DummyEvaluator,
+        );
 
         // Set TT snapshot so that child2 is favored (its TT value is 200).
         ns.tt_snapshot.insert(
@@ -326,7 +329,10 @@ mod tests {
             children: vec![child1.clone(), child2.clone()],
         };
 
-        let mut ns = NegaScout::<DummyState, DummyEvaluator>::new(DummyEvaluator);
+        let mut ns = NegaScout::<DummyState, DummyEvaluator, DummyEvaluator>::new(
+            DummyEvaluator,
+            DummyEvaluator,
+        );
         // Simulate TT snapshot: For child2, TT entry with high value (e.g., 200).
         ns.tt_snapshot.insert(
             child2.clone(),
@@ -377,7 +383,10 @@ mod tests {
             children: vec![child1, child2],
         };
 
-        let mut ns = NegaScout::<DummyState, DummyEvaluator>::new(DummyEvaluator);
+        let mut ns = NegaScout::<DummyState, DummyEvaluator, DummyEvaluator>::new(
+            DummyEvaluator,
+            DummyEvaluator,
+        );
 
         // Use standard search window (here max_depth = 2)
         let result = ns.nega_scout(&root, -INF, INF, 2);
@@ -456,7 +465,10 @@ mod tests {
             children: vec![branch1, branch2, branch3],
         };
 
-        let mut ns = NegaScout::<DummyState, DummyEvaluator>::new(DummyEvaluator);
+        let mut ns = NegaScout::<DummyState, DummyEvaluator, DummyEvaluator>::new(
+            DummyEvaluator,
+            DummyEvaluator,
+        );
 
         let result = ns.search_best_move(&root, 2);
         assert!(result.is_some(), "Best move should be found");

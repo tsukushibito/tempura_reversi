@@ -20,30 +20,34 @@ type TranspositionTable<S> = Fnv1aHashMap<S, TTEntry>;
 const INF: i32 = i32::MAX;
 const TT_BIAS: i32 = 1000;
 
-pub struct NegaAlphaTT<S, E>
+pub struct NegaAlphaTT<S, E, O>
 where
     S: GameState,
     E: Evaluator<S>,
+    O: Evaluator<S>,
 {
     pub visited_nodes: usize,
     pub tt_hits: usize,
     tt: TranspositionTable<S>,
     tt_snapshot: TranspositionTable<S>,
     evaluator: E,
+    order_evaluator: O,
 }
 
-impl<S, E> NegaAlphaTT<S, E>
+impl<S, E, O> NegaAlphaTT<S, E, O>
 where
     S: GameState,
     E: Evaluator<S>,
+    O: Evaluator<S>,
 {
-    pub fn new(evaluator: E) -> Self {
+    pub fn new(evaluator: E, order_evaluator: O) -> Self {
         Self {
             visited_nodes: 0,
             tt_hits: 0,
             tt: Default::default(),
             tt_snapshot: Default::default(),
             evaluator,
+            order_evaluator,
         }
     }
 
@@ -126,7 +130,7 @@ where
                 let score = if let Some(entry) = self.tt_snapshot.get(&s.0) {
                     -entry.value + TT_BIAS
                 } else {
-                    -self.evaluator.order_evaluate(&s.0)
+                    -self.order_evaluator.evaluate(&s.0)
                 };
                 (score, s)
             })
@@ -168,10 +172,6 @@ mod tests {
         fn evaluate(&mut self, state: &DummyState) -> i32 {
             state.eval
         }
-
-        fn order_evaluate(&mut self, state: &DummyState) -> i32 {
-            state.eval
-        }
     }
 
     #[test]
@@ -192,7 +192,10 @@ mod tests {
             children: vec![child1.clone(), child2.clone()],
         };
 
-        let mut na = NegaAlphaTT::<DummyState, DummyEvaluator>::new(DummyEvaluator);
+        let mut na = NegaAlphaTT::<DummyState, DummyEvaluator, DummyEvaluator>::new(
+            DummyEvaluator,
+            DummyEvaluator,
+        );
         na.tt_snapshot.insert(
             child2.clone(),
             TTEntry {
@@ -236,7 +239,10 @@ mod tests {
             children: vec![child1, child2],
         };
 
-        let mut na = NegaAlphaTT::<DummyState, DummyEvaluator>::new(DummyEvaluator);
+        let mut na = NegaAlphaTT::<DummyState, DummyEvaluator, DummyEvaluator>::new(
+            DummyEvaluator,
+            DummyEvaluator,
+        );
         let result = na.nega_alpha_tt(&root, -INF, INF, 2);
         assert_eq!(result, 10, "The final evaluation should be 10");
         assert!(na.tt_hits > 0, "TT hit count should be > 0");
@@ -299,7 +305,10 @@ mod tests {
             children: vec![branch1, branch2, branch3],
         };
 
-        let mut na = NegaAlphaTT::<DummyState, DummyEvaluator>::new(DummyEvaluator);
+        let mut na = NegaAlphaTT::<DummyState, DummyEvaluator, DummyEvaluator>::new(
+            DummyEvaluator,
+            DummyEvaluator,
+        );
         let result = na.iterative_deepening(&root, 2);
         assert_eq!(result, 10, "Expected root evaluation to be 10");
     }

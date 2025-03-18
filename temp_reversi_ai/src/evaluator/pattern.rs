@@ -12,6 +12,7 @@ pub struct PatternEvaluator {
     /// Collection of pattern groups.
     pub pattern_groups: Vec<PatternGroup>,
     pub model: Model,
+    pub use_impl2: bool,
 }
 
 impl PatternEvaluator {
@@ -40,10 +41,31 @@ impl PatternEvaluator {
         Self {
             pattern_groups,
             model,
+            use_impl2: true,
         }
     }
 
-    fn evaluate_old(&mut self, board: &Bitboard, player: Player) -> i32 {
+    fn evaluate_impl2(&mut self, board: &Bitboard, player: Player) -> i32 {
+        // phase[0] = 1手進めた盤面
+        // phase[1] = 2手進めた盤面
+        // ...
+        let total_stones = (board.count_stones().0 + board.count_stones().1) as i32;
+        let phase = (total_stones - 5).max(0) as usize;
+
+        let value: f32 = self
+            .pattern_groups
+            .iter_mut()
+            .map(|group| group.evaluate_score(board, phase))
+            .sum();
+
+        if player == Player::Black {
+            value as i32
+        } else {
+            -value as i32
+        }
+    }
+
+    fn evaluate_impl1(&mut self, board: &Bitboard, player: Player) -> i32 {
         let vector = extract_features(board, &self.pattern_groups);
 
         // phase[0] = 1手進めた盤面
@@ -66,22 +88,10 @@ impl PatternEvaluator {
 
 impl Evaluator for PatternEvaluator {
     fn evaluate(&mut self, board: &Bitboard, player: Player) -> i32 {
-        // phase[0] = 1手進めた盤面
-        // phase[1] = 2手進めた盤面
-        // ...
-        let total_stones = (board.count_stones().0 + board.count_stones().1) as i32;
-        let phase = (total_stones - 5).max(0) as usize;
-
-        let value: f32 = self
-            .pattern_groups
-            .iter_mut()
-            .map(|group| group.evaluate_score(board, phase))
-            .sum();
-
-        if player == Player::Black {
-            value as i32
+        if self.use_impl2 {
+            self.evaluate_impl2(board, player)
         } else {
-            -value as i32
+            self.evaluate_impl1(board, player)
         }
     }
 }
@@ -108,23 +118,27 @@ mod tests {
 
         let player = Player::Black;
         println!("{}", board);
+        evaluator.use_impl2 = true;
         let score1 = evaluator.evaluate(&board, player);
-        let score2 = evaluator.evaluate_old(&board, player);
+        evaluator.use_impl2 = false;
+        let score2 = evaluator.evaluate(&board, player);
 
         assert_eq!(score1, score2);
 
+        evaluator.use_impl2 = true;
         let start = std::time::Instant::now();
         for _ in 0..1000 {
             let _score = evaluator.evaluate(&board, player);
         }
         let elapsed = start.elapsed();
-        println!("evaluate elapsed: {:?}", elapsed);
+        println!("evaluate_impl2 elapsed: {:?}", elapsed);
 
+        evaluator.use_impl2 = false;
         let start = std::time::Instant::now();
         for _ in 0..1000 {
-            let _score = evaluator.evaluate_old(&board, player);
+            let _score = evaluator.evaluate(&board, player);
         }
         let elapsed = start.elapsed();
-        println!("evaluate2 elapsed: {:?}", elapsed);
+        println!("evaluate2_impl1 elapsed: {:?}", elapsed);
     }
 }
