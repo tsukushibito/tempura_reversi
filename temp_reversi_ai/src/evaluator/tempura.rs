@@ -1,9 +1,8 @@
 use crate::learning::Model;
 
-use super::pattern::PatternEvaluator;
 use super::phase_aware::PhaseAwareEvaluator;
-use super::Evaluator;
-use temp_reversi_core::{Bitboard, Player};
+use super::{pattern::PatternEvaluator, ReversiState};
+use temp_game_ai::Evaluator;
 
 #[derive(Debug, Clone)]
 pub struct TempuraEvaluator {
@@ -32,12 +31,12 @@ impl TempuraEvaluator {
     }
 }
 
-impl Evaluator for TempuraEvaluator {
-    fn evaluate(&mut self, board: &Bitboard, player: Player) -> i32 {
+impl Evaluator<ReversiState> for TempuraEvaluator {
+    fn evaluate(&mut self, state: &ReversiState) -> i32 {
         if let Some(pattern) = &mut self.pattern {
-            pattern.evaluate(board, player)
+            pattern.evaluate(state)
         } else {
-            self.phase_aware.evaluate(board, player)
+            self.phase_aware.evaluate(state)
         }
     }
 }

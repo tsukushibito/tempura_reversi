@@ -27,7 +27,7 @@ pub fn play_game() {
         Box::new(CliPlayer)
     } else {
         let evaluator = TempuraEvaluator::new("gen0/models/best_model.bin");
-        let strategy = NegaAlphaTTStrategy::new(evaluator, 8, 0.0);
+        let strategy = NegaAlphaTTStrategy::new(evaluator, 8);
         Box::new(AiDecider::new(Box::new(strategy)))
     };
 
@@ -35,7 +35,7 @@ pub fn play_game() {
         Box::new(CliPlayer)
     } else {
         let evaluator = TempuraEvaluator::new("gen0/models/best_model.bin");
-        let strategy = NegaAlphaTTStrategy::new(evaluator, 8, 0.0);
+        let strategy = NegaAlphaTTStrategy::new(evaluator, 8);
         Box::new(AiDecider::new(Box::new(strategy)))
     };
 

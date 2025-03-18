@@ -1,6 +1,7 @@
+use temp_game_ai::Evaluator;
 use temp_reversi_core::{Bitboard, Player};
 
-use super::{mobility::MobilityEvaluator, Evaluator, PositionalEvaluator};
+use super::{mobility::MobilityEvaluator, PositionalEvaluator, ReversiState};
 
 /// Defines the phase of the game
 enum Phase {
@@ -46,17 +47,17 @@ impl PhaseAwareEvaluator {
     }
 }
 
-impl Evaluator for PhaseAwareEvaluator {
-    fn evaluate(&mut self, board: &Bitboard, player: Player) -> i32 {
-        let phase = self.determine_phase(board);
+impl Evaluator<ReversiState> for PhaseAwareEvaluator {
+    fn evaluate(&mut self, state: &ReversiState) -> i32 {
+        let phase = self.determine_phase(&state.board);
         let mut mobility_evaluator = MobilityEvaluator;
         let mut positional_evaluator = PositionalEvaluator;
 
         // Evaluate each factor
-        let mobility_score = mobility_evaluator.evaluate(board, player);
-        let positional_score = positional_evaluator.evaluate(board, player);
-        let (black_count, white_count) = board.count_stones();
-        let score_diff = match player {
+        let mobility_score = mobility_evaluator.evaluate(state);
+        let positional_score = positional_evaluator.evaluate(state);
+        let (black_count, white_count) = state.board.count_stones();
+        let score_diff = match state.player {
             Player::Black => black_count as i32 - white_count as i32,
             Player::White => white_count as i32 - black_count as i32,
         };
@@ -86,13 +87,11 @@ impl Evaluator for PhaseAwareEvaluator {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        ai_decider::AiDecider,
-        strategy::{NegaAlphaStrategy, Strategy},
-    };
+    use crate::{ai_decider::AiDecider, strategy::Strategy};
 
     use super::*;
     use rayon::prelude::*;
+    use temp_game_ai::search::NegaAlphaTT;
     use temp_reversi_core::{Bitboard, Game, MoveDecider, Player};
 
     #[test]
@@ -101,7 +100,10 @@ mod tests {
         let mut evaluator = PhaseAwareEvaluator::default();
 
         // Test early phase
-        let early_score = evaluator.evaluate(&board, Player::Black);
+        let early_score = evaluator.evaluate(&ReversiState {
+            board,
+            player: Player::Black,
+        });
         assert!(
             early_score >= 0,
             "Early phase score should be calculated correctly."
@@ -110,7 +112,10 @@ mod tests {
         // Simulate mid-phase board state
         let mid_board = board.clone();
         // Apply moves to transition to mid-phase
-        let mid_score = evaluator.evaluate(&mid_board, Player::Black);
+        let mid_score = evaluator.evaluate(&ReversiState {
+            board: mid_board,
+            player: Player::Black,
+        });
         assert!(
             mid_score >= 0,
             "Mid phase score should be calculated correctly."
@@ -119,18 +124,56 @@ mod tests {
         // Simulate late-phase board state
         let late_board = board.clone();
         // Apply moves to transition to late-phase
-        let late_score = evaluator.evaluate(&late_board, Player::Black);
+        let late_score = evaluator.evaluate(&ReversiState {
+            board: late_board,
+            player: Player::Black,
+        });
         assert!(
             late_score >= 0,
             "Late phase score should be calculated correctly."
         );
     }
 
+    #[derive(Clone, Debug)]
+    struct TestStrategy {
+        pub nega_alpha_tt: NegaAlphaTT<ReversiState, PhaseAwareEvaluator, PhaseAwareEvaluator>,
+        max_depth: usize,
+    }
+
+    impl TestStrategy {
+        fn new(evaluator: PhaseAwareEvaluator, max_depth: usize) -> Self {
+            Self {
+                nega_alpha_tt: NegaAlphaTT::new(evaluator, PhaseAwareEvaluator::default()),
+                max_depth,
+            }
+        }
+    }
+
+    impl Strategy for TestStrategy {
+        fn evaluate_and_decide(
+            &mut self,
+            board: &Bitboard,
+            player: Player,
+        ) -> Option<temp_reversi_core::Position> {
+            let root = ReversiState {
+                board: *board,
+                player,
+            };
+
+            let best_move = self.nega_alpha_tt.search_best_move(&root, self.max_depth);
+            Some(best_move)
+        }
+
+        fn clone_box(&self) -> Box<dyn Strategy> {
+            Box::new(self.clone())
+        }
+    }
+
     #[test]
     fn test_parameters() {
         // 対戦させてどのパラメータが強いかを確認する
         let evaluator1 = PhaseAwareEvaluator::default();
-        let strategy1 = NegaAlphaStrategy::new(evaluator1, 4);
+        let strategy1 = TestStrategy::new(evaluator1, 4);
 
         let evaluator2 = PhaseAwareEvaluator {
             phase_thresholds: (30, 60),
@@ -138,7 +181,7 @@ mod tests {
             mid_phase_weights: (4, 1, 2),
             late_phase_weights: (1, 1, 2),
         };
-        let strategy2 = NegaAlphaStrategy::new(evaluator2, 4);
+        let strategy2 = TestStrategy::new(evaluator2, 4);
 
         let results: Vec<(usize, usize)> = (0..100)
             .into_par_iter()

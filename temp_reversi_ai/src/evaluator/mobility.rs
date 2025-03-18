@@ -1,15 +1,15 @@
-use temp_reversi_core::{Bitboard, Player};
+use temp_game_ai::Evaluator;
 
-use super::Evaluator;
+use super::ReversiState;
 
 /// Mobility evaluator that considers the number of valid moves as the score.
 pub struct MobilityEvaluator;
 
-impl Evaluator for MobilityEvaluator {
-    fn evaluate(&mut self, board: &Bitboard, player: Player) -> i32 {
+impl Evaluator<ReversiState> for MobilityEvaluator {
+    fn evaluate(&mut self, state: &ReversiState) -> i32 {
         // Calculate mobility for the current player and opponent
-        let player_mobility = board.valid_moves(player).len() as i32;
-        let opponent_mobility = board.valid_moves(player.opponent()).len() as i32;
+        let player_mobility = state.board.valid_moves(state.player).len() as i32;
+        let opponent_mobility = state.board.valid_moves(state.player.opponent()).len() as i32;
 
         // Mobility score is the difference between the player's and the opponent's mobility
         player_mobility - opponent_mobility
@@ -27,14 +27,20 @@ mod tests {
         let mut evaluator = MobilityEvaluator;
 
         // Test Black's perspective
-        let black_score = evaluator.evaluate(&board, Player::Black);
+        let black_score = evaluator.evaluate(&ReversiState {
+            board,
+            player: Player::Black,
+        });
         assert!(
             black_score >= 0,
             "Black's mobility score should be non-negative."
         );
 
         // Test White's perspective
-        let white_score = evaluator.evaluate(&board, Player::White);
+        let white_score = evaluator.evaluate(&ReversiState {
+            board,
+            player: Player::White,
+        });
         assert!(
             white_score >= 0,
             "White's mobility score should be non-negative."
@@ -43,7 +49,10 @@ mod tests {
         // Ensure the score is symmetric
         assert_eq!(
             black_score,
-            -evaluator.evaluate(&board, Player::White),
+            -evaluator.evaluate(&ReversiState {
+                board,
+                player: Player::White
+            }),
             "Black's score should be the negative of White's score."
         );
     }

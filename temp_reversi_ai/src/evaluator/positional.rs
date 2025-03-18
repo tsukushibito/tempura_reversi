@@ -1,12 +1,13 @@
-use temp_reversi_core::{Bitboard, Player};
+use temp_game_ai::Evaluator;
+use temp_reversi_core::Player;
 
-use super::Evaluator;
+use super::ReversiState;
 
 /// Positional evaluator that considers board position values.
 pub struct PositionalEvaluator;
 
-impl Evaluator for PositionalEvaluator {
-    fn evaluate(&mut self, board: &Bitboard, player: Player) -> i32 {
+impl Evaluator<ReversiState> for PositionalEvaluator {
+    fn evaluate(&mut self, state: &ReversiState) -> i32 {
         // Positional values for the board (example values for demonstration)
         let positional_values: [i32; 64] = [
             100, -20, 10, 5, 5, 10, -20, 100, // Row 1
@@ -19,7 +20,7 @@ impl Evaluator for PositionalEvaluator {
             100, -20, 10, 5, 5, 10, -20, 100, // Row 8
         ];
 
-        let (black_bits, white_bits) = board.bits();
+        let (black_bits, white_bits) = state.board.bits();
         let mut score = 0;
 
         // Calculate score using bitboard representation
@@ -33,7 +34,7 @@ impl Evaluator for PositionalEvaluator {
         }
 
         // Adjust score based on the player perspective
-        match player {
+        match state.player {
             Player::Black => score,
             Player::White => -score,
         }
@@ -51,14 +52,20 @@ mod tests {
         let mut evaluator = PositionalEvaluator;
 
         // Test Black's perspective
-        let black_score = evaluator.evaluate(&board, Player::Black);
+        let black_score = evaluator.evaluate(&ReversiState {
+            board,
+            player: Player::Black,
+        });
         assert_eq!(
             black_score, 0,
             "Black should have a score of 0 on the default board."
         );
 
         // Test White's perspective
-        let white_score = evaluator.evaluate(&board, Player::White);
+        let white_score = evaluator.evaluate(&ReversiState {
+            board,
+            player: Player::White,
+        });
         assert_eq!(
             white_score, 0,
             "White should have a score of 0 on the default board."

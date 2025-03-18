@@ -20,6 +20,7 @@ type TranspositionTable<S> = Fnv1aHashMap<S, TTEntry>;
 const INF: i32 = i32::MAX;
 const TT_BIAS: i32 = 1000;
 
+#[derive(Debug, Clone)]
 pub struct NegaAlphaTT<S, E, O>
 where
     S: GameState,
@@ -116,10 +117,25 @@ where
         for depth in 1..=max_depth {
             self.tt.clear();
             best_value = self.nega_alpha_tt(root, -INF, INF, depth);
-            println!("Depth {}: best_value = {}", depth, best_value);
             self.tt_snapshot = std::mem::take(&mut self.tt);
         }
         best_value
+    }
+
+    pub fn search_best_move(&mut self, root: &S, max_depth: usize) -> S::Move {
+        let mut best_move = None;
+        let mut best_value = -INF;
+        for depth in 1..=max_depth {
+            let children = root.generate_children();
+            for child in children {
+                let score = -self.nega_alpha_tt(&child.0, -INF, INF, depth - 1);
+                if score > best_value {
+                    best_value = score;
+                    best_move = Some(child.1);
+                }
+            }
+        }
+        best_move.unwrap()
     }
 
     fn order_moves(&mut self, states: &[GameStateAndMove<S>]) -> Vec<GameStateAndMove<S>> {

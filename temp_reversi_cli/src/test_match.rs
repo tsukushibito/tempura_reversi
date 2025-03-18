@@ -11,10 +11,10 @@ use temp_reversi_core::{Game, MoveDecider, Player};
 pub fn run_test_match(num_games: usize, black_model_path: &str, white_model_path: &str) {
     // Create evaluators and strategies.
     let tempura_evaluator = TempuraEvaluator::new(black_model_path);
-    let black_strategy = NegaAlphaTTStrategy::new(tempura_evaluator, 5, 0.0);
+    let black_strategy = NegaAlphaTTStrategy::new(tempura_evaluator, 5);
     // let black_strategy = NegaAlphaStrategy::new(tempura_evaluator, 5);
     let tempura_evaluator = TempuraEvaluator::new(white_model_path);
-    let white_strategy = NegaAlphaTTStrategy::new(tempura_evaluator, 5, 0.0);
+    let white_strategy = NegaAlphaTTStrategy::new(tempura_evaluator, 5);
     // let white_strategy = NegaAlphaStrategy::new(tempura_evaluator, 5);
 
     // Run simulations in parallel.

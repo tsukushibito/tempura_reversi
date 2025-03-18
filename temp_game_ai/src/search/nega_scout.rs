@@ -22,6 +22,7 @@ type TranspositionTable<S> = Fnv1aHashMap<S, TTEntry>;
 const INF: i32 = i32::MAX;
 const TT_BIAS: i32 = 1000;
 
+#[derive(Debug, Clone)]
 pub struct NegaScout<S, E, O>
 where
     S: GameState,

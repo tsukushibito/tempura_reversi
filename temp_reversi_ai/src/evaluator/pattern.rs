@@ -1,10 +1,12 @@
-use super::Evaluator;
 use crate::{
     learning::{extract_features, Model},
     patterns::{get_predefined_patterns, PatternGroup},
     utils::Feature,
 };
+use temp_game_ai::Evaluator;
 use temp_reversi_core::{Bitboard, Player};
+
+use super::ReversiState;
 
 /// Evaluates the board based on multiple pattern groups and their scores.
 #[derive(Debug, Clone)]
@@ -86,12 +88,12 @@ impl PatternEvaluator {
     }
 }
 
-impl Evaluator for PatternEvaluator {
-    fn evaluate(&mut self, board: &Bitboard, player: Player) -> i32 {
+impl Evaluator<ReversiState> for PatternEvaluator {
+    fn evaluate(&mut self, state: &ReversiState) -> i32 {
         if self.use_impl2 {
-            self.evaluate_impl2(board, player)
+            self.evaluate_impl2(&state.board, state.player)
         } else {
-            self.evaluate_impl1(board, player)
+            self.evaluate_impl1(&state.board, state.player)
         }
     }
 }
@@ -116,19 +118,22 @@ mod tests {
             let _ = board.apply_move(*mov, Player::White);
         }
 
-        let player = Player::Black;
         println!("{}", board);
+        let state = ReversiState {
+            board,
+            player: Player::Black,
+        };
         evaluator.use_impl2 = true;
-        let score1 = evaluator.evaluate(&board, player);
+        let score1 = evaluator.evaluate(&state);
         evaluator.use_impl2 = false;
-        let score2 = evaluator.evaluate(&board, player);
+        let score2 = evaluator.evaluate(&state);
 
         assert_eq!(score1, score2);
 
         evaluator.use_impl2 = true;
         let start = std::time::Instant::now();
         for _ in 0..1000 {
-            let _score = evaluator.evaluate(&board, player);
+            let _score = evaluator.evaluate(&state);
         }
         let elapsed = start.elapsed();
         println!("evaluate_impl2 elapsed: {:?}", elapsed);
@@ -136,7 +141,7 @@ mod tests {
         evaluator.use_impl2 = false;
         let start = std::time::Instant::now();
         for _ in 0..1000 {
-            let _score = evaluator.evaluate(&board, player);
+            let _score = evaluator.evaluate(&state);
         }
         let elapsed = start.elapsed();
         println!("evaluate2_impl1 elapsed: {:?}", elapsed);

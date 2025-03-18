@@ -1,15 +1,37 @@
-use temp_reversi_core::{Bitboard, Player};
+use temp_game_ai::GameState;
+use temp_reversi_core::{Bitboard, Player, Position};
 
-pub trait Evaluator {
-    /// Evaluate the current board state for a specific player.
-    ///
-    /// # Arguments
-    /// * `board` - The current board state.
-    /// * `player` - The player for whom the evaluation is performed.
-    ///
-    /// # Returns
-    /// * `i32` - The evaluation score.
-    fn evaluate(&mut self, board: &Bitboard, player: Player) -> i32;
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ReversiState {
+    pub board: Bitboard,
+    pub player: Player,
+}
+
+impl GameState for ReversiState {
+    type Move = Position;
+
+    fn is_terminal(&self) -> bool {
+        self.board.valid_moves(self.player).is_empty()
+            && self.board.valid_moves(self.player.opponent()).is_empty()
+    }
+
+    fn generate_children(&self) -> Vec<(Self, Self::Move)> {
+        self.board
+            .valid_moves(self.player)
+            .iter()
+            .map(|&pos| {
+                let mut board = self.board.clone();
+                board.apply_move(pos, self.player).unwrap();
+                (
+                    ReversiState {
+                        board,
+                        player: self.player.opponent(),
+                    },
+                    pos,
+                )
+            })
+            .collect()
+    }
 }
 
 mod mobility;

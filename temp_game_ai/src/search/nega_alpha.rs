@@ -4,6 +4,7 @@ use crate::{Evaluator, GameState};
 
 const INF: i32 = i32::MAX;
 
+#[derive(Debug, Clone)]
 pub struct NegaAlpha<S, E>
 where
     S: GameState,
@@ -57,6 +58,23 @@ where
             println!("Depth {}: best_value = {}", depth, best_value);
         }
         best_value
+    }
+
+    pub fn search_best_move(&mut self, root: &S, max_depth: usize) -> S::Move {
+        let mut best_move = None;
+        let mut best_value = -INF;
+        for depth in 1..=max_depth {
+            let children = root.generate_children();
+            for child in children {
+                let score = -self.nega_alpha(&child.0, -INF, INF, depth - 1);
+                if score > best_value {
+                    best_value = score;
+                    best_move = Some(child.1);
+                }
+            }
+            println!("Depth {}: best_value = {}", depth, best_value);
+        }
+        best_move.unwrap()
     }
 }
 

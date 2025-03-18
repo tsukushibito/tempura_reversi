@@ -1,9 +1,7 @@
 mod nega_alpha;
 mod nega_alpha_tt;
 mod nega_scout;
-mod nega_scout2;
 mod random;
-mod search_state;
 mod simple;
 
 use temp_reversi_core::{Bitboard, Player, Position};
@@ -33,6 +31,5 @@ impl Clone for Box<dyn Strategy> {
 pub use nega_alpha::*;
 pub use nega_alpha_tt::*;
 pub use nega_scout::*;
-pub use nega_scout2::*;
 pub use random::*;
 pub use simple::*;
