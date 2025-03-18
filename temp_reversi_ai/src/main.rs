@@ -5,49 +5,21 @@ use temp_reversi_ai::{
 use temp_reversi_core::Game;
 
 fn main() {
-    let depth = 10;
+    let depth = 5;
 
     let mut game = Game::default();
-    let valid_moves = game.valid_moves();
-    game.apply_move(valid_moves[0]).unwrap();
-    let valid_moves = game.valid_moves();
-    game.apply_move(valid_moves[0]).unwrap();
-    let evaluator = TempuraEvaluator::new("../gen0/models/temp_model.bin");
-    // let evaluator = TempuraEvaluator::new("m");
+    let evaluator = TempuraEvaluator::new("./gen0/models/temp_model.bin");
     let mut strategy = NegaAlphaTTStrategy::new(evaluator, depth);
 
     let start = std::time::Instant::now();
-    strategy.evaluate_and_decide(&game.board_state(), game.current_player());
+    while !game.is_game_over() {
+        let best_move = strategy.evaluate_and_decide(&game.board_state(), game.current_player());
+        if let Some(best_move) = best_move {
+            game.apply_move(best_move).unwrap();
+        } else {
+            break;
+        }
+    }
     let elapsed = start.elapsed();
-    println!("[NegaAlphaTT] Elapsed: {:?}", elapsed);
-    assert!(
-        strategy.nega_alpha_tt.visited_nodes > 0,
-        "Visited nodes should be greater than 0."
-    );
-    println!(
-        "[NegaAlphaTT] Visited nodes: {}",
-        strategy.nega_alpha_tt.visited_nodes
-    );
-
-    let mut game = Game::default();
-    let valid_moves = game.valid_moves();
-    game.apply_move(valid_moves[0]).unwrap();
-    let valid_moves = game.valid_moves();
-    game.apply_move(valid_moves[0]).unwrap();
-    let evaluator = TempuraEvaluator::new("../gen0/models/temp_model.bin");
-    let mut strategy = NegaScoutStrategy::new(evaluator, depth as usize);
-    // let mut strategy = NegaScoutStrategy2::new("m", depth as usize);
-
-    let start = std::time::Instant::now();
-    strategy.evaluate_and_decide(&game.board_state(), game.current_player());
-    let elapsed = start.elapsed();
-    println!("[NegaScout2] Elapsed: {:?}", elapsed);
-    assert!(
-        strategy.nega_scout.visited_nodes > 0,
-        "Visited nodes should be greater than 0."
-    );
-    println!(
-        "[NegaScout2] Visited nodes: {}",
-        strategy.nega_scout.visited_nodes
-    );
+    println!("Elapsed: {:?}", elapsed);
 }
