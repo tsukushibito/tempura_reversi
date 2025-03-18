@@ -38,6 +38,6 @@ impl Strategy for NegaAlphaTTStrategy {
     }
 
     fn clone_box(&self) -> Box<dyn Strategy> {
-        todo!()
+        Box::new(self.clone())
     }
 }
