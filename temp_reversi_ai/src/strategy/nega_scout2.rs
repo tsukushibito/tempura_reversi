@@ -1,6 +1,7 @@
 use std::hash::Hash;
 
-use temp_game_ai::search::{Evaluator, GameState, NegaScout};
+use temp_game_ai::search::NegaScout;
+use temp_game_ai::{Evaluator, GameState};
 use temp_reversi_core::{Bitboard, Player, Position};
 
 use crate::evaluator::Evaluator as _;

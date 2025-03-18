@@ -1,6 +1,6 @@
 use std::cmp::max;
 
-use super::{Evaluator, GameState};
+use crate::{Evaluator, GameState};
 
 const INF: i32 = i32::MAX;
 

@@ -1,8 +1,6 @@
 use std::cmp::max;
 
-use crate::hasher::Fnv1aHashMap;
-
-use super::{Evaluator, GameState};
+use crate::{hasher::Fnv1aHashMap, Evaluator, GameState};
 
 /// TTEntry stores the search depth, evaluation value, and node type.
 #[derive(Debug, Clone)]

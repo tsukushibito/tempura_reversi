@@ -1,7 +1,5 @@
-use crate::hasher::Fnv1aHashMap;
+use crate::{hasher::Fnv1aHashMap, Evaluator, GameState, GameStateAndMove};
 use std::cmp::max;
-
-use super::{Evaluator, GameState, GameStateAndMove};
 
 #[derive(Debug, Clone)]
 struct TTEntry {
