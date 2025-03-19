@@ -161,7 +161,7 @@ mod tests {
             };
 
             let best_move = self.nega_alpha_tt.search_best_move(&root, self.max_depth);
-            Some(best_move)
+            best_move
         }
 
         fn clone_box(&self) -> Box<dyn Strategy> {

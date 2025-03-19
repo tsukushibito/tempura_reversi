@@ -1,0 +1,24 @@
+use temp_reversi_ai::{
+    evaluator::TempuraEvaluator,
+    strategy::{NegaAlphaTTStrategy, NegaScoutStrategy2, Strategy},
+};
+use temp_reversi_core::Game;
+
+fn main() {
+    let depth = 5;
+
+    let mut game = Game::default();
+    let evaluator = TempuraEvaluator::new("./gen0/models/temp_model.bin");
+    let mut strategy = NegaAlphaTTStrategy::new(evaluator, depth, 0.0);
+
+    let start = std::time::Instant::now();
+    let mut visitied_nodes = 0;
+    while !game.is_game_over() {
+        let mv = strategy.evaluate_and_decide(&game.board_state(), game.current_player());
+        let _ = game.apply_move(mv.unwrap());
+        visitied_nodes += strategy.visited_nodes;
+    }
+
+    let elapsed = start.elapsed();
+    println!("Elapsed: {:?}, Visited nodes: {}", elapsed, visitied_nodes);
+}

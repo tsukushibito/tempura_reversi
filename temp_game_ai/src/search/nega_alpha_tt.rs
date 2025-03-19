@@ -1,4 +1,4 @@
-use crate::{hasher::Fnv1aHashMap, Evaluator, GameState, GameStateAndMove};
+use crate::{hasher::Fnv1aHashMap, Evaluator, GameState};
 use std::cmp::max;
 
 #[derive(Debug, Clone)]
@@ -52,6 +52,29 @@ where
         }
     }
 
+    pub fn iterative_deepening(&mut self, root: &S, max_depth: usize) -> i32 {
+        self.visited_nodes = 0;
+        self.tt.clear();
+        let mut best_value = -INF;
+        for depth in 1..=max_depth {
+            best_value = self.nega_alpha_tt(root, -INF, INF, depth);
+            self.tt_snapshot = std::mem::take(&mut self.tt);
+        }
+        best_value
+    }
+
+    pub fn search_best_move(&mut self, root: &S, max_depth: usize) -> Option<S::Move> {
+        self.visited_nodes = 0;
+        let mut best_move = None;
+        let begin_depth = if max_depth > 3 { max_depth - 3 } else { 1 };
+        // let begin_depth = 1;
+        for depth in begin_depth..=max_depth {
+            best_move = self.search_best_move_at_depth(root, depth);
+            self.tt_snapshot = std::mem::take(&mut self.tt);
+        }
+        best_move
+    }
+
     fn nega_alpha_tt(&mut self, state: &S, mut alpha: i32, beta: i32, depth: usize) -> i32 {
         self.visited_nodes += 1;
 
@@ -81,7 +104,7 @@ where
         if children.is_empty() {
             return self.evaluator.evaluate(state);
         }
-        let ordered = self.order_moves(&children);
+        let ordered = self.order_states(&children);
 
         let mut best = -INF;
         let mut current_alpha = alpha;
@@ -112,34 +135,28 @@ where
         best
     }
 
-    pub fn iterative_deepening(&mut self, root: &S, max_depth: usize) -> i32 {
-        let mut best_value = -INF;
-        for depth in 1..=max_depth {
-            self.tt.clear();
-            best_value = self.nega_alpha_tt(root, -INF, INF, depth);
-            self.tt_snapshot = std::mem::take(&mut self.tt);
+    fn search_best_move_at_depth(&mut self, state: &S, depth: usize) -> Option<S::Move> {
+        let children = state.generate_children();
+        if children.is_empty() {
+            return None;
         }
-        best_value
-    }
+        let ordered = self.order_states(&children);
 
-    pub fn search_best_move(&mut self, root: &S, max_depth: usize) -> S::Move {
         let mut best_move = None;
         let mut best_value = -INF;
-        for depth in 1..=max_depth {
-            let children = root.generate_children();
-            for child in children {
-                let score = -self.nega_alpha_tt(&child.0, -INF, INF, depth - 1);
-                if score > best_value {
-                    best_value = score;
-                    best_move = Some(child.1);
-                }
+        for child in ordered {
+            let score = -self.nega_alpha_tt(&child.0, -INF, INF, depth - 1);
+            if score > best_value {
+                best_value = score;
+                best_move = Some(child.1);
             }
         }
-        best_move.unwrap()
+
+        best_move
     }
 
-    fn order_moves(&mut self, states: &[GameStateAndMove<S>]) -> Vec<GameStateAndMove<S>> {
-        let mut scored: Vec<(i32, GameStateAndMove<S>)> = states
+    fn order_states(&mut self, states: &[(S, S::Move)]) -> Vec<(S, S::Move)> {
+        let mut scored: Vec<(i32, (S, S::Move))> = states
             .iter()
             .cloned()
             .map(|s| {
@@ -222,7 +239,7 @@ mod tests {
         );
 
         let children = parent.generate_children();
-        let ordered = na.order_moves(&children);
+        let ordered = na.order_states(&children);
         assert_eq!(
             ordered[0].0, child2,
             "Child2 should be first due to TT bias"
