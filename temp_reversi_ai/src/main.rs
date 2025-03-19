@@ -12,6 +12,7 @@ fn main() {
     let mut strategy = NegaAlphaTTStrategy::new(evaluator, depth);
 
     let start = std::time::Instant::now();
+    let mut visitied_nodes = 0;
     while !game.is_game_over() {
         let best_move = strategy.evaluate_and_decide(&game.board_state(), game.current_player());
         if let Some(best_move) = best_move {
@@ -19,7 +20,8 @@ fn main() {
         } else {
             break;
         }
+        visitied_nodes += strategy.nega_alpha_tt.visited_nodes;
     }
     let elapsed = start.elapsed();
-    println!("Elapsed: {:?}", elapsed);
+    println!("Elapsed: {:?}, visited nodes: {}", elapsed, visitied_nodes);
 }
