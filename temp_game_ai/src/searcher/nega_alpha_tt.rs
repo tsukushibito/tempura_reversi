@@ -1,23 +1,7 @@
-use crate::{hasher::Fnv1aHashMap, Evaluator, GameState};
+use crate::{Evaluator, GameState, LookupResult, TranspositionTable};
 use std::cmp::max;
 
 use super::Searcher;
-
-#[derive(Debug, Clone)]
-struct TTEntry {
-    depth: usize,
-    value: i32,
-    flag: NodeType,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-enum NodeType {
-    Exact,
-    LowerBound,
-    UpperBound,
-}
-
-type TranspositionTable<S> = Fnv1aHashMap<S, TTEntry>;
 
 const INF: i32 = i32::MAX;
 const TT_BIAS: i32 = 1000;
@@ -30,7 +14,6 @@ where
     O: Evaluator<S>,
 {
     pub visited_nodes: usize,
-    pub tt_hits: usize,
     tt: TranspositionTable<S>,
     tt_snapshot: TranspositionTable<S>,
     evaluator: E,
@@ -46,7 +29,6 @@ where
     pub fn new(evaluator: E, order_evaluator: O) -> Self {
         Self {
             visited_nodes: 0,
-            tt_hits: 0,
             tt: Default::default(),
             tt_snapshot: Default::default(),
             evaluator,
@@ -54,28 +36,21 @@ where
         }
     }
 
-    fn nega_alpha_tt(&mut self, state: &S, mut alpha: i32, beta: i32, depth: usize) -> i32 {
+    fn nega_alpha_tt(&mut self, state: &S, alpha: i32, beta: i32, depth: usize) -> i32 {
         self.visited_nodes += 1;
 
         if depth == 0 || state.is_terminal() {
             return self.evaluator.evaluate(state);
         }
 
-        if let Some(entry) = self.tt.get(state) {
-            if entry.depth >= depth {
-                self.tt_hits += 1;
-                match entry.flag {
-                    NodeType::Exact => return entry.value,
-                    NodeType::LowerBound => alpha = max(alpha, entry.value),
-                    NodeType::UpperBound => {
-                        if entry.value <= alpha {
-                            return entry.value;
-                        }
-                    }
-                }
-                if alpha >= beta {
-                    return entry.value;
-                }
+        let mut alpha = alpha;
+        let mut beta = beta;
+        let r = self.tt.lookup(state, alpha, beta, depth);
+        match r {
+            LookupResult::Value(v) => return v,
+            LookupResult::AlphaBeta(a, b) => {
+                alpha = a;
+                beta = b;
             }
         }
 
@@ -96,21 +71,7 @@ where
             }
         }
 
-        let flag = if best <= alpha {
-            NodeType::UpperBound
-        } else if best >= beta {
-            NodeType::LowerBound
-        } else {
-            NodeType::Exact
-        };
-        self.tt.insert(
-            state.clone(),
-            TTEntry {
-                depth,
-                value: best,
-                flag,
-            },
-        );
+        self.tt.store(state.clone(), depth, best, alpha, beta);
         best
     }
 
@@ -119,8 +80,8 @@ where
             .iter()
             .cloned()
             .map(|s| {
-                let value = if let Some(entry) = self.tt_snapshot.get(&s.0) {
-                    -entry.value + TT_BIAS
+                let value = if let Some(v) = self.tt_snapshot.get_value(&s.0) {
+                    -v + TT_BIAS
                 } else {
                     -self.order_evaluator.evaluate(&s.0)
                 };
@@ -179,7 +140,7 @@ where
 mod tests {
     use super::*;
 
-    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    #[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
     struct DummyState {
         eval: i32,
         depth: usize,
@@ -231,14 +192,7 @@ mod tests {
             DummyEvaluator,
             DummyEvaluator,
         );
-        na.tt_snapshot.insert(
-            child2.clone(),
-            TTEntry {
-                depth: 0,
-                value: 200,
-                flag: NodeType::Exact,
-            },
-        );
+        na.tt_snapshot.store(child2.clone(), 0, 200, 190, 210);
 
         let children = parent.generate_children();
         let ordered = na.order_states(&children);
@@ -280,7 +234,7 @@ mod tests {
         );
         let result = na.nega_alpha_tt(&root, -INF, INF, 2);
         assert_eq!(result, 10, "The final evaluation should be 10");
-        assert!(na.tt_hits > 0, "TT hit count should be > 0");
+        assert!(na.tt.hits > 0, "TT hit count should be > 0");
     }
 
     #[test]

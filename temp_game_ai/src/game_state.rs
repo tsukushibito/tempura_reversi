@@ -1,4 +1,4 @@
-pub trait GameState: Clone + Eq + std::hash::Hash {
+pub trait GameState: Default + Clone + Eq + std::hash::Hash {
     type Move: Clone;
 
     fn is_terminal(&self) -> bool;

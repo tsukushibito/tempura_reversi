@@ -1,25 +1,6 @@
-use std::cmp::max;
-
-use crate::{hasher::Fnv1aHashMap, Evaluator, GameState};
+use crate::{Evaluator, GameState, LookupResult, TranspositionTable};
 
 use super::Searcher;
-
-/// TTEntry stores the search depth, evaluation value, and node type.
-#[derive(Debug, Clone)]
-struct TTEntry {
-    depth: usize,
-    value: i32,
-    flag: NodeType,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-enum NodeType {
-    Exact,
-    LowerBound, // Fail-high
-    UpperBound, // Fail-low
-}
-
-type TranspositionTable<S> = Fnv1aHashMap<S, TTEntry>;
 
 const INF: i32 = i32::MAX;
 const TT_BIAS: i32 = 1000;
@@ -32,7 +13,6 @@ where
     O: Evaluator<S>,
 {
     pub visited_nodes: usize,
-    pub tt_hits: usize,
     tt: TranspositionTable<S>,
     tt_snapshot: TranspositionTable<S>,
     pub evaluator: E,
@@ -48,7 +28,6 @@ where
     pub fn new(evaluator: E, order_evaluator: O) -> Self {
         Self {
             visited_nodes: 0,
-            tt_hits: 0,
             tt: Default::default(),
             tt_snapshot: Default::default(),
             evaluator,
@@ -56,111 +35,63 @@ where
         }
     }
 
-    fn nega_scout(&mut self, state: &S, mut alpha: i32, beta: i32, depth: usize) -> i32 {
+    fn nega_scout(&mut self, state: &S, alpha: i32, beta: i32, depth: usize) -> i32 {
         self.visited_nodes += 1;
 
         if depth == 0 || state.is_terminal() {
             return self.evaluator.evaluate(state);
         }
 
-        // Transposition table lookup.
-        if let Some(entry) = self.tt.get(state) {
-            if entry.depth >= depth {
-                self.tt_hits += 1;
-                match entry.flag {
-                    NodeType::Exact => return entry.value,
-                    NodeType::LowerBound => alpha = max(alpha, entry.value),
-                    NodeType::UpperBound => {
-                        if entry.value <= alpha {
-                            return entry.value;
-                        }
-                    }
-                }
-                if alpha >= beta {
-                    return entry.value;
-                }
+        let mut alpha = alpha;
+        let mut beta = beta;
+        let r = self.tt.lookup(state, alpha, beta, depth);
+        match r {
+            LookupResult::Value(v) => return v,
+            LookupResult::AlphaBeta(a, b) => {
+                alpha = a;
+                beta = b;
             }
         }
 
+        // Generate children and order them based on the order evaluator.
         let children = state.generate_children();
         if children.is_empty() {
             return self.evaluator.evaluate(state);
         }
-        let mut ordered = self.order_states(&children);
+        let ordered = self.order_states(&children);
 
-        // Process the first child.
-        let first = ordered.remove(0);
-        let mut v = -self.nega_scout(&first.0, -beta, -alpha, depth - 1);
-        let mut max_value = v;
-        if beta <= v {
-            self.tt.insert(
-                state.clone(),
-                TTEntry {
-                    depth,
-                    value: v,
-                    flag: NodeType::LowerBound,
-                },
-            );
-            return v;
-        }
-        if alpha < v {
-            alpha = v;
-        }
-
-        // Process remaining children.
+        // Perform NegaScout search.
+        let original_alpha = alpha;
+        let mut best_value = -INF;
+        let mut is_first_move = true;
         for child in ordered {
-            v = -self.nega_scout(&child.0, -alpha - 1, -alpha, depth - 1);
-            if beta <= v {
-                self.tt.insert(
-                    state.clone(),
-                    TTEntry {
-                        depth,
-                        value: v,
-                        flag: NodeType::LowerBound,
-                    },
-                );
-                return v;
-            }
-            if alpha < v {
-                alpha = v;
+            let mut v;
+            if is_first_move {
                 v = -self.nega_scout(&child.0, -beta, -alpha, depth - 1);
-                if beta <= v {
-                    self.tt.insert(
-                        state.clone(),
-                        TTEntry {
-                            depth,
-                            value: v,
-                            flag: NodeType::LowerBound,
-                        },
-                    );
-                    return v;
-                }
-                if alpha < v {
-                    alpha = v;
+            } else {
+                v = -self.nega_scout(&child.0, -alpha - 1, -alpha, depth - 1);
+                if alpha < v && v < beta {
+                    v = -self.nega_scout(&child.0, -beta, -v, depth - 1);
                 }
             }
-            if max_value < v {
-                max_value = v;
+
+            if v > best_value {
+                best_value = v;
             }
+            if best_value > alpha {
+                alpha = best_value;
+            }
+            if alpha >= beta {
+                break; // Beta cut-off.
+            }
+
+            is_first_move = false;
         }
 
-        // Determine the flag for TT entry based on the result.
-        let flag = if max_value <= alpha {
-            NodeType::UpperBound
-        } else if max_value >= beta {
-            NodeType::LowerBound
-        } else {
-            NodeType::Exact
-        };
-        self.tt.insert(
-            state.clone(),
-            TTEntry {
-                depth,
-                value: max_value,
-                flag,
-            },
-        );
-        max_value
+        self.tt
+            .store(state.clone(), depth, best_value, original_alpha, beta);
+
+        best_value
     }
 
     fn search_best_move_at_depth(&mut self, state: &S, depth: usize) -> Option<(S::Move, i32)> {
@@ -168,25 +99,39 @@ where
         if children.is_empty() {
             return None;
         }
-        let mut ordered = self.order_states(&children);
+        let ordered = self.order_states(&children);
 
-        let (first_state, first_move) = ordered.remove(0);
-        let mut best_score = -self.nega_scout(&first_state, -INF, INF, depth - 1);
-        let mut best_move = first_move;
-        let mut alpha = best_score;
+        let mut alpha = -INF;
+        let beta = INF;
+        let mut best_value = -INF;
+        let mut best_move = ordered[0].1.clone();
+        let mut is_first_move = true;
+        for child in ordered {
+            let mut v;
+            if is_first_move {
+                v = -self.nega_scout(&child.0, -beta, -alpha, depth - 1);
+            } else {
+                v = -self.nega_scout(&child.0, -alpha - 1, -alpha, depth - 1);
+                if alpha < v && v < beta {
+                    v = -self.nega_scout(&child.0, -beta, -v, depth - 1);
+                }
+            }
 
-        for (child_state, child_move) in ordered {
-            let mut score = -self.nega_scout(&child_state, -alpha - 1, -alpha, depth - 1);
-            if score > alpha && score < INF {
-                score = -self.nega_scout(&child_state, -INF, -alpha, depth - 1);
+            if v > best_value {
+                best_value = v;
+                best_move = child.1;
             }
-            if score > best_score {
-                best_score = score;
-                best_move = child_move;
+            if best_value > alpha {
+                alpha = best_value;
             }
-            alpha = max(alpha, score);
+            if alpha >= beta {
+                break; // Beta cut-off.
+            }
+
+            is_first_move = false;
         }
-        Some((best_move, best_score))
+
+        Some((best_move, best_value))
     }
 
     fn search_best_move(&mut self, root: &S, max_depth: usize) -> Option<(S::Move, i32)> {
@@ -203,22 +148,22 @@ where
 
     fn order_states(&mut self, states: &[(S, S::Move)]) -> Vec<(S, S::Move)> {
         // Compute (score, state) tuples using TT info if available.
-        let mut scored: Vec<(i32, (S, S::Move))> = states
+        let mut evaluated_states: Vec<(i32, (S, S::Move))> = states
             .iter()
             .cloned()
             .map(|s| {
-                let score = if let Some(entry) = self.tt_snapshot.get(&s.0) {
-                    -entry.value + TT_BIAS
+                let value = if let Some(v) = self.tt_snapshot.get_value(&s.0) {
+                    -v + TT_BIAS
                 } else {
                     -self.order_evaluator.evaluate(&s.0)
                 };
-                (score, s.clone())
+                (value, s.clone())
             })
             .collect();
         // Sort in descending order (higher score first).
-        scored.sort_by(|a, b| b.0.cmp(&a.0));
+        evaluated_states.sort_by(|a, b| b.0.cmp(&a.0));
         // Return only the states in sorted order.
-        scored.into_iter().map(|(_, s)| s).collect()
+        evaluated_states.into_iter().map(|(_, s)| s).collect()
     }
 }
 
@@ -238,7 +183,7 @@ mod tests {
     use super::*;
 
     // DummyState implements the GameState trait.
-    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    #[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
     struct DummyState {
         eval: i32,    // Terminal state evaluation value.
         depth: usize, // If depth == 0 then terminal.
@@ -302,14 +247,7 @@ mod tests {
         );
 
         // Set TT snapshot so that child2 is favored (its TT value is 200).
-        ns.tt_snapshot.insert(
-            child2.clone(),
-            TTEntry {
-                depth: 0,
-                value: 200,
-                flag: NodeType::Exact,
-            },
-        );
+        ns.tt_snapshot.store(child2.clone(), 0, 200, 190, 210);
 
         // order_moves() should return children sorted in descending order.
         let children = root.generate_children();
@@ -347,14 +285,7 @@ mod tests {
             DummyEvaluator,
         );
         // Simulate TT snapshot: For child2, TT entry with high value (e.g., 200).
-        ns.tt_snapshot.insert(
-            child2.clone(),
-            TTEntry {
-                depth: 0,
-                value: 200,
-                flag: NodeType::Exact,
-            },
-        );
+        ns.tt_snapshot.store(child2.clone(), 0, 200, 190, 210);
         // order_moves takes a slice of states and returns sorted Vec.
         let children = parent.generate_children();
         let ordered = ns.order_states(&children);
@@ -408,9 +339,9 @@ mod tests {
 
         // Since there are duplicate states, TT hit should occur.
         // Expected TT entry count is about 3 (leaf, child1/child2, root).
-        assert!(ns.tt_hits > 0, "TT hit count should be > 0");
+        assert!(ns.tt.hits > 0, "TT hit count should be > 0");
         println!("Visited nodes: {}", ns.visited_nodes);
-        println!("TT hits: {}", ns.tt_hits);
+        println!("TT hits: {}", ns.tt.hits);
     }
 
     /// Test tree structure:

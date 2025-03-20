@@ -30,7 +30,7 @@ where
         }
     }
 
-    fn nega_alpha(&mut self, state: &S, mut alpha: i32, beta: i32, depth: usize) -> i32 {
+    fn nega_alpha(&mut self, state: &S, alpha: i32, beta: i32, depth: usize) -> i32 {
         self.visited_nodes += 1;
         if depth == 0 || state.is_terminal() {
             return self.evaluator.evaluate(state);
@@ -41,13 +41,14 @@ where
             return self.evaluator.evaluate(state);
         }
 
+        let mut alpha = alpha;
         let mut best = -INF;
         for child in children {
             let score = -self.nega_alpha(&child.0, -beta, -alpha, depth - 1);
             best = max(best, score);
             alpha = max(alpha, score);
             if alpha >= beta {
-                break; // βカット
+                break;
             }
         }
         best
@@ -84,7 +85,7 @@ where
 mod tests {
     use super::*;
 
-    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    #[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
     struct DummyState {
         eval: i32,
         depth: usize,

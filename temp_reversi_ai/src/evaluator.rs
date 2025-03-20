@@ -1,7 +1,7 @@
 use temp_game_ai::GameState;
 use temp_reversi_core::{Bitboard, Player, Position};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 pub struct ReversiState {
     pub board: Bitboard,
     pub player: Player,
