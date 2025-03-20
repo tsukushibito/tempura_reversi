@@ -1,5 +1,5 @@
-use temp_game_ai::search::NegaAlphaTT;
-use temp_reversi_core::{Bitboard, Player};
+use temp_game_ai::searcher::{NegaAlphaTT, Searcher};
+use temp_reversi_core::{Bitboard, Player, Position};
 
 use crate::evaluator::{PhaseAwareEvaluator, ReversiState, TempuraEvaluator};
 
@@ -23,18 +23,17 @@ impl NegaAlphaTTStrategy {
 }
 
 impl Strategy for NegaAlphaTTStrategy {
-    fn evaluate_and_decide(
-        &mut self,
-        board: &Bitboard,
-        player: Player,
-    ) -> Option<temp_reversi_core::Position> {
+    fn select_move(&mut self, board: &Bitboard, player: Player) -> Option<Position> {
         let root = ReversiState {
             board: *board,
             player,
         };
 
-        let best_move = self.nega_alpha_tt.search_best_move(&root, self.max_depth);
-        best_move
+        if let Some(best_move) = self.nega_alpha_tt.search(&root, self.max_depth) {
+            Some(best_move.0)
+        } else {
+            None
+        }
     }
 
     fn clone_box(&self) -> Box<dyn Strategy> {

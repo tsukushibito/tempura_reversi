@@ -1,7 +1,7 @@
 mod evaluator;
 mod game_state;
 pub mod hasher;
-pub mod search;
+pub mod searcher;
 
 pub use evaluator::*;
 pub use game_state::*;

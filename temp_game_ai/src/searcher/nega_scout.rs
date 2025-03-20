@@ -2,6 +2,8 @@ use std::cmp::max;
 
 use crate::{hasher::Fnv1aHashMap, Evaluator, GameState};
 
+use super::Searcher;
+
 /// TTEntry stores the search depth, evaluation value, and node type.
 #[derive(Debug, Clone)]
 struct TTEntry {
@@ -161,7 +163,7 @@ where
         max_value
     }
 
-    pub fn search_best_move_at_depth(&mut self, state: &S, depth: usize) -> Option<S::Move> {
+    fn search_best_move_at_depth(&mut self, state: &S, depth: usize) -> Option<(S::Move, i32)> {
         let children = state.generate_children();
         if children.is_empty() {
             return None;
@@ -184,20 +186,19 @@ where
             }
             alpha = max(alpha, score);
         }
-        Some(best_move)
+        Some((best_move, best_score))
     }
 
-    /// Iterative deepening search from depth = 1 to max_depth.
-    pub fn search_best_move(&mut self, root: &S, max_depth: usize) -> Option<S::Move> {
+    fn search_best_move(&mut self, root: &S, max_depth: usize) -> Option<(S::Move, i32)> {
         self.visited_nodes = 0;
-        let mut best_move = None;
+        let mut best_move_and_score = None;
         let begin_depth = if max_depth > 3 { max_depth - 3 } else { 1 };
         // let begin_depth = 1;
         for depth in begin_depth..=max_depth {
-            best_move = self.search_best_move_at_depth(root, depth);
+            best_move_and_score = self.search_best_move_at_depth(root, depth);
             self.tt_snapshot = std::mem::take(&mut self.tt);
         }
-        best_move
+        best_move_and_score
     }
 
     fn order_states(&mut self, states: &[(S, S::Move)]) -> Vec<(S, S::Move)> {
@@ -218,6 +219,17 @@ where
         scored.sort_by(|a, b| b.0.cmp(&a.0));
         // Return only the states in sorted order.
         scored.into_iter().map(|(_, s)| s).collect()
+    }
+}
+
+impl<S, E, O> Searcher<S> for NegaScout<S, E, O>
+where
+    S: GameState,
+    E: Evaluator<S>,
+    O: Evaluator<S>,
+{
+    fn search(&mut self, root: &S, max_depth: usize) -> Option<(S::Move, i32)> {
+        self.search_best_move(root, max_depth)
     }
 }
 
@@ -474,7 +486,7 @@ mod tests {
         let result = ns.search_best_move(&root, 2);
         assert!(result.is_some(), "Best move should be found");
 
-        assert_eq!(result.unwrap(), 1, "Best move should be 1 (branch2)");
+        assert_eq!(result.unwrap().0, 1, "Best move should be 1 (branch2)");
 
         assert!(
             ns.visited_nodes == 10,

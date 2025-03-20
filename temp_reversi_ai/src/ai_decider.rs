@@ -27,6 +27,6 @@ impl MoveDecider for AiDecider {
     /// * `Option<Position>` - The chosen move, or `None` if no move is possible.
     fn select_move(&mut self, game: &Game) -> Option<Position> {
         self.strategy
-            .evaluate_and_decide(game.board_state(), game.current_player())
+            .select_move(game.board_state(), game.current_player())
     }
 }

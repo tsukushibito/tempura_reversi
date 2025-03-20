@@ -1,4 +1,4 @@
-use temp_game_ai::search::NegaAlpha;
+use temp_game_ai::searcher::{NegaAlpha, Searcher};
 use temp_reversi_core::{Bitboard, Player, Position};
 
 use crate::evaluator::{ReversiState, TempuraEvaluator};
@@ -6,7 +6,7 @@ use crate::evaluator::{ReversiState, TempuraEvaluator};
 use super::Strategy;
 
 /// The Negamax strategy with alpha-beta pruning.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct NegaAlphaStrategy {
     pub nega_alpha: NegaAlpha<ReversiState, TempuraEvaluator>,
     pub max_depth: usize,
@@ -24,17 +24,20 @@ impl NegaAlphaStrategy {
 }
 
 impl Strategy for NegaAlphaStrategy {
-    fn evaluate_and_decide(&mut self, board: &Bitboard, player: Player) -> Option<Position> {
+    fn select_move(&mut self, board: &Bitboard, player: Player) -> Option<Position> {
         let root = ReversiState {
             board: *board,
             player,
         };
 
-        let best_move = self.nega_alpha.search_best_move(&root, self.max_depth);
-        Some(best_move)
+        if let Some(best_move) = self.nega_alpha.search(&root, self.max_depth) {
+            Some(best_move.0)
+        } else {
+            None
+        }
     }
 
     fn clone_box(&self) -> Box<dyn Strategy> {
-        Box::new((*self).clone())
+        Box::new(self.clone())
     }
 }

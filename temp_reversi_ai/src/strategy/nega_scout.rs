@@ -1,4 +1,4 @@
-use temp_game_ai::search::NegaScout;
+use temp_game_ai::searcher::{NegaScout, Searcher};
 use temp_reversi_core::{Bitboard, Player};
 
 use crate::evaluator::{PhaseAwareEvaluator, ReversiState, TempuraEvaluator};
@@ -23,7 +23,7 @@ impl NegaScoutStrategy {
 }
 
 impl Strategy for NegaScoutStrategy {
-    fn evaluate_and_decide(
+    fn select_move(
         &mut self,
         board: &Bitboard,
         player: Player,
@@ -33,8 +33,11 @@ impl Strategy for NegaScoutStrategy {
             player,
         };
 
-        let best_move = self.nega_scout.search_best_move(&root, self.max_depth);
-        best_move
+        if let Some(best_move) = self.nega_scout.search(&root, self.max_depth) {
+            Some(best_move.0)
+        } else {
+            None
+        }
     }
 
     fn clone_box(&self) -> Box<dyn Strategy> {
@@ -63,7 +66,7 @@ mod tests {
         let mut strategy = NegaAlphaTTStrategy::new(evaluator, depth);
 
         let start = std::time::Instant::now();
-        strategy.evaluate_and_decide(&game.board_state(), game.current_player());
+        strategy.select_move(&game.board_state(), game.current_player());
         let elapsed = start.elapsed();
         println!("[NegaAlphaTT] Elapsed: {:?}", elapsed);
         assert!(
@@ -84,7 +87,7 @@ mod tests {
         let mut strategy = NegaScoutStrategy::new(evaluator, depth as usize);
 
         let start = std::time::Instant::now();
-        strategy.evaluate_and_decide(&game.board_state(), game.current_player());
+        strategy.select_move(&game.board_state(), game.current_player());
         let elapsed = start.elapsed();
         println!("[NegaScout2] Elapsed: {:?}", elapsed);
         assert!(
@@ -107,8 +110,7 @@ mod tests {
 
         let start = std::time::Instant::now();
         while !game.is_game_over() {
-            let best_move =
-                strategy1.evaluate_and_decide(&game.board_state(), game.current_player());
+            let best_move = strategy1.select_move(&game.board_state(), game.current_player());
             if let Some(best_move) = best_move {
                 game.apply_move(best_move).unwrap();
             } else {

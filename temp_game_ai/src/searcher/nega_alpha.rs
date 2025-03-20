@@ -2,6 +2,8 @@ use std::cmp::max;
 
 use crate::{Evaluator, GameState};
 
+use super::Searcher;
+
 const INF: i32 = i32::MAX;
 
 #[derive(Debug, Clone)]
@@ -51,30 +53,30 @@ where
         best
     }
 
-    pub fn iterative_deepening(&mut self, root: &S, max_depth: usize) -> i32 {
+    fn search_best_move(&mut self, state: &S, max_depth: usize) -> Option<(S::Move, i32)> {
+        let mut best_move_and_score = None;
         let mut best_value = -INF;
         for depth in 1..=max_depth {
-            best_value = self.nega_alpha(root, -INF, INF, depth);
-            println!("Depth {}: best_value = {}", depth, best_value);
-        }
-        best_value
-    }
-
-    pub fn search_best_move(&mut self, root: &S, max_depth: usize) -> S::Move {
-        let mut best_move = None;
-        let mut best_value = -INF;
-        for depth in 1..=max_depth {
-            let children = root.generate_children();
+            let children = state.generate_children();
             for child in children {
                 let score = -self.nega_alpha(&child.0, -INF, INF, depth - 1);
                 if score > best_value {
                     best_value = score;
-                    best_move = Some(child.1);
+                    best_move_and_score = Some((child.1, best_value));
                 }
             }
-            println!("Depth {}: best_value = {}", depth, best_value);
         }
-        best_move.unwrap()
+        best_move_and_score
+    }
+}
+
+impl<S, E> Searcher<S> for NegaAlpha<S, E>
+where
+    S: GameState,
+    E: Evaluator<S>,
+{
+    fn search(&mut self, state: &S, max_depth: usize) -> Option<(S::Move, i32)> {
+        self.search_best_move(state, max_depth)
     }
 }
 
@@ -131,7 +133,7 @@ mod tests {
         };
 
         let mut ns = NegaAlpha::<DummyState, DummyEvaluator>::new(DummyEvaluator);
-        let result = ns.iterative_deepening(&root, 1);
+        let result = ns.search_best_move(&root, 1).unwrap().1;
         assert_eq!(result, -10, "The evaluation should be -10");
     }
 
@@ -192,7 +194,7 @@ mod tests {
         };
 
         let mut ns = NegaAlpha::<DummyState, DummyEvaluator>::new(DummyEvaluator);
-        let result = ns.iterative_deepening(&root, 2);
+        let result = ns.search_best_move(&root, 2).unwrap().1;
         assert_eq!(result, 10, "Expected root evaluation to be 10");
     }
 }

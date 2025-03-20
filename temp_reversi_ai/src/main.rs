@@ -1,6 +1,6 @@
 use temp_reversi_ai::{
     evaluator::TempuraEvaluator,
-    strategy::{NegaAlphaTTStrategy, NegaScoutStrategy, Strategy},
+    strategy::{NegaScoutStrategy, Strategy},
 };
 use temp_reversi_core::Game;
 
@@ -15,7 +15,7 @@ fn main() {
     let start = std::time::Instant::now();
     let mut visitied_nodes = 0;
     while !game.is_game_over() {
-        let best_move = strategy.evaluate_and_decide(&game.board_state(), game.current_player());
+        let best_move = strategy.select_move(&game.board_state(), game.current_player());
         if let Some(best_move) = best_move {
             game.apply_move(best_move).unwrap();
         } else {

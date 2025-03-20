@@ -7,7 +7,7 @@ use crate::learning::optimizer::Adam;
 use crate::learning::{extract_features, generate_game_dataset, Trainer};
 use crate::patterns::get_predefined_patterns;
 use crate::plotter::{plot_overall_loss, plot_phase_losses};
-use crate::strategy::{NegaAlphaTTStrategy, NegaScoutStrategy};
+use crate::strategy::NegaScoutStrategy;
 use crate::utils::ProgressReporter;
 
 use super::{Model, StreamingDatasetWriter};
