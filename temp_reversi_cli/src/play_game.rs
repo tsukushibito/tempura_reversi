@@ -1,9 +1,9 @@
 use crate::cli_display::cli_display;
 use crate::cli_player::CliPlayer;
 use std::io::{self, Write};
-use temp_reversi_ai::evaluator::TempuraEvaluator;
+use temp_reversi_ai::ai_decider::AiDecider;
+use temp_reversi_ai::evaluator::{PhaseAwareEvaluator, TempuraEvaluator};
 use temp_reversi_ai::strategy::NegaScoutStrategy;
-use temp_reversi_ai::{ai_decider::AiDecider, strategy::NegaAlphaTTStrategy};
 use temp_reversi_core::{Game, MoveDecider, Player};
 
 pub fn play_game() {
@@ -27,7 +27,7 @@ pub fn play_game() {
         Box::new(CliPlayer)
     } else {
         let evaluator = TempuraEvaluator::new("gen0/models/best_model.bin");
-        let strategy = NegaScoutStrategy::new(evaluator, 8);
+        let strategy = NegaScoutStrategy::new(evaluator, PhaseAwareEvaluator::default(), 8);
         Box::new(AiDecider::new(Box::new(strategy)))
     };
 
@@ -35,7 +35,7 @@ pub fn play_game() {
         Box::new(CliPlayer)
     } else {
         let evaluator = TempuraEvaluator::new("gen0/models/best_model.bin");
-        let strategy = NegaScoutStrategy::new(evaluator, 8);
+        let strategy = NegaScoutStrategy::new(evaluator, PhaseAwareEvaluator::default(), 8);
         Box::new(AiDecider::new(Box::new(strategy)))
     };
 

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::evaluator::TempuraEvaluator;
+use crate::evaluator::{PhaseAwareEvaluator, TempuraEvaluator};
 use crate::learning::loss_function::MSELoss;
 use crate::learning::optimizer::Adam;
 use crate::learning::{extract_features, generate_game_dataset, Trainer};
@@ -149,7 +149,11 @@ impl TrainingPipeline {
             let game_dataset = generate_game_dataset(
                 num_games,
                 // Box::new(NegaAlphaTTStrategy::new(tempura_evaluator.clone(), 5)),
-                Box::new(NegaScoutStrategy::new(tempura_evaluator.clone(), 5)),
+                Box::new(NegaScoutStrategy::new(
+                    tempura_evaluator.clone(),
+                    PhaseAwareEvaluator::default(),
+                    5,
+                )),
                 self.config.init_random_moves,
                 reporter.clone(),
             );

@@ -1,19 +1,29 @@
-use temp_game_ai::searcher::{NegaScout, Searcher};
+use temp_game_ai::{
+    searcher::{NegaScout, Searcher},
+    Evaluator,
+};
 use temp_reversi_core::{Bitboard, Player};
 
-use crate::evaluator::{PhaseAwareEvaluator, ReversiState, TempuraEvaluator};
+use crate::evaluator::ReversiState;
 
 use super::Strategy;
 
 #[derive(Clone, Debug)]
-pub struct NegaScoutStrategy {
-    pub nega_scout: NegaScout<ReversiState, TempuraEvaluator, PhaseAwareEvaluator>,
+pub struct NegaScoutStrategy<E, O>
+where
+    E: Evaluator<ReversiState>,
+    O: Evaluator<ReversiState>,
+{
+    pub nega_scout: NegaScout<ReversiState, E, O>,
     max_depth: usize,
 }
 
-impl NegaScoutStrategy {
-    pub fn new(evaluator: TempuraEvaluator, max_depth: usize) -> Self {
-        let order_evaluator = PhaseAwareEvaluator::default();
+impl<E, O> NegaScoutStrategy<E, O>
+where
+    E: Evaluator<ReversiState>,
+    O: Evaluator<ReversiState>,
+{
+    pub fn new(evaluator: E, order_evaluator: O, max_depth: usize) -> Self {
         let nega_scout = NegaScout::new(evaluator, order_evaluator);
         Self {
             nega_scout,
@@ -22,7 +32,11 @@ impl NegaScoutStrategy {
     }
 }
 
-impl Strategy for NegaScoutStrategy {
+impl<E, O> Strategy for NegaScoutStrategy<E, O>
+where
+    E: Evaluator<ReversiState> + Clone + 'static,
+    O: Evaluator<ReversiState> + Clone + 'static,
+{
     fn select_move(
         &mut self,
         board: &Bitboard,
@@ -49,7 +63,10 @@ impl Strategy for NegaScoutStrategy {
 mod tests {
     use temp_reversi_core::Game;
 
-    use crate::strategy::NegaAlphaTTStrategy;
+    use crate::{
+        evaluator::{PhaseAwareEvaluator, TempuraEvaluator},
+        strategy::NegaAlphaTTStrategy,
+    };
 
     use super::*;
 
@@ -63,7 +80,8 @@ mod tests {
         let valid_moves = game.valid_moves();
         game.apply_move(valid_moves[0]).unwrap();
         let evaluator = TempuraEvaluator::new("../gen0/models/temp_model.bin");
-        let mut strategy = NegaAlphaTTStrategy::new(evaluator, depth);
+        let mut strategy =
+            NegaAlphaTTStrategy::new(evaluator, PhaseAwareEvaluator::default(), depth);
 
         let start = std::time::Instant::now();
         strategy.select_move(&game.board_state(), game.current_player());
@@ -84,7 +102,8 @@ mod tests {
         let valid_moves = game.valid_moves();
         game.apply_move(valid_moves[0]).unwrap();
         let evaluator = TempuraEvaluator::new("../gen0/models/temp_model.bin");
-        let mut strategy = NegaScoutStrategy::new(evaluator, depth as usize);
+        let mut strategy =
+            NegaScoutStrategy::new(evaluator, PhaseAwareEvaluator::default(), depth as usize);
 
         let start = std::time::Instant::now();
         strategy.select_move(&game.board_state(), game.current_player());
@@ -106,7 +125,8 @@ mod tests {
 
         let mut game = Game::default();
         let evaluator = TempuraEvaluator::new("../gen0/models/temp_model.bin");
-        let mut strategy1 = NegaScoutStrategy::new(evaluator, depth as usize);
+        let mut strategy1 =
+            NegaScoutStrategy::new(evaluator, PhaseAwareEvaluator::default(), depth as usize);
 
         let start = std::time::Instant::now();
         while !game.is_game_over() {
