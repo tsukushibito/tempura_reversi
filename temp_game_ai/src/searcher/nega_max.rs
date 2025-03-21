@@ -8,6 +8,7 @@ where
     E: Evaluator<S>,
 {
     pub evaluator: E,
+    pub visited_nodes: usize,
     phantom: std::marker::PhantomData<S>,
 }
 
@@ -19,11 +20,14 @@ where
     pub fn new(evaluator: E) -> Self {
         Self {
             evaluator,
+            visited_nodes: 0,
             phantom: std::marker::PhantomData,
         }
     }
 
     fn nega_max(&mut self, state: &S, depth: usize) -> i32 {
+        self.visited_nodes += 1;
+
         if depth == 0 || state.is_terminal() {
             return self.evaluator.evaluate(state);
         }
@@ -44,6 +48,7 @@ where
     }
 
     fn search_best_move(&mut self, state: &S, depth: usize) -> Option<(S::Move, i32)> {
+        self.visited_nodes = 0;
         let mut best_move_and_score = None;
         let mut best_value = i32::MIN;
         let children = state.generate_children();
