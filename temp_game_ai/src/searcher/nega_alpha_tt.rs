@@ -160,6 +160,10 @@ mod tests {
                 .map(|(i, c)| (c.clone(), i as u32))
                 .collect()
         }
+
+        fn switch_player(&self) -> Self {
+            todo!()
+        }
     }
 
     struct DummyEvaluator;

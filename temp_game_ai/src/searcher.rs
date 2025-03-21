@@ -1,5 +1,6 @@
 mod nega_alpha;
 mod nega_alpha_tt;
+mod nega_max;
 mod nega_scout;
 mod nega_scout_mpc;
 mod searcher;

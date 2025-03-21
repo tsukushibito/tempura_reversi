@@ -32,6 +32,13 @@ impl GameState for ReversiState {
             })
             .collect()
     }
+
+    fn switch_player(&self) -> Self {
+        Self {
+            board: self.board.clone(),
+            player: self.player.opponent(),
+        }
+    }
 }
 
 mod mobility;
