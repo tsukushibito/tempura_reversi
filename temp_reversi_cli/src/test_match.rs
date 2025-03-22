@@ -1,13 +1,13 @@
 use rand::prelude::*;
 use rand::rng;
 use rayon::prelude::*;
-use temp_reversi_ai::ai_decider::AiDecider;
+use temp_reversi_ai::ai_player::AiPlayer;
 use temp_reversi_ai::evaluator::PhaseAwareEvaluator;
 use temp_reversi_ai::evaluator::TempuraEvaluator;
 // use temp_reversi_ai::strategy::NegaAlphaStrategy;
 use temp_reversi_ai::strategy::NegaAlphaTTStrategy;
 use temp_reversi_ai::strategy::Strategy;
-use temp_reversi_core::{Game, MoveDecider, Player};
+use temp_reversi_core::{Game, GamePlayer, Player};
 
 pub fn run_test_match(num_games: usize, black_model_path: &str, white_model_path: &str) {
     // Create evaluators and strategies.
@@ -26,8 +26,8 @@ pub fn run_test_match(num_games: usize, black_model_path: &str, white_model_path
         .map(|_| {
             let mut game = Game::default();
             // Create local AI deciders by cloning strategies.
-            let mut local_pattern_ai = AiDecider::new(black_strategy.clone_box());
-            let mut local_phase_ai = AiDecider::new(white_strategy.clone_box());
+            let mut local_pattern_ai = AiPlayer::new(black_strategy.clone_box());
+            let mut local_phase_ai = AiPlayer::new(white_strategy.clone_box());
             let mut random_moves = 5;
             while !game.is_game_over() {
                 if random_moves > 0 {
@@ -45,11 +45,8 @@ pub fn run_test_match(num_games: usize, black_model_path: &str, white_model_path
                 } else {
                     &mut local_phase_ai
                 };
-                if let Some(chosen_move) = current_ai.select_move(&game) {
-                    game.apply_move(chosen_move).unwrap();
-                } else {
-                    break;
-                }
+                let selected_move = current_ai.select_move(&game);
+                game.apply_move(selected_move).unwrap();
             }
             let (black_stones, white_stones) = game.current_score();
             if black_stones > white_stones {

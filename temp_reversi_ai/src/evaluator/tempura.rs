@@ -1,7 +1,9 @@
 use crate::learning::Model;
+use crate::ReversiState;
 
+use super::pattern::PatternEvaluator;
 use super::phase_aware::PhaseAwareEvaluator;
-use super::{pattern::PatternEvaluator, ReversiState};
+
 use temp_game_ai::Evaluator;
 
 #[derive(Debug, Clone)]

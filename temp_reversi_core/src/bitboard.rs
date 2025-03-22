@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, vec};
 
 use crate::{player::*, position::*};
 
@@ -42,7 +42,11 @@ impl Bitboard {
 
     pub fn valid_moves(&self, player: Player) -> Vec<Position> {
         let bitmask = self.valid_moves_bitmask(player);
-        self.bitmask_to_positions(bitmask)
+        if bitmask == 0 {
+            vec![Position::PASS]
+        } else {
+            self.bitmask_to_positions(bitmask)
+        }
     }
 
     pub fn count_stones(&self) -> (usize, usize) {
@@ -53,10 +57,19 @@ impl Bitboard {
     }
 
     pub fn is_game_over(&self) -> bool {
-        self.valid_moves(Player::Black).is_empty() && self.valid_moves(Player::White).is_empty()
+        self.is_pass(Player::Black) && self.is_pass(Player::White)
+    }
+
+    pub fn is_pass(&self, player: Player) -> bool {
+        let valid_moves = self.valid_moves(player);
+        valid_moves.len() == 1 && valid_moves[0] == Position::PASS
     }
 
     pub fn apply_move(&mut self, position: Position, player: Player) -> Result<(), &'static str> {
+        if position == Position::PASS {
+            return Ok(());
+        }
+
         let move_bit = position.to_bit();
 
         // Check if the position is already occupied.
@@ -174,7 +187,6 @@ impl Bitboard {
     fn bitmask_to_positions(&self, bitmask: u64) -> Vec<Position> {
         let mut positions = Vec::new();
         let mut bits = bitmask;
-
         while bits != 0 {
             let lsb = bits & (!bits + 1); // Extract the least significant bit
             if let Ok(position) = Position::from_bit(lsb) {
@@ -711,20 +723,13 @@ mod tests {
         let mut rng = rng();
 
         let mut current_player = Player::Black;
-
-        for _ in 0..60 {
+        let mut passed = false;
+        loop {
             let valid_moves = board.valid_moves(current_player);
 
-            if valid_moves.is_empty() {
-                current_player = match current_player {
-                    Player::Black => Player::White,
-                    Player::White => Player::Black,
-                };
-                if board.valid_moves(current_player).is_empty() {
-                    println!("No more valid moves. Game over.");
-                    break;
-                }
-                continue;
+            if passed && valid_moves.len() == 1 && valid_moves[0] == Position::PASS {
+                println!("No more valid moves. Game over.");
+                break;
             }
 
             let chosen_move = valid_moves
@@ -735,6 +740,8 @@ mod tests {
                 board.apply_move(*chosen_move, current_player).is_ok(),
                 "Failed to apply move"
             );
+
+            passed = *chosen_move == Position::PASS;
 
             println!("[After {:?} places at {:?}]", current_player, chosen_move);
             println!("{}", board);

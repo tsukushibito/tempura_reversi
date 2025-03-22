@@ -1,7 +1,7 @@
+use super::{mobility::MobilityEvaluator, PositionalEvaluator};
+use crate::ReversiState;
 use temp_game_ai::Evaluator;
 use temp_reversi_core::{Bitboard, Player};
-
-use super::{mobility::MobilityEvaluator, PositionalEvaluator, ReversiState};
 
 /// Defines the phase of the game
 enum Phase {
@@ -87,12 +87,12 @@ impl Evaluator<ReversiState> for PhaseAwareEvaluator {
 
 #[cfg(test)]
 mod tests {
-    use crate::{ai_decider::AiDecider, strategy::Strategy};
+    use crate::{ai_player::AiPlayer, strategy::Strategy};
 
     use super::*;
     use rayon::prelude::*;
     use temp_game_ai::searcher::{NegaAlphaTT, Searcher};
-    use temp_reversi_core::{Bitboard, Game, MoveDecider, Player, Position};
+    use temp_reversi_core::{Bitboard, Game, GamePlayer, Player, Position};
 
     #[test]
     fn test_phase_aware_evaluation() {
@@ -150,18 +150,16 @@ mod tests {
     }
 
     impl Strategy for TestStrategy {
-        fn select_move(&mut self, board: &Bitboard, player: Player) -> Option<Position> {
+        fn select_move(&mut self, board: &Bitboard, player: Player) -> Position {
             let root = ReversiState {
                 board: *board,
                 player,
             };
 
-            let best_move = self.nega_alpha_tt.search(&root, self.max_depth);
-            if let Some(best_move) = best_move {
-                Some(best_move.0)
-            } else {
-                None
-            }
+            self.nega_alpha_tt
+                .search(&root, self.max_depth)
+                .expect("No moves available.")
+                .0
         }
 
         fn clone_box(&self) -> Box<dyn Strategy> {
@@ -187,8 +185,8 @@ mod tests {
             .into_par_iter()
             .map(|_| {
                 let mut game = Game::default();
-                let mut black_ai = AiDecider::new(strategy1.clone_box());
-                let mut white_ai = AiDecider::new(strategy2.clone_box());
+                let mut black_ai = AiPlayer::new(strategy1.clone_box());
+                let mut white_ai = AiPlayer::new(strategy2.clone_box());
 
                 while !game.is_game_over() {
                     let current_ai = if game.current_player() == Player::Black {
@@ -197,11 +195,8 @@ mod tests {
                         &mut white_ai
                     };
 
-                    if let Some(best_move) = current_ai.select_move(&game) {
-                        game.apply_move(best_move).unwrap();
-                    } else {
-                        break;
-                    }
+                    let best_move = current_ai.select_move(&game);
+                    game.apply_move(best_move).unwrap();
                 }
 
                 let (black_count, white_count) = game.current_score();

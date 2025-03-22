@@ -1,10 +1,8 @@
-use std::cmp::Reverse;
-
 use temp_game_ai::{
     searcher::{NegaMax, Searcher},
     util::perft,
 };
-use temp_reversi_ai::evaluator::{ReversiState, SimpleEvaluator};
+use temp_reversi_ai::{evaluator::SimpleEvaluator, ReversiState};
 
 #[test]
 fn test_nega_max() {
@@ -15,7 +13,7 @@ fn test_nega_max() {
 
     let _m = nega_max.search(&state, 3);
 
-    let nodes = perft(&state, 3, false);
+    let nodes = perft(&state, 3);
 
     assert_eq!(nega_max.visited_nodes, nodes);
 }

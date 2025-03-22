@@ -48,7 +48,16 @@ impl Game {
     /// # Returns
     /// A list of valid moves (`Vec<Position>`).
     pub fn valid_moves(&self) -> Vec<Position> {
-        self.board.valid_moves(self.current_player)
+        let valid_moves = self.board.valid_moves(self.current_player);
+        if valid_moves.len() == 1 && valid_moves[0] == Position::PASS {
+            vec![]
+        } else {
+            valid_moves
+        }
+    }
+
+    pub fn is_pass(&self) -> bool {
+        self.valid_moves().is_empty()
     }
 
     /// Checks if a move at the specified position is valid.
@@ -79,7 +88,7 @@ impl Game {
         self.moves.push(position);
         self.switch_turn();
 
-        if self.valid_moves().is_empty() {
+        if self.is_pass() {
             self.switch_turn();
         }
 

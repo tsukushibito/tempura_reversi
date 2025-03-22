@@ -38,7 +38,7 @@ where
     fn nega_scout(&mut self, state: &S, alpha: i32, beta: i32, depth: usize) -> i32 {
         self.visited_nodes += 1;
 
-        if depth == 0 || state.is_terminal() {
+        if depth == 0 {
             return self.evaluator.evaluate(state);
         }
 

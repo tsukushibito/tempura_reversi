@@ -1,6 +1,6 @@
 use temp_game_ai::Evaluator;
 
-use super::ReversiState;
+use crate::ReversiState;
 
 /// Mobility evaluator that considers the number of valid moves as the score.
 pub struct MobilityEvaluator;
@@ -51,7 +51,7 @@ mod tests {
             black_score,
             -evaluator.evaluate(&ReversiState {
                 board,
-                player: Player::White
+                player: Player::White,
             }),
             "Black's score should be the negative of White's score."
         );

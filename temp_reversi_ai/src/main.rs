@@ -16,11 +16,7 @@ fn main() {
     let mut visitied_nodes = 0;
     while !game.is_game_over() {
         let best_move = strategy.select_move(&game.board_state(), game.current_player());
-        if let Some(best_move) = best_move {
-            game.apply_move(best_move).unwrap();
-        } else {
-            break;
-        }
+        game.apply_move(best_move).unwrap();
         visitied_nodes += strategy.nega_scout.visited_nodes;
     }
     let elapsed = start.elapsed();
@@ -37,11 +33,7 @@ fn main() {
     let mut visitied_nodes = 0;
     while !game.is_game_over() {
         let best_move = strategy.select_move(&game.board_state(), game.current_player());
-        if let Some(best_move) = best_move {
-            game.apply_move(best_move).unwrap();
-        } else {
-            break;
-        }
+        game.apply_move(best_move).unwrap();
         visitied_nodes += strategy.nega_alpha_tt.visited_nodes;
     }
     let elapsed = start.elapsed();

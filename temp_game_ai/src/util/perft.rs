@@ -1,6 +1,6 @@
 use crate::GameState;
 
-pub fn perft<S>(state: &S, depth: usize, passed: bool) -> usize
+pub fn perft<S>(state: &S, depth: usize) -> usize
 where
     S: GameState,
 {
@@ -11,20 +11,8 @@ where
     let mut nodes = 0;
     let children = state.generate_children();
 
-    if !children.is_empty() {
-        if depth == 1 {
-            return children.len();
-        }
-        for child in &children {
-            nodes += perft(&child.0, depth - 1, false);
-        }
-    } else {
-        if passed {
-            return 1;
-        } else {
-            let next_state = state.switch_player();
-            nodes += perft(&next_state, depth - 1, true);
-        }
+    for child in &children {
+        nodes += perft(&child.0, depth - 1);
     }
 
     nodes

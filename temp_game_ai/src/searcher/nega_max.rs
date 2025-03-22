@@ -28,7 +28,7 @@ where
     fn nega_max(&mut self, state: &S, depth: usize) -> i32 {
         self.visited_nodes += 1;
 
-        if depth == 0 || state.is_terminal() {
+        if depth == 0 {
             return self.evaluator.evaluate(state);
         }
 

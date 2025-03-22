@@ -1,7 +1,7 @@
 use temp_game_ai::searcher::{NegaAlpha, Searcher};
 use temp_reversi_core::{Bitboard, Player, Position};
 
-use crate::evaluator::{ReversiState, TempuraEvaluator};
+use crate::{evaluator::TempuraEvaluator, ReversiState};
 
 use super::Strategy;
 
@@ -24,17 +24,16 @@ impl NegaAlphaStrategy {
 }
 
 impl Strategy for NegaAlphaStrategy {
-    fn select_move(&mut self, board: &Bitboard, player: Player) -> Option<Position> {
+    fn select_move(&mut self, board: &Bitboard, player: Player) -> Position {
         let root = ReversiState {
             board: *board,
             player,
         };
 
-        if let Some(best_move) = self.nega_alpha.search(&root, self.max_depth) {
-            Some(best_move.0)
-        } else {
-            None
-        }
+        self.nega_alpha
+            .search(&root, self.max_depth)
+            .expect("No moves available.")
+            .0
     }
 
     fn clone_box(&self) -> Box<dyn Strategy> {

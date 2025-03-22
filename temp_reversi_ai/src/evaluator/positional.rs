@@ -1,7 +1,7 @@
 use temp_game_ai::Evaluator;
 use temp_reversi_core::Player;
 
-use super::ReversiState;
+use crate::ReversiState;
 
 /// Positional evaluator that considers board position values.
 pub struct PositionalEvaluator;

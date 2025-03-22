@@ -7,31 +7,13 @@ use temp_reversi_core::{Bitboard, Player, Position};
 pub struct RandomStrategy;
 
 impl Strategy for RandomStrategy {
-    fn select_move(&mut self, board: &Bitboard, player: Player) -> Option<Position> {
+    fn select_move(&mut self, board: &Bitboard, player: Player) -> Position {
         let mut rng = rng();
         let valid_moves = board.valid_moves(player);
-        valid_moves.choose(&mut rng).copied()
+        *valid_moves.choose(&mut rng).unwrap()
     }
 
     fn clone_box(&self) -> Box<dyn Strategy> {
         Box::new(self.clone())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use temp_reversi_core::Game;
-
-    #[test]
-    fn test_random_strategy() {
-        let game = Game::default();
-        let mut strategy = RandomStrategy;
-
-        let move_option = strategy.select_move(&game.board_state(), game.current_player());
-        assert!(
-            move_option.is_some(),
-            "RandomStrategy should return a valid move."
-        );
     }
 }

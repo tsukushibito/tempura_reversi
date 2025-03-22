@@ -38,7 +38,7 @@ where
     fn nega_scout(&mut self, state: &S, alpha: i32, beta: i32, depth: usize) -> i32 {
         self.visited_nodes += 1;
 
-        if depth == 0 || state.is_terminal() {
+        if depth == 0 {
             return self.evaluator.evaluate(state);
         }
 
@@ -193,19 +193,12 @@ mod tests {
     impl GameState for DummyState {
         type Move = u32;
 
-        fn is_terminal(&self) -> bool {
-            self.depth == 0
-        }
         fn generate_children(&self) -> Vec<(Self, Self::Move)> {
             self.children
                 .iter()
                 .enumerate()
                 .map(|(i, c)| (c.clone(), i as u32))
                 .collect()
-        }
-
-        fn switch_player(&self) -> Self {
-            todo!()
         }
     }
 

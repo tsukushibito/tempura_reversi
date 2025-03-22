@@ -1,10 +1,10 @@
 use std::str::FromStr;
-use temp_reversi_core::{Game, MoveDecider, Position};
+use temp_reversi_core::{Game, GamePlayer, Position};
 
 pub struct CliPlayer;
 
-impl MoveDecider for CliPlayer {
-    fn select_move(&mut self, game: &Game) -> Option<Position> {
+impl GamePlayer for CliPlayer {
+    fn select_move(&mut self, game: &Game) -> Position {
         println!("Enter your move (e.g., A1):");
         let mut position = None;
         loop {
@@ -30,6 +30,6 @@ impl MoveDecider for CliPlayer {
             }
         }
 
-        position
+        position.expect("No position selected.")
     }
 }

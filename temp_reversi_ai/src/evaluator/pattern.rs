@@ -6,7 +6,7 @@ use crate::{
 use temp_game_ai::Evaluator;
 use temp_reversi_core::{Bitboard, Player};
 
-use super::ReversiState;
+use crate::ReversiState;
 
 /// Evaluates the board based on multiple pattern groups and their scores.
 #[derive(Debug, Clone)]

@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use super::{GameDataset, GameRecord};
-use crate::{ai_decider::AiDecider, strategy::Strategy, utils::ProgressReporter};
+use crate::{ai_player::AiPlayer, strategy::Strategy, utils::ProgressReporter};
 use rand::{prelude::*, rng};
 use rayon::prelude::*;
-use temp_reversi_core::{Game, MoveDecider};
+use temp_reversi_core::{Game, GamePlayer};
 
 /// Runs self-play games in parallel using AI players and generates game records.
 ///
@@ -30,7 +30,7 @@ pub fn generate_game_dataset(
         .into_par_iter()
         .map(|_| {
             let mut game = Game::default();
-            let mut ai = AiDecider::new(strategy.clone_box());
+            let mut ai = AiPlayer::new(strategy.clone_box());
             let mut random_moves = init_random_moves;
 
             while !game.is_game_over() {
@@ -43,10 +43,9 @@ pub fn generate_game_dataset(
                     } else {
                         break;
                     }
-                } else if let Some(best_move) = ai.select_move(&game) {
-                    game.apply_move(best_move).unwrap();
                 } else {
-                    break;
+                    let best_move = ai.select_move(&game);
+                    game.apply_move(best_move).unwrap();
                 }
             }
 

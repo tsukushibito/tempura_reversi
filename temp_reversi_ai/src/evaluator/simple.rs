@@ -1,7 +1,7 @@
 use temp_game_ai::Evaluator;
 use temp_reversi_core::Player;
 
-use super::ReversiState;
+use crate::ReversiState;
 
 #[derive(Clone)]
 pub struct SimpleEvaluator;

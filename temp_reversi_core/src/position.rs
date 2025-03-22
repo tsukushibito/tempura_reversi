@@ -28,28 +28,11 @@ impl Position {
         }
     }
 
-    /// Constructs a `Position` from a bitboard representation.
-    ///
-    /// # Arguments
-    ///
-    /// * `bit` - A `u64` value where exactly one bit represents the position.
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(Position)` - If exactly one bit is set in the bitboard.
-    /// * `Err(&'static str)` - If the bitboard has zero or multiple bits set.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// let pos = Position::from_bit(1 << 27).unwrap();
-    /// assert_eq!(pos.to_bit(), 1 << 27);
-    /// ```
     pub fn from_bit(bit: u64) -> Result<Self, &'static str> {
-        if bit.count_ones() == 1 {
+        if bit.count_ones() == 1 || bit == 0 {
             Ok(Self { bit })
         } else {
-            Err("Invalid bitboard: exactly one bit must be set")
+            Err("Invalid bit. Must be a single bit or 0.")
         }
     }
 
@@ -69,30 +52,13 @@ impl Position {
         self.bit
     }
 
-    /// Creates a `Position` from a given index (0-63).
-    ///
-    /// # Arguments
-    ///
-    /// * `idx` - An index representing a position on the board (0-63).
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(Position)` - If the index is within the valid range.
-    /// * `Err(&'static str)` - If the index is out of range.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// let pos = Position::from_u8(27).unwrap();
-    /// assert_eq!(pos.to_u8(), 27);
-    /// ```
-    pub fn from_u8(idx: u8) -> Result<Self, &'static str> {
+    pub fn from_u8(idx: u8) -> Self {
         if idx >= 64 {
-            return Err("Invalid position index: must be in range 0-63");
+            return Self::PASS;
         }
         let row = (idx / 8) as usize;
         let col = (idx % 8) as usize;
-        Ok(Position::new(row, col))
+        Position::new(row, col)
     }
 
     /// Converts the `Position` to a corresponding index (0-63).
@@ -108,8 +74,11 @@ impl Position {
     /// assert_eq!(pos.to_u8(), 27);
     /// ```
     pub fn to_u8(&self) -> u8 {
-        let (row, col) = self.to_row_col();
-        (row * 8 + col) as u8
+        if let Some((row, col)) = self.to_row_col() {
+            (row * 8 + col) as u8
+        } else {
+            64
+        }
     }
 
     /// Returns the row and column indices of the position.
@@ -117,9 +86,12 @@ impl Position {
     /// # Returns
     ///
     /// A tuple `(row, col)` where `row` and `col` are 0-based indices.
-    pub fn to_row_col(&self) -> (usize, usize) {
+    pub fn to_row_col(&self) -> Option<(usize, usize)> {
         let index = self.bit.trailing_zeros() as usize;
-        (index / 8, index % 8)
+        if index == 64 {
+            return None;
+        }
+        Some((index / 8, index % 8))
     }
 
     /// Constants representing all positions on the board.
@@ -323,6 +295,7 @@ impl Position {
     pub const H8: Position = Position {
         bit: 1u64 << (7 * 8 + 7),
     };
+    pub const PASS: Position = Position { bit: 0 };
 }
 
 /// Implements the `BitOr` trait to allow combining multiple positions.
@@ -385,33 +358,11 @@ impl BitOr<u64> for Position {
 impl FromStr for Position {
     type Err = String;
 
-    /// Converts a string in the format "A1" to a `Position`.
-    ///
-    /// # Arguments
-    /// * `s` - A string slice representing the position on the board (e.g., "A1").
-    ///
-    /// # Returns
-    /// Returns a `Position` object if the input is valid. Otherwise, it returns an error
-    /// message as a `String`.
-    ///
-    /// # Errors
-    /// This function returns an error if:
-    /// - The input is not exactly two characters long.
-    /// - The input does not represent a valid position on the board (e.g., out of range).
-    ///
-    /// # Examples
-    /// ```
-    /// use temp_reversi_core::Position;
-    /// use std::str::FromStr;
-    ///
-    /// let position = Position::from_str("A1").unwrap();
-    /// assert_eq!(position.to_row_col(), (0, 0));
-    ///
-    /// let invalid_position = Position::from_str("Z9");
-    /// assert!(invalid_position.is_err());
-    /// ```
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        // Check if the input string length is exactly 2
+        if s == "PASS" {
+            return Ok(Position::PASS);
+        }
+
         if s.len() != 2 {
             return Err("Invalid format. Expected format: A1".to_string());
         }
@@ -447,10 +398,13 @@ impl fmt::Display for Position {
     /// assert_eq!(format!("{}", pos), "H8");
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let (row, col) = self.to_row_col();
-        let col_char = (col as u8 + b'A') as char; // Convert column to 'A'-'H'
-        let row_char = (row as u8 + b'1') as char; // Convert row to '1'-'8'
-        write!(f, "{}{}", col_char, row_char)
+        if let Some((row, col)) = self.to_row_col() {
+            let col_char = (col as u8 + b'A') as char; // Convert column to 'A'-'H'
+            let row_char = (row as u8 + b'1') as char; // Convert row to '1'-'8'
+            write!(f, "{}{}", col_char, row_char)
+        } else {
+            write!(f, "PASS")
+        }
     }
 }
 
@@ -481,7 +435,8 @@ mod tests {
     #[test]
     fn test_to_row_col() {
         let pos = Position::new(3, 5); // F4
-        assert_eq!(pos.to_row_col(), (3, 5));
+
+        assert_eq!(pos.to_row_col().unwrap(), (3, 5));
     }
 
     /// Tests creating a `Position` from a bitboard representation.
@@ -489,17 +444,17 @@ mod tests {
     fn test_from_bit() {
         let bit = 1u64 << 0; // A1
         let pos = Position::from_bit(bit).unwrap();
-        assert_eq!(pos.to_row_col(), (0, 0));
+        assert_eq!(pos.to_row_col().unwrap(), (0, 0));
     }
 
     /// Tests creating a `Position` from a string.
     #[test]
     fn test_from_str() {
         let pos = Position::from_str("A1").unwrap();
-        assert_eq!(pos.to_row_col(), (0, 0));
+        assert_eq!(pos.to_row_col().unwrap(), (0, 0));
 
         let pos = Position::from_str("H8").unwrap();
-        assert_eq!(pos.to_row_col(), (7, 7));
+        assert_eq!(pos.to_row_col().unwrap(), (7, 7));
 
         assert!(Position::from_str("Z9").is_err());
         assert!(Position::from_str("AA").is_err());

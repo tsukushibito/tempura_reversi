@@ -283,33 +283,34 @@ impl GameDataset {
         let final_score = (record.final_score.0 as f32) - (record.final_score.1 as f32);
         let mut samples = Vec::new();
         let mut game = Game::default();
-        let mut phase = 0;
         for &pos_idx in &record.moves {
-            if let Ok(pos) = Position::from_u8(pos_idx) {
-                if game.is_valid_move(pos) {
-                    game.apply_move(pos).unwrap();
-                    let board: &Bitboard = game.board_state();
-                    let feature_vector = extract_features(board, groups);
-                    samples.push((
-                        Feature {
-                            phase,
-                            vector: feature_vector,
-                        },
-                        final_score,
-                    ));
+            let pos = Position::from_u8(pos_idx);
+            if game.is_valid_move(pos) {
+                game.apply_move(pos).unwrap();
+                let board: &Bitboard = game.board_state();
+                let feature_vector = extract_features(board, groups);
+                let (b, w) = board.count_stones();
+                let phase = 65 - b - w;
+                samples.push((
+                    Feature {
+                        phase,
+                        vector: feature_vector,
+                    },
+                    final_score,
+                ));
 
-                    // Add the inverted board state as well
-                    let inverted_board = Bitboard::new(board.bits().1, board.bits().0);
-                    let feature_vector = extract_features(&inverted_board, groups);
-                    samples.push((
-                        Feature {
-                            phase,
-                            vector: feature_vector,
-                        },
-                        -final_score,
-                    ));
-                    phase += 1;
-                }
+                // Add the inverted board state as well
+                let inverted_board = Bitboard::new(board.bits().1, board.bits().0);
+                let feature_vector = extract_features(&inverted_board, groups);
+                samples.push((
+                    Feature {
+                        phase,
+                        vector: feature_vector,
+                    },
+                    -final_score,
+                ));
+            } else {
+                break;
             }
         }
         samples

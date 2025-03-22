@@ -2,11 +2,10 @@ use temp_game_ai::{
     searcher::{NegaScout, Searcher},
     Evaluator,
 };
-use temp_reversi_core::{Bitboard, Player};
-
-use crate::evaluator::ReversiState;
+use temp_reversi_core::{Bitboard, Player, Position};
 
 use super::Strategy;
+use crate::ReversiState;
 
 #[derive(Clone, Debug)]
 pub struct NegaScoutStrategy<E, O>
@@ -37,21 +36,16 @@ where
     E: Evaluator<ReversiState> + Clone + 'static,
     O: Evaluator<ReversiState> + Clone + 'static,
 {
-    fn select_move(
-        &mut self,
-        board: &Bitboard,
-        player: Player,
-    ) -> Option<temp_reversi_core::Position> {
+    fn select_move(&mut self, board: &Bitboard, player: Player) -> Position {
         let root = ReversiState {
             board: *board,
             player,
         };
 
-        if let Some(best_move) = self.nega_scout.search(&root, self.max_depth) {
-            Some(best_move.0)
-        } else {
-            None
-        }
+        self.nega_scout
+            .search(&root, self.max_depth)
+            .expect("No moves available.")
+            .0
     }
 
     fn clone_box(&self) -> Box<dyn Strategy> {
@@ -131,11 +125,7 @@ mod tests {
         let start = std::time::Instant::now();
         while !game.is_game_over() {
             let best_move = strategy1.select_move(&game.board_state(), game.current_player());
-            if let Some(best_move) = best_move {
-                game.apply_move(best_move).unwrap();
-            } else {
-                break;
-            }
+            game.apply_move(best_move).unwrap();
         }
         let elapsed = start.elapsed();
         println!("[NegaScout2] Elapsed: {:?}", elapsed);
