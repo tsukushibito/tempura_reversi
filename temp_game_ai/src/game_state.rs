@@ -1,5 +1,7 @@
 pub trait GameState: Default + Clone + Eq + std::hash::Hash {
     type Move: Clone;
 
-    fn generate_children(&self) -> Vec<(Self, Self::Move)>;
+    fn valid_moves(&self) -> Vec<Self::Move>;
+    fn make_move(&mut self, mv: &Self::Move);
+    fn undo_move(&mut self);
 }

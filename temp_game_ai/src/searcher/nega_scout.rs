@@ -200,6 +200,18 @@ mod tests {
                 .map(|(i, c)| (c.clone(), i as u32))
                 .collect()
         }
+
+        fn valid_moves(&self) -> Vec<Self::Move> {
+            todo!()
+        }
+
+        fn make_move(&mut self, mv: &Self::Move) {
+            todo!()
+        }
+
+        fn undo_move(&mut self) {
+            todo!()
+        }
     }
 
     struct DummyEvaluator;

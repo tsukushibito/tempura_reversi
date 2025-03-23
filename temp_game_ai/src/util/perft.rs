@@ -1,6 +1,6 @@
 use crate::GameState;
 
-pub fn perft<S>(state: &S, depth: usize) -> usize
+pub fn perft<S>(state: &mut S, depth: usize) -> usize
 where
     S: GameState,
 {
@@ -9,10 +9,11 @@ where
     }
 
     let mut nodes = 0;
-    let children = state.generate_children();
-
-    for child in &children {
-        nodes += perft(&child.0, depth - 1);
+    let moves = state.valid_moves();
+    for mv in moves {
+        state.make_move(&mv);
+        nodes += perft(state, depth - 1);
+        state.undo_move();
     }
 
     nodes

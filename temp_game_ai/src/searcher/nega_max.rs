@@ -33,12 +33,7 @@ where
         }
 
         let children = state.generate_children();
-        if children.is_empty() {
-            return self.evaluator.evaluate(state);
-        }
-
         let mut best = i32::MIN;
-
         for child in children {
             let score = -self.nega_max(&child.0, depth - 1);
             best = best.max(score);
@@ -48,7 +43,7 @@ where
     }
 
     fn search_best_move(&mut self, state: &S, depth: usize) -> Option<(S::Move, i32)> {
-        self.visited_nodes = 0;
+        self.visited_nodes = 1;
         let mut best_move_and_score = None;
         let mut best_value = i32::MIN;
         let children = state.generate_children();

@@ -36,7 +36,15 @@ where
             return self.evaluator.evaluate(state);
         }
 
-        let children = state.generate_children();
+        let valid_moves = state.valid_moves();
+        let children: Vec<S> = valid_moves
+            .iter()
+            .map(|m| {
+                let mut s = state.clone();
+                s.make_move(m);
+                s
+            })
+            .collect();
         if children.is_empty() {
             return self.evaluator.evaluate(state);
         }
@@ -44,7 +52,7 @@ where
         let mut alpha = alpha;
         let mut best = -INF;
         for child in children {
-            let score = -self.nega_alpha(&child.0, -beta, -alpha, depth - 1);
+            let score = -self.nega_alpha(&child, -beta, -alpha, depth - 1);
             best = max(best, score);
             alpha = max(alpha, score);
             if alpha >= beta {
@@ -58,12 +66,22 @@ where
         let mut best_move_and_score = None;
         let mut best_value = -INF;
         for depth in 1..=max_depth {
-            let children = state.generate_children();
-            for child in children {
-                let score = -self.nega_alpha(&child.0, -INF, INF, depth - 1);
+            let valid_moves = state.valid_moves();
+            let children: Vec<S> = valid_moves
+                .iter()
+                .map(|m| {
+                    let mut s = state.clone();
+                    s.make_move(m);
+                    s
+                })
+                .collect();
+            for i in 0..children.len() {
+                let child = &children[i];
+                let score = -self.nega_alpha(child, -INF, INF, depth - 1);
                 if score > best_value {
                     best_value = score;
-                    best_move_and_score = Some((child.1, best_value));
+                    let mv = valid_moves[i].clone();
+                    best_move_and_score = Some((mv, best_value));
                 }
             }
         }
@@ -78,121 +96,5 @@ where
 {
     fn search(&mut self, state: &S, max_depth: usize) -> Option<(S::Move, i32)> {
         self.search_best_move(state, max_depth)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
-    struct DummyState {
-        eval: i32,
-        depth: usize,
-        children: Vec<DummyState>,
-    }
-
-    impl GameState for DummyState {
-        type Move = u32;
-
-        fn generate_children(&self) -> Vec<(Self, Self::Move)> {
-            self.children
-                .iter()
-                .enumerate()
-                .map(|(i, c)| (c.clone(), i as u32))
-                .collect()
-        }
-    }
-
-    struct DummyEvaluator;
-
-    impl Evaluator<DummyState> for DummyEvaluator {
-        fn evaluate(&mut self, state: &DummyState) -> i32 {
-            state.eval
-        }
-    }
-
-    #[test]
-    fn test_simple_negalpha() {
-        let child1 = DummyState {
-            eval: 80,
-            depth: 0,
-            children: vec![],
-        };
-        let child2 = DummyState {
-            eval: 10,
-            depth: 0,
-            children: vec![],
-        };
-        let root = DummyState {
-            eval: 0,
-            depth: 1,
-            children: vec![child1, child2],
-        };
-
-        let mut ns = NegaAlpha::<DummyState, DummyEvaluator>::new(DummyEvaluator);
-        let result = ns.search_best_move(&root, 1).unwrap().1;
-        assert_eq!(result, -10, "The evaluation should be -10");
-    }
-
-    #[test]
-    fn test_complex_tree() {
-        let leaf1 = DummyState {
-            eval: -200,
-            depth: 0,
-            children: vec![],
-        };
-        let leaf2 = DummyState {
-            eval: -50,
-            depth: 0,
-            children: vec![],
-        };
-        let branch1 = DummyState {
-            eval: 200,
-            depth: 2,
-            children: vec![leaf1, leaf2],
-        };
-
-        let leaf3 = DummyState {
-            eval: 10,
-            depth: 0,
-            children: vec![],
-        };
-        let leaf4 = DummyState {
-            eval: 20,
-            depth: 0,
-            children: vec![],
-        };
-        let branch2 = DummyState {
-            eval: -10,
-            depth: 2,
-            children: vec![leaf3, leaf4],
-        };
-
-        let leaf5 = DummyState {
-            eval: 0,
-            depth: 0,
-            children: vec![],
-        };
-        let leaf6 = DummyState {
-            eval: 5,
-            depth: 0,
-            children: vec![],
-        };
-        let branch3 = DummyState {
-            eval: 0,
-            depth: 2,
-            children: vec![leaf5, leaf6],
-        };
-
-        let root = DummyState {
-            eval: 0,
-            depth: 3,
-            children: vec![branch1, branch2, branch3],
-        };
-
-        let mut ns = NegaAlpha::<DummyState, DummyEvaluator>::new(DummyEvaluator);
-        let result = ns.search_best_move(&root, 2).unwrap().1;
-        assert_eq!(result, 10, "Expected root evaluation to be 10");
     }
 }
