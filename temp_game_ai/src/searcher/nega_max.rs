@@ -25,33 +25,37 @@ where
         }
     }
 
-    fn nega_max(&mut self, state: &S, depth: usize) -> i32 {
+    fn nega_max(&mut self, state: &mut S, depth: usize) -> i32 {
         self.visited_nodes += 1;
 
         if depth == 0 {
             return self.evaluator.evaluate(state);
         }
 
-        let children = state.generate_children();
+        let valid_moves = state.valid_moves();
         let mut best = i32::MIN;
-        for child in children {
-            let score = -self.nega_max(&child.0, depth - 1);
+        for mv in valid_moves {
+            state.make_move(&mv);
+            let score = -self.nega_max(state, depth - 1);
+            state.undo_move();
             best = best.max(score);
         }
 
         best
     }
 
-    fn search_best_move(&mut self, state: &S, depth: usize) -> Option<(S::Move, i32)> {
+    fn search_best_move(&mut self, state: &mut S, depth: usize) -> Option<(S::Move, i32)> {
         self.visited_nodes = 1;
         let mut best_move_and_score = None;
         let mut best_value = i32::MIN;
-        let children = state.generate_children();
-        for child in children {
-            let score = -self.nega_max(&child.0, depth - 1);
+        let valid_moves = state.valid_moves();
+        for mv in valid_moves {
+            state.make_move(&mv);
+            let score = -self.nega_max(state, depth - 1);
+            state.undo_move();
             if score > best_value {
                 best_value = score;
-                best_move_and_score = Some((child.1, best_value));
+                best_move_and_score = Some((mv, best_value));
             }
         }
         best_move_and_score
@@ -63,7 +67,7 @@ where
     S: GameState,
     E: Evaluator<S>,
 {
-    fn search(&mut self, state: &S, max_depth: usize) -> Option<(S::Move, i32)> {
+    fn search(&mut self, state: &mut S, max_depth: usize) -> Option<(S::Move, i32)> {
         self.search_best_move(state, max_depth)
     }
 }

@@ -58,7 +58,7 @@ where
         if children.is_empty() {
             return self.evaluator.evaluate(state);
         }
-        let ordered = self.order_states(&children);
+        let ordered = self.order_moves(&children);
 
         // Perform NegaScout search.
         let original_alpha = alpha;
@@ -99,7 +99,7 @@ where
         if children.is_empty() {
             return None;
         }
-        let ordered = self.order_states(&children);
+        let ordered = self.order_moves(&children);
 
         let mut alpha = -INF;
         let beta = INF;
@@ -146,18 +146,18 @@ where
         best_move_and_score
     }
 
-    fn order_states(&mut self, states: &[(S, S::Move)]) -> Vec<(S, S::Move)> {
-        // Compute (score, state) tuples using TT info if available.
-        let mut evaluated_states: Vec<(i32, (S, S::Move))> = states
-            .iter()
-            .cloned()
-            .map(|s| {
-                let value = if let Some(v) = self.tt_snapshot.get_value(&s.0) {
+    fn order_moves(&mut self, moves: Vec<S::Move>, state: &mut S) -> Vec<S::Move> {
+        let mut evaluated_states: Vec<(i32, S::Move)> = moves
+            .into_iter()
+            .map(|mv| {
+                state.make_move(&mv);
+                let value = if let Some(v) = self.tt_snapshot.get_value(&state) {
                     -v + TT_BIAS
                 } else {
-                    -self.order_evaluator.evaluate(&s.0)
+                    -self.order_evaluator.evaluate(&state)
                 };
-                (value, s.clone())
+                state.undo_move();
+                (value, mv)
             })
             .collect();
         // Sort in descending order (higher score first).
@@ -260,7 +260,7 @@ mod tests {
 
         // order_moves() should return children sorted in descending order.
         let children = root.generate_children();
-        let ordered = ns.order_states(&children);
+        let ordered = ns.order_moves(&children);
         // child2's ordering score = 200 + TT_BIAS, and child1's score = child1.order_evaluate() (80).
         assert_eq!(
             ordered[0].0, child2,
@@ -297,7 +297,7 @@ mod tests {
         ns.tt_snapshot.store(child2.clone(), 0, 200, 190, 210);
         // order_moves takes a slice of states and returns sorted Vec.
         let children = parent.generate_children();
-        let ordered = ns.order_states(&children);
+        let ordered = ns.order_moves(&children);
         // child2's ordering score = 200 + TT_BIAS, child1's ordering score = child1.order_evaluate() (50).
         // Therefore, child2 should be first.
         assert_eq!(

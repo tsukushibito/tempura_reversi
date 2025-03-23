@@ -36,7 +36,7 @@ where
         }
     }
 
-    fn nega_alpha_tt(&mut self, state: &S, alpha: i32, beta: i32, depth: usize) -> i32 {
+    fn nega_alpha_tt(&mut self, state: &mut S, alpha: i32, beta: i32, depth: usize) -> i32 {
         self.visited_nodes += 1;
 
         if depth == 0 {
@@ -58,20 +58,14 @@ where
         if valid_moves.is_empty() {
             return self.evaluator.evaluate(state);
         }
-        let children: Vec<S> = valid_moves
-            .into_iter()
-            .map(|m| {
-                let mut s = state.clone();
-                s.make_move(&m);
-                s
-            })
-            .collect();
-        let ordered = self.order_states(children);
+        let ordered = self.order_moves(valid_moves, state);
 
         let mut best = -INF;
         let mut current_alpha = alpha;
-        for child in ordered {
-            let value = -self.nega_alpha_tt(&child.1, -beta, -current_alpha, depth - 1);
+        for mv in ordered {
+            state.make_move(&mv);
+            let value = -self.nega_alpha_tt(state, -beta, -current_alpha, depth - 1);
+            state.undo_move();
             best = max(best, value);
             current_alpha = max(current_alpha, value);
             if current_alpha >= beta {
@@ -83,45 +77,36 @@ where
         best
     }
 
-    fn order_states(&mut self, states: Vec<S>) -> Vec<(usize, S)> {
-        let mut evaluated_states: Vec<(i32, (usize, S))> = states
+    fn order_moves(&mut self, moves: Vec<S::Move>, state: &mut S) -> Vec<S::Move> {
+        let mut evaluated_states: Vec<(i32, S::Move)> = moves
             .into_iter()
-            .enumerate()
-            .map(|(index, state)| {
+            .map(|mv| {
+                state.make_move(&mv);
                 let value = if let Some(v) = self.tt_snapshot.get_value(&state) {
                     -v + TT_BIAS
                 } else {
                     -self.order_evaluator.evaluate(&state)
                 };
-                (value, (index, state))
+                state.undo_move();
+                (value, mv)
             })
             .collect();
         evaluated_states.sort_by(|a, b| b.0.cmp(&a.0));
-        evaluated_states.into_iter().map(|(_, s)| s).collect()
+        evaluated_states.into_iter().map(|(_, m)| m).collect()
     }
 
-    fn search_best_move_at_depth(&mut self, state: &S, depth: usize) -> Option<(S::Move, i32)> {
+    fn search_best_move_at_depth(&mut self, state: &mut S, depth: usize) -> Option<(S::Move, i32)> {
         let valid_moves = state.valid_moves();
-        let children: Vec<S> = valid_moves
-            .iter()
-            .map(|m| {
-                let mut s = state.clone();
-                s.make_move(m);
-                s
-            })
-            .collect();
-        if children.is_empty() {
-            return None;
-        }
-        let ordered = self.order_states(children);
+        let ordered = self.order_moves(valid_moves, state);
 
         let mut best_move_and_value = None;
         let mut best_value = -INF;
-        for child in ordered {
-            let value = -self.nega_alpha_tt(&child.1, -INF, INF, depth - 1);
+        for mv in ordered {
+            state.make_move(&mv);
+            let value = -self.nega_alpha_tt(state, -INF, INF, depth - 1);
+            state.undo_move();
             if value > best_value {
                 best_value = value;
-                let mv = valid_moves[child.0].clone();
                 best_move_and_value = Some((mv, best_value));
             }
         }
@@ -129,7 +114,7 @@ where
         best_move_and_value
     }
 
-    fn search_best_move(&mut self, root: &S, max_depth: usize) -> Option<(S::Move, i32)> {
+    fn search_best_move(&mut self, root: &mut S, max_depth: usize) -> Option<(S::Move, i32)> {
         self.visited_nodes = 0;
         let mut best_move_and_value = None;
         let begin_depth = if max_depth > 3 { max_depth - 3 } else { 1 };
@@ -148,7 +133,7 @@ where
     E: Evaluator<S>,
     O: Evaluator<S>,
 {
-    fn search(&mut self, state: &S, max_depth: usize) -> Option<(S::Move, i32)> {
+    fn search(&mut self, state: &mut S, max_depth: usize) -> Option<(S::Move, i32)> {
         self.search_best_move(state, max_depth)
     }
 }

@@ -30,29 +30,19 @@ where
         }
     }
 
-    fn nega_alpha(&mut self, state: &S, alpha: i32, beta: i32, depth: usize) -> i32 {
+    fn nega_alpha(&mut self, state: &mut S, alpha: i32, beta: i32, depth: usize) -> i32 {
         self.visited_nodes += 1;
         if depth == 0 {
             return self.evaluator.evaluate(state);
         }
 
         let valid_moves = state.valid_moves();
-        let children: Vec<S> = valid_moves
-            .iter()
-            .map(|m| {
-                let mut s = state.clone();
-                s.make_move(m);
-                s
-            })
-            .collect();
-        if children.is_empty() {
-            return self.evaluator.evaluate(state);
-        }
-
         let mut alpha = alpha;
         let mut best = -INF;
-        for child in children {
-            let score = -self.nega_alpha(&child, -beta, -alpha, depth - 1);
+        for mv in valid_moves {
+            state.make_move(&mv);
+            let score = -self.nega_alpha(state, -beta, -alpha, depth - 1);
+            state.undo_move();
             best = max(best, score);
             alpha = max(alpha, score);
             if alpha >= beta {
@@ -62,25 +52,17 @@ where
         best
     }
 
-    fn search_best_move(&mut self, state: &S, max_depth: usize) -> Option<(S::Move, i32)> {
+    fn search_best_move(&mut self, state: &mut S, max_depth: usize) -> Option<(S::Move, i32)> {
         let mut best_move_and_score = None;
         let mut best_value = -INF;
         for depth in 1..=max_depth {
             let valid_moves = state.valid_moves();
-            let children: Vec<S> = valid_moves
-                .iter()
-                .map(|m| {
-                    let mut s = state.clone();
-                    s.make_move(m);
-                    s
-                })
-                .collect();
-            for i in 0..children.len() {
-                let child = &children[i];
-                let score = -self.nega_alpha(child, -INF, INF, depth - 1);
+            for mv in valid_moves {
+                state.make_move(&mv);
+                let score = -self.nega_alpha(state, -INF, INF, depth - 1);
+                state.undo_move();
                 if score > best_value {
                     best_value = score;
-                    let mv = valid_moves[i].clone();
                     best_move_and_score = Some((mv, best_value));
                 }
             }
@@ -94,7 +76,7 @@ where
     S: GameState,
     E: Evaluator<S>,
 {
-    fn search(&mut self, state: &S, max_depth: usize) -> Option<(S::Move, i32)> {
+    fn search(&mut self, state: &mut S, max_depth: usize) -> Option<(S::Move, i32)> {
         self.search_best_move(state, max_depth)
     }
 }
