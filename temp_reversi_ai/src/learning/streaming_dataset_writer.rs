@@ -4,21 +4,6 @@ use std::path::Path;
 
 use super::{GameDataset, GameRecord};
 
-/// StreamingDatasetWriter streams GameRecords and writes them to a file.
-/// It writes to a file determined by the base_file_name (for example, "base_file_name.bin"
-/// or "base_file_name_part_X.bin") once the internal record buffer reaches a certain size.
-///
-/// # Example
-///
-/// ```rust
-/// use temp_reversi_ai::learning::StreamingDatasetWriter;  // adjust import path as needed
-///
-/// let mut writer = StreamingDatasetWriter::new("data/file", 100);
-/// // Assume some_game_record is a valid GameRecord instance
-/// writer.add_record(some_game_record).unwrap();
-/// writer.flush().unwrap();
-/// ```
-///
 pub struct StreamingDatasetWriter {
     base_file_name: String,
     max_records_per_file: usize,

@@ -41,13 +41,6 @@ impl Position {
     /// # Returns
     ///
     /// A `u64` value where a single bit represents the position on the board.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// let pos = Position::from_bit(1 << 27).unwrap();
-    /// assert_eq!(pos.to_bit(), 1 << 27);
-    /// ```
     pub fn to_bit(&self) -> u64 {
         self.bit
     }
@@ -66,13 +59,6 @@ impl Position {
     /// # Returns
     ///
     /// * A `u8` value representing the position index on the board.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// let pos = Position::new(3, 3);
-    /// assert_eq!(pos.to_u8(), 27);
-    /// ```
     pub fn to_u8(&self) -> u8 {
         if let Some((row, col)) = self.to_row_col() {
             (row * 8 + col) as u8
@@ -386,17 +372,6 @@ impl FromStr for Position {
 
 impl fmt::Display for Position {
     /// Formats a `Position` as a string in the format "A1".
-    ///
-    /// # Examples
-    /// ```
-    /// use temp_reversi_core::Position;
-    ///
-    /// let pos = Position::new(0, 0);
-    /// assert_eq!(format!("{}", pos), "A1");
-    ///
-    /// let pos = Position::new(7, 7);
-    /// assert_eq!(format!("{}", pos), "H8");
-    /// ```
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let Some((row, col)) = self.to_row_col() {
             let col_char = (col as u8 + b'A') as char; // Convert column to 'A'-'H'

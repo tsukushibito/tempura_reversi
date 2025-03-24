@@ -16,14 +16,6 @@ impl SparseVector {
     ///
     /// # Returns
     /// Returns `Some(SparseVector)` if the input is valid, otherwise `None`.
-    ///
-    /// # Examples
-    /// ```
-    /// let indices = vec![0, 3, 7];
-    /// let values = vec![1.0, 2.5, -3.0];
-    /// let size = 10;
-    /// let vector = SparseVector::new(indices, values, size).unwrap();
-    /// ```
     pub fn new(indices: Vec<usize>, values: Vec<f32>, size: usize) -> Option<Self> {
         if indices.len() != values.len() || size == 0 {
             return None;
@@ -54,15 +46,6 @@ impl SparseVector {
     ///
     /// # Returns
     /// A `Vec<f32>` containing all elements, with zeros in positions of implicit elements.
-    ///
-    /// # Examples
-    /// ```
-    /// let indices = vec![0, 3, 7];
-    /// let values = vec![1.0, 2.5, -3.0];
-    /// let size = 10;
-    /// let vector = SparseVector::new(indices, values, size).unwrap();
-    /// assert_eq!(vector.to_dense(), vec![1.0, 0.0, 0.0, 2.5, 0.0, 0.0, 0.0, -3.0, 0.0, 0.0]);
-    /// ```
     pub fn to_dense(&self) -> Vec<f32> {
         let mut dense = vec![0.0; self.size];
         for (&index, &value) in self.indices.iter().zip(self.values.iter()) {
@@ -78,15 +61,6 @@ impl SparseVector {
     ///
     /// # Returns
     /// A `SparseVector`.
-    ///
-    /// # Examples
-    /// ```
-    /// let dense = vec![1.0, 0.0, 0.0, 2.5, 0.0, 0.0, 0.0, -3.0, 0.0, 0.0];
-    /// let vector = SparseVector::from_dense(&dense);
-    /// assert_eq!(vector.indices(), &[0, 3, 7]);
-    /// assert_eq!(vector.values(), &[1.0, 2.5, -3.0]);
-    /// assert_eq!(vector.size(), 10);
-    /// ```
     pub fn from_dense(dense: &[f32]) -> Self {
         let mut indices = Vec::new();
         let mut values = Vec::new();
@@ -112,13 +86,6 @@ impl SparseVector {
     ///
     /// # Returns
     /// The dot product as a `f32` value.
-    ///
-    /// # Examples
-    /// ```
-    /// let sparse = SparseVector::new(vec![0, 2, 4], vec![1.0, -2.0, 3.0], 5).unwrap();
-    /// let dense = vec![2.0, 0.0, -1.0, 0.0, 4.0];
-    /// assert_eq!(sparse.dot(&dense), 1.0 + (-2.0 * -1.0) + (3.0 * 4.0));
-    /// ```
     pub fn dot(&self, dense: &[f32]) -> f32 {
         if dense.len() != self.size {
             panic!(

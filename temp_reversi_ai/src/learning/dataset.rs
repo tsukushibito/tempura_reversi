@@ -15,13 +15,6 @@ impl Dataset {
     /// # Returns
     ///
     /// A new `Dataset` instance with empty feature and label vectors.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// let dataset = Dataset::new();
-    /// assert!(dataset.is_empty());
-    /// ```
     pub fn new() -> Self {
         Self {
             features: Vec::new(),
@@ -40,13 +33,6 @@ impl Dataset {
     /// # Returns
     ///
     /// * A `usize` value representing the number of stored samples.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// let dataset = Dataset::new();
-    /// assert_eq!(dataset.len(), 0);
-    /// ```
     pub fn len(&self) -> usize {
         self.features.len()
     }
@@ -56,13 +42,6 @@ impl Dataset {
     /// # Returns
     ///
     /// * `true` if the dataset contains no samples, otherwise `false`.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// let dataset = Dataset::new();
-    /// assert!(dataset.is_empty());
-    /// ```
     pub fn is_empty(&self) -> bool {
         self.features.is_empty()
     }

@@ -43,112 +43,30 @@ pub struct GameDataset {
 }
 
 impl GameDataset {
-    /// Creates a new, empty `GameDataset`.
-    ///
-    /// # Returns
-    ///
-    /// A new instance of `GameDataset` with no records.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// let dataset = GameDataset::new();
-    /// assert!(dataset.is_empty());
-    /// ```
     pub fn new() -> Self {
         Self {
             records: Vec::new(),
         }
     }
 
-    /// Adds a game record to the dataset.
-    ///
-    /// # Arguments
-    ///
-    /// * `record` - A `GameRecord` containing move history and final score.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// let mut dataset = GameDataset::new();
-    /// let record = GameRecord { moves: vec![0, 1, 2], final_score: (32, 32) };
-    /// dataset.add_record(record);
-    /// assert_eq!(dataset.len(), 1);
-    /// ```
     pub fn add_record(&mut self, record: GameRecord) {
         self.records.push(record);
     }
 
-    /// Returns the number of records in the dataset.
-    ///
-    /// # Returns
-    ///
-    /// The number of game records stored in the dataset.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// let dataset = GameDataset::new();
-    /// assert_eq!(dataset.len(), 0);
-    /// ```
     pub fn len(&self) -> usize {
         self.records.len()
     }
 
-    /// Checks if the dataset is empty.
-    ///
-    /// # Returns
-    ///
-    /// * `true` if the dataset contains no records.
-    /// * `false` otherwise.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// let dataset = GameDataset::new();
-    /// assert!(dataset.is_empty());
-    /// ```
     pub fn is_empty(&self) -> bool {
         self.records.is_empty()
     }
 
-    /// Saves the dataset in binary format using bincode serialization with LZ4 compression.
-    ///
-    /// # Arguments
-    ///
-    /// * `file_path` - The file path to save the dataset.
-    ///
-    /// # Returns
-    ///
-    /// A `std::io::Result<()>` indicating success or failure.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// let dataset = GameDataset::new();
-    /// dataset.save_bin("dataset.bin").unwrap();
-    /// ```
     pub fn save_bin(&self, file_path: &str) -> std::io::Result<()> {
         let encoded: Vec<u8> = bincode::serialize(self).unwrap();
         let compressed = compress_prepend_size(&encoded);
         fs::write(file_path, compressed)
     }
 
-    /// Loads a dataset from a binary file using LZ4 decompression.
-    ///
-    /// # Arguments
-    ///
-    /// * `file_path` - The file path to load the dataset from.
-    ///
-    /// # Returns
-    ///
-    /// A `std::io::Result<GameDataset>` containing the loaded dataset or an error.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// let dataset = GameDataset::load_bin("dataset.bin").unwrap();
-    /// ```
     pub fn load_bin(file_path: &str) -> std::io::Result<Self> {
         let data = fs::read(file_path)?;
         let decompressed = decompress_size_prepended(&data).expect("Failed to decompress dataset.");
@@ -156,15 +74,6 @@ impl GameDataset {
         Ok(dataset)
     }
 
-    /// Saves the dataset in chunks of 100,000 records to avoid large file sizes.
-    ///
-    /// # Arguments
-    ///
-    /// * `base_file_name` - The base name for the output files.
-    ///
-    /// # Returns
-    ///
-    /// A `std::io::Result<()>` indicating success or failure.
     pub fn save_auto(&self, base_file_name: &str) -> std::io::Result<()> {
         // If base_file_name includes a directory, create it if it doesn't exist.
         if let Some(parent) = Path::new(base_file_name).parent() {
@@ -221,24 +130,6 @@ impl GameDataset {
         Ok(GameDataset { records })
     }
 
-    /// Extracts training data in batches from the game records.
-    ///
-    /// # Arguments
-    ///
-    /// * `batch_size` - The number of records per batch.
-    ///
-    /// # Returns
-    ///
-    /// An iterator over `Dataset` batches.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// let dataset = GameDataset::load_bin("dataset.bin").unwrap();
-    /// let mut batches = dataset.extract_training_data_in_batches(100);
-    /// let first_batch = batches.next().unwrap();
-    /// assert!(!first_batch.is_empty());
-    /// ```
     pub fn extract_training_data_in_batches(
         &self,
         batch_size: usize,

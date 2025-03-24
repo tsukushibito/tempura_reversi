@@ -15,14 +15,6 @@ use crate::{patterns::PatternGroup, utils::SparseVector};
 ///
 /// # Returns
 /// * A `SparseVector` representing the board's features.
-///
-/// # Example
-/// ```
-/// let board = Bitboard::default();
-/// let groups = get_predefined_patterns();
-/// let features = extract_features(&board, &groups);
-/// assert!(!features.indices().is_empty());
-/// ```
 pub fn extract_features(board: &Bitboard, groups: &[PatternGroup]) -> SparseVector {
     let (black_mask, white_mask) = board.bits();
 

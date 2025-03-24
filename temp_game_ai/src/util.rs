@@ -1,4 +1,3 @@
-#![cfg(test)]
 mod dummy_game;
 mod perft;
 

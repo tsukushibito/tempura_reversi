@@ -1,5 +1,3 @@
-#![cfg(test)]
-
 use crate::{Evaluator, GameState};
 use std::hash::{Hash, Hasher};
 
