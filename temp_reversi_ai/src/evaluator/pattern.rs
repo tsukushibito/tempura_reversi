@@ -98,6 +98,18 @@ impl Evaluator<ReversiState> for PatternEvaluator {
     }
 }
 
+pub struct PatternEvaluator2 {
+    pub weights: Vec<f32>,
+}
+
+impl PatternEvaluator2 {}
+
+impl Evaluator<ReversiState> for PatternEvaluator2 {
+    fn evaluate(&mut self, state: &ReversiState) -> i32 {
+        todo!()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

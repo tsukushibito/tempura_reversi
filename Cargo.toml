@@ -5,6 +5,8 @@ members = [
     "temp_reversi_cli",
     "temp_reversi_core",
     "temp_game_ai",
+    "temp_reversi_eval",
+    "temp_reversi_eval_learn",
 ]
 
 [profile.release]

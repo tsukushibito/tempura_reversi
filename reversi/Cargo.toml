@@ -1,8 +1,0 @@
-[workspace]
-resolver = "2"
-members = [
-    "reversi",
-    "reversi_gui",
-    "reversi_ml_burn",
-]
-
