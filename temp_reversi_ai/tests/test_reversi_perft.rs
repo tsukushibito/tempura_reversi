@@ -1,5 +1,5 @@
-use temp_game_ai::util::{perft, perft};
-use temp_reversi_ai::{ReversiState, ReversiState2};
+use temp_game_ai::util::perft;
+use temp_reversi_ai::ReversiState;
 
 fn measure_time<F: FnOnce() -> R, R>(f: F) -> (R, std::time::Duration) {
     let start = std::time::Instant::now();
@@ -9,9 +9,10 @@ fn measure_time<F: FnOnce() -> R, R>(f: F) -> (R, std::time::Duration) {
     (result, elapsed)
 }
 
-fn test_reversi_perft2() {
+#[test]
+fn test_reversi_perft() {
     println!("Running perft2 tests for Reversi...");
-    let mut state = ReversiState2::default();
+    let mut state = ReversiState::default();
 
     measure_time(|| {
         println!("Depth 1");

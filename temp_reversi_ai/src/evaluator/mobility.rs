@@ -27,20 +27,14 @@ mod tests {
         let mut evaluator = MobilityEvaluator;
 
         // Test Black's perspective
-        let black_score = evaluator.evaluate(&ReversiState {
-            board,
-            player: Player::Black,
-        });
+        let black_score = evaluator.evaluate(&ReversiState::default());
         assert!(
             black_score >= 0,
             "Black's mobility score should be non-negative."
         );
 
         // Test White's perspective
-        let white_score = evaluator.evaluate(&ReversiState {
-            board,
-            player: Player::White,
-        });
+        let white_score = evaluator.evaluate(&ReversiState::new(&board, &Player::White));
         assert!(
             white_score >= 0,
             "White's mobility score should be non-negative."
@@ -49,10 +43,7 @@ mod tests {
         // Ensure the score is symmetric
         assert_eq!(
             black_score,
-            -evaluator.evaluate(&ReversiState {
-                board,
-                player: Player::White,
-            }),
+            -evaluator.evaluate(&ReversiState::new(&board, &Player::White,)),
             "Black's score should be the negative of White's score."
         );
     }

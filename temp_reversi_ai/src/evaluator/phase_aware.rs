@@ -100,10 +100,7 @@ mod tests {
         let mut evaluator = PhaseAwareEvaluator::default();
 
         // Test early phase
-        let early_score = evaluator.evaluate(&ReversiState {
-            board,
-            player: Player::Black,
-        });
+        let early_score = evaluator.evaluate(&ReversiState::new(&board, &Player::Black));
         assert!(
             early_score >= 0,
             "Early phase score should be calculated correctly."
@@ -112,10 +109,7 @@ mod tests {
         // Simulate mid-phase board state
         let mid_board = board.clone();
         // Apply moves to transition to mid-phase
-        let mid_score = evaluator.evaluate(&ReversiState {
-            board: mid_board,
-            player: Player::Black,
-        });
+        let mid_score = evaluator.evaluate(&ReversiState::new(&mid_board, &Player::Black));
         assert!(
             mid_score >= 0,
             "Mid phase score should be calculated correctly."
@@ -124,10 +118,7 @@ mod tests {
         // Simulate late-phase board state
         let late_board = board.clone();
         // Apply moves to transition to late-phase
-        let late_score = evaluator.evaluate(&ReversiState {
-            board: late_board,
-            player: Player::Black,
-        });
+        let late_score = evaluator.evaluate(&ReversiState::new(&late_board, &Player::Black));
         assert!(
             late_score >= 0,
             "Late phase score should be calculated correctly."
@@ -151,13 +142,10 @@ mod tests {
 
     impl Strategy for TestStrategy {
         fn select_move(&mut self, board: &Bitboard, player: Player) -> Position {
-            let root = ReversiState {
-                board: *board,
-                player,
-            };
+            let mut root = ReversiState::new(board, &player);
 
             self.nega_alpha_tt
-                .search(&root, self.max_depth)
+                .search(&mut root, self.max_depth)
                 .expect("No moves available.")
                 .0
         }

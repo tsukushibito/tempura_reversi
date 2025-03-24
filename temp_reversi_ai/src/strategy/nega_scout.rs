@@ -37,13 +37,10 @@ where
     O: Evaluator<ReversiState> + Clone + 'static,
 {
     fn select_move(&mut self, board: &Bitboard, player: Player) -> Position {
-        let root = ReversiState {
-            board: *board,
-            player,
-        };
+        let mut root = ReversiState::new(*board, player);
 
         self.nega_scout
-            .search(&root, self.max_depth)
+            .search(&mut root, self.max_depth)
             .expect("No moves available.")
             .0
     }

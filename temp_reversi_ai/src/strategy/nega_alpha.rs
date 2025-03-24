@@ -25,13 +25,10 @@ impl NegaAlphaStrategy {
 
 impl Strategy for NegaAlphaStrategy {
     fn select_move(&mut self, board: &Bitboard, player: Player) -> Position {
-        let root = ReversiState {
-            board: *board,
-            player,
-        };
+        let mut state = ReversiState::new(*board, player);
 
         self.nega_alpha
-            .search(&root, self.max_depth)
+            .search(&mut state, self.max_depth)
             .expect("No moves available.")
             .0
     }
