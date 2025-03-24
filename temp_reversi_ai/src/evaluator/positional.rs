@@ -52,20 +52,14 @@ mod tests {
         let mut evaluator = PositionalEvaluator;
 
         // Test Black's perspective
-        let black_score = evaluator.evaluate(&ReversiState {
-            board,
-            player: Player::Black,
-        });
+        let black_score = evaluator.evaluate(&ReversiState::new(board, Player::Black));
         assert_eq!(
             black_score, 0,
             "Black should have a score of 0 on the default board."
         );
 
         // Test White's perspective
-        let white_score = evaluator.evaluate(&ReversiState {
-            board,
-            player: Player::White,
-        });
+        let white_score = evaluator.evaluate(&ReversiState::new(board, Player::White));
         assert_eq!(
             white_score, 0,
             "White should have a score of 0 on the default board."

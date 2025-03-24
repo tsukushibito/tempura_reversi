@@ -119,10 +119,7 @@ mod tests {
         }
 
         println!("{}", board);
-        let state = ReversiState {
-            board,
-            player: Player::Black,
-        };
+        let state = ReversiState::new(board, Player::Black);
         evaluator.use_impl2 = true;
         let score1 = evaluator.evaluate(&state);
         evaluator.use_impl2 = false;
