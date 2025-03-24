@@ -71,3 +71,35 @@ where
         self.search_best_move(state, max_depth)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_utils::{DummyEvaluator, DummyGame, DummyMove};
+
+    #[test]
+    fn test_negamax_with_dummy_tree() {
+        // DummyEvaluator returns unique values between 1 and 27 as computed by DummyGame's compute_score
+        let evaluator = DummyEvaluator;
+        let mut searcher = NegaMax::new(evaluator);
+        let mut game = DummyGame::new();
+
+        // Perform a search with depth 3
+        let result = searcher.search(&mut game, 3);
+        // According to the analysis, the results for each move are:
+        //  - DummyMove::A -> -7
+        //  - DummyMove::B -> -16
+        //  - DummyMove::C -> -25
+        // Therefore, the best move should be DummyMove::A with an evaluation score of -7
+        assert_eq!(result, Some((DummyMove::A, -7)));
+
+        // let nodes = 1 + perft(&mut game, 1) + perft(&mut game, 2) + perft(&mut game, 3);
+        // nodes = 1 + 3 + 9 + 27 = 40
+        // It also verifies that the number of visited nodes is 40
+        assert_eq!(
+            searcher.visited_nodes, 40,
+            "Visited nodes: {}",
+            searcher.visited_nodes
+        );
+    }
+}

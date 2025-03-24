@@ -2,6 +2,7 @@ mod evaluator;
 mod game_state;
 pub mod hasher;
 pub mod searcher;
+mod test_utils;
 mod transposition_table;
 pub mod util;
 
