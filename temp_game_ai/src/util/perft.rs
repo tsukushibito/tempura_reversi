@@ -1,3 +1,4 @@
+#![cfg(test)]
 use crate::GameState;
 
 pub fn perft<S>(state: &mut S, depth: usize) -> usize

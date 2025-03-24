@@ -75,7 +75,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_utils::{DummyEvaluator, DummyGame, DummyMove};
+    use crate::util::{DummyEvaluator, DummyGame, DummyMove};
 
     #[test]
     fn test_negamax_with_dummy_tree() {

@@ -5,6 +5,7 @@ use super::Searcher;
 
 const INF: i32 = i32::MAX;
 const TT_BIAS: i32 = 1000;
+const TT_BIAS_DELTA: i32 = 100;
 
 #[derive(Debug, Clone)]
 pub struct NegaAlphaTT<S, E, O>
@@ -58,7 +59,7 @@ where
         if valid_moves.is_empty() {
             return self.evaluator.evaluate(state);
         }
-        let ordered = self.order_moves(valid_moves, state);
+        let ordered = self.order_moves(valid_moves, state, depth);
 
         let mut best = -INF;
         let mut current_alpha = alpha;
@@ -77,15 +78,19 @@ where
         best
     }
 
-    fn order_moves(&mut self, moves: Vec<S::Move>, state: &mut S) -> Vec<S::Move> {
+    fn order_moves(&mut self, moves: Vec<S::Move>, state: &mut S, depth: usize) -> Vec<S::Move> {
         let mut evaluated_states: Vec<(i32, S::Move)> = moves
             .into_iter()
             .map(|mv| {
                 state.make_move(&mv);
-                let value = if let Some(v) = self.tt_snapshot.get_value(&state) {
-                    -v + TT_BIAS
-                } else {
-                    -self.order_evaluator.evaluate(&state)
+                let entry = self.tt_snapshot.get_entry(state);
+                let value = match entry {
+                    Some(e) if e.depth >= depth => match e.node_type {
+                        crate::NodeType::Exact => e.value + TT_BIAS,
+                        crate::NodeType::LowerBound => e.value + TT_BIAS - TT_BIAS_DELTA,
+                        crate::NodeType::UpperBound => e.value + TT_BIAS - 2 * TT_BIAS_DELTA,
+                    },
+                    _ => -self.order_evaluator.evaluate(&state),
                 };
                 state.undo_move();
                 (value, mv)
@@ -97,7 +102,7 @@ where
 
     fn search_best_move_at_depth(&mut self, state: &mut S, depth: usize) -> Option<(S::Move, i32)> {
         let valid_moves = state.valid_moves();
-        let ordered = self.order_moves(valid_moves, state);
+        let ordered = self.order_moves(valid_moves, state, depth);
 
         let mut best_move_and_value = None;
         let mut best_value = -INF;
@@ -135,5 +140,50 @@ where
 {
     fn search(&mut self, state: &mut S, max_depth: usize) -> Option<(S::Move, i32)> {
         self.search_best_move(state, max_depth)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::util::{DummyEvaluator, DummyGame, DummyMove, OptimalOrderingEvaluator};
+
+    #[test]
+    fn test_negaalpha_tt_with_dummy_game() {
+        // Use the same DummyEvaluator for both evaluation and ordering
+        // evaluation functions
+        let evaluator = DummyEvaluator;
+        let order_evaluator = OptimalOrderingEvaluator;
+        let mut searcher = NegaAlphaTT::new(evaluator, order_evaluator);
+        let mut game = DummyGame::new();
+
+        // Execute search with depth 3 using the
+        // search_best_move_at_depth method
+        let result = searcher.search_best_move_at_depth(&mut game, 3);
+        // According to prior analysis, the evaluations for each initial move
+        // should be as follows:
+        //   - DummyMove::A -> -7
+        //   - DummyMove::B -> -16
+        //   - DummyMove::C -> -25
+        // Therefore, the best move should be DummyMove::A with score -7
+        assert_eq!(result, Some((DummyMove::A, -7)));
+
+        // Visited nodes should be 27
+        assert_eq!(searcher.visited_nodes, 27);
+
+        // Execute search with depth 3 using the search method
+        // (iterative deepening)
+        let result = searcher.search(&mut game, 3);
+        assert_eq!(result, Some((DummyMove::A, -7)));
+
+        // Visited nodes should be less than or equal to 54
+        // 54 is the maximum number of nodes visited when the
+        // search_best_move_at_depth method is called for each depth from 1 to 3
+        println!("Visited nodes: {}", searcher.visited_nodes);
+        assert!(
+            searcher.visited_nodes <= 54,
+            "Visited nodes: {}",
+            searcher.visited_nodes
+        );
     }
 }

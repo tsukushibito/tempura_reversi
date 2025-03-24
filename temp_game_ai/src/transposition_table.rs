@@ -2,10 +2,10 @@ use crate::{hasher::Fnv1aHashMap, GameState};
 
 /// TTEntry stores the search depth, evaluation value, and node type.
 #[derive(Debug, Clone)]
-struct TTEntry {
-    depth: usize,
-    value: i32,
-    node_type: NodeType,
+pub struct TTEntry {
+    pub depth: usize,
+    pub value: i32,
+    pub node_type: NodeType,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -55,6 +55,10 @@ where
 
     pub fn get_value(&self, state: &S) -> Option<i32> {
         self.table.get(state).map(|entry| entry.value)
+    }
+
+    pub fn get_entry(&self, state: &S) -> Option<&TTEntry> {
+        self.table.get(state)
     }
 
     pub fn store(&mut self, state: S, depth: usize, value: i32, alpha: i32, beta: i32) {

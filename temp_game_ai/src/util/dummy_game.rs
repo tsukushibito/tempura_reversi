@@ -23,6 +23,8 @@ impl Hash for DummyGame {
     }
 }
 
+const MAX_DEPTH: usize = 3;
+
 impl DummyGame {
     pub fn new() -> Self {
         Self {
@@ -40,7 +42,9 @@ impl DummyGame {
             };
             score = score * 3 + value;
         }
-        score + 1 // 最小値が1となるようにする
+        let remaining = MAX_DEPTH.saturating_sub(self.history.len());
+        score *= 3_usize.pow(remaining as u32);
+        score as i32 + 1
     }
 }
 
@@ -49,7 +53,8 @@ impl GameState for DummyGame {
 
     fn valid_moves(&self) -> Vec<Self::Move> {
         // どの状態でも常に3手 (A, B, C) が選択可能とする
-        vec![DummyMove::A, DummyMove::B, DummyMove::C]
+        // vec![DummyMove::A, DummyMove::B, DummyMove::C]
+        vec![DummyMove::B, DummyMove::A, DummyMove::C]
     }
 
     fn make_move(&mut self, mv: &Self::Move) {
@@ -67,5 +72,34 @@ impl Evaluator<DummyGame> for DummyEvaluator {
     fn evaluate(&mut self, state: &DummyGame) -> i32 {
         // 探索の深さが葉（例えば深さ3）に達したときに、履歴からユニークなスコアを返す
         state.compute_score()
+    }
+}
+
+pub struct OptimalOrderingEvaluator;
+
+impl OptimalOrderingEvaluator {
+    /// 状態 `state` から、残りの深さ（MAX_DEPTH - 現在の手数）分の完全探索によるネガ・マックス値を返す。
+    fn perfect_negamax(state: &mut DummyGame, depth: usize) -> i32 {
+        if depth == 0 {
+            return state.compute_score();
+        }
+        let mut best = i32::MIN;
+        for mv in state.valid_moves() {
+            state.make_move(&mv);
+            let score = -Self::perfect_negamax(state, depth - 1);
+            state.undo_move();
+            best = best.max(score);
+        }
+        best
+    }
+}
+
+impl Evaluator<DummyGame> for OptimalOrderingEvaluator {
+    fn evaluate(&mut self, state: &DummyGame) -> i32 {
+        // 状態は変更しないので、cloneして探索を行う
+        let mut cloned = state.clone();
+        // 残りの深さ＝MAX_DEPTH - 現在の手数
+        let remaining_depth = MAX_DEPTH.saturating_sub(cloned.history.len());
+        Self::perfect_negamax(&mut cloned, remaining_depth)
     }
 }

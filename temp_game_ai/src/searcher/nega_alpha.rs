@@ -52,19 +52,17 @@ where
         best
     }
 
-    fn search_best_move(&mut self, state: &mut S, max_depth: usize) -> Option<(S::Move, i32)> {
+    fn search_best_move(&mut self, state: &mut S, depth: usize) -> Option<(S::Move, i32)> {
         let mut best_move_and_score = None;
         let mut best_value = -INF;
-        for depth in 1..=max_depth {
-            let valid_moves = state.valid_moves();
-            for mv in valid_moves {
-                state.make_move(&mv);
-                let score = -self.nega_alpha(state, -INF, INF, depth - 1);
-                state.undo_move();
-                if score > best_value {
-                    best_value = score;
-                    best_move_and_score = Some((mv, best_value));
-                }
+        let valid_moves = state.valid_moves();
+        for mv in valid_moves {
+            state.make_move(&mv);
+            let score = -self.nega_alpha(state, -INF, INF, depth - 1);
+            state.undo_move();
+            if score > best_value {
+                best_value = score;
+                best_move_and_score = Some((mv, best_value));
             }
         }
         best_move_and_score
@@ -78,5 +76,27 @@ where
 {
     fn search(&mut self, state: &mut S, max_depth: usize) -> Option<(S::Move, i32)> {
         self.search_best_move(state, max_depth)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::util::{DummyEvaluator, DummyGame, DummyMove};
+
+    use super::*;
+
+    #[test]
+    fn test_negaalpha_with_dummy_tree() {
+        let evaluator = DummyEvaluator;
+        let mut searcher = NegaAlpha::new(evaluator);
+        let mut game = DummyGame::new();
+
+        let result = searcher.search(&mut game, 3);
+        assert_eq!(result, Some((DummyMove::A, -7)));
+        assert_eq!(
+            searcher.visited_nodes, 33,
+            "Visited nodes: {}",
+            searcher.visited_nodes
+        );
     }
 }
