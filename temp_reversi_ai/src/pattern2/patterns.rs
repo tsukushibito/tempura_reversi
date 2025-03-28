@@ -248,10 +248,6 @@ pub const PATTERN_15_1: [u8; 10] = rotate_90_cw_pattern(&PATTERN_15_0);
 pub const PATTERN_15_2: [u8; 10] = rotate_90_cw_pattern(&PATTERN_15_1);
 pub const PATTERN_15_3: [u8; 10] = rotate_90_cw_pattern(&PATTERN_15_2);
 
-pub struct Pattern {
-    pub pattern: &'static [u8],
-}
-
 pub const PATTERNS: [&[u8]; 16 * 4] = [
     &PATTERN_00_0,
     &PATTERN_00_1,
