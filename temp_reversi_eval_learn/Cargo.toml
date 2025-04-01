@@ -4,5 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+burn = "0.16.0"
 temp_reversi_core = { path = "../temp_reversi_core" }
 temp_reversi_eval = { path = "../temp_reversi_eval" }
