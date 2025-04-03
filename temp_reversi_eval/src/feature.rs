@@ -4,14 +4,14 @@ use super::{coordinate_to_feature::C2F_LISTS, patterns::PATTERNS};
 
 #[derive(Debug, Clone)]
 pub struct Feature {
-    pub vector: [u32; PATTERNS.len()],
+    pub indices: [u16; PATTERNS.len()],
     pub phase: u8,
 }
 
 impl Default for Feature {
     fn default() -> Self {
         Feature {
-            vector: [0; PATTERNS.len()],
+            indices: [0; PATTERNS.len()],
             phase: 0,
         }
     }
@@ -19,7 +19,7 @@ impl Default for Feature {
 
 pub fn extract_feature(board: &Bitboard) -> Feature {
     let mut feature = Feature {
-        vector: [0; PATTERNS.len()],
+        indices: [0; PATTERNS.len()],
         phase: 0,
     };
 
@@ -31,7 +31,7 @@ pub fn extract_feature(board: &Bitboard) -> Feature {
         C2F_LISTS[i].iter().for_each(|&c2f| {
             let s = squares[i] as u16;
             let f = c2f.trit_place_value * s;
-            feature.vector[c2f.pattern_index as usize] += f as u32;
+            feature.indices[c2f.pattern_index as usize] += f;
         });
     }
 
@@ -91,11 +91,11 @@ mod tests {
         // 3^0 * 1 + 3^1 * 1 + 3^2 * 1 +
         // 3^3 * 2 + 3^4 * 2 + 3^5 * 2 +
         // 3^6 * 2 + 3^7 * 2 =
-        assert_eq!(feature.vector[0], 6547);
+        assert_eq!(feature.indices[0], 6547);
 
         // 3^0 * 0 + 3^1 * 0 + 3^2 * 0 +
         // 3^3 * 1 + 3^4 * 1 + 3^5 * 1 +
         // 3^6 * 2 + 3^7 * 2 + 3^8 * 2 = 19305
-        assert_eq![feature.vector[44], 19305];
+        assert_eq![feature.indices[44], 19305];
     }
 }

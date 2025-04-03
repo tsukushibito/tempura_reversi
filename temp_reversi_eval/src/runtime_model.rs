@@ -10,14 +10,15 @@ use serde::{Deserialize, Serialize};
 use crate::feature::Feature;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Model {
+pub struct RuntimeModel {
     pub weights: Vec<Vec<f32>>,
 }
 
-impl Model {
+impl RuntimeModel {
     /// Saves the model to a file
     pub fn save(&self, path: &str) -> std::io::Result<()> {
-        let serialized = bincode::serialize(self).expect("Failed to serialize model.");
+        let serialized = bincode::serde::encode_to_vec(self, bincode::config::standard())
+            .expect("Failed to serialize model.");
         let compressed = compress_prepend_size(&serialized);
         let mut file = File::create(path)?;
         file.write_all(&compressed)?;
@@ -30,15 +31,17 @@ impl Model {
         let mut buffer = Vec::new();
         file.read_to_end(&mut buffer)?;
         let decompressed = decompress_size_prepended(&buffer).expect("Failed to decompress model.");
-        let model = bincode::deserialize(&decompressed).expect("Failed to deserialize model.");
+        let (model, _) =
+            bincode::serde::decode_from_slice(&decompressed, bincode::config::standard())
+                .expect("Failed to deserialize model.");
         Ok(model)
     }
 
     pub fn predict_one(&self, feature: &Feature) -> f32 {
         let w = &self.weights[feature.phase as usize];
         let mut value = 0.0;
-        for i in 0..feature.vector.len() {
-            let index = feature.vector[i] as usize;
+        for i in 0..feature.indices.len() {
+            let index = feature.indices[i] as usize;
             value += w[index];
         }
         value

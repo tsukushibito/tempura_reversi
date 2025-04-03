@@ -6,8 +6,13 @@ members = [
     "temp_reversi_core",
     "temp_game_ai",
     "temp_reversi_eval",
-    "temp_reversi_eval_learn",
+    "temp_reversi_eval_train",
 ]
+
+[workspace.dependencies]
+bincode = { version = "=2.0.0-rc.3", features = ["serde", "std"] }
+bincode_derive = "=2.0.0-rc.3"
+serde = { version = "1.0.219", features = ["derive"] }
 
 [profile.release]
 debug = true

@@ -1,9 +1,11 @@
 [package]
-name = "temp_reversi_eval_learn"
+name = "temp_reversi_eval_train"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-burn = "0.16.0"
+burn = { version = "0.16.0", features = ["train"] }
+bincode = { workspace = true }
+serde = { workspace = true }
 temp_reversi_core = { path = "../temp_reversi_core" }
 temp_reversi_eval = { path = "../temp_reversi_eval" }

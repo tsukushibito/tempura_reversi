@@ -30,7 +30,8 @@ impl Model {
 
     /// Saves the model to a file
     pub fn save(&self, path: &str) -> std::io::Result<()> {
-        let serialized = bincode::serialize(self).expect("Failed to serialize model.");
+        let serialized = bincode::serde::encode_to_vec(self, bincode::config::standard())
+            .expect("Failed to serialize model.");
         let compressed = compress_prepend_size(&serialized);
         let mut file = File::create(path)?;
         file.write_all(&compressed)?;
@@ -43,7 +44,9 @@ impl Model {
         let mut buffer = Vec::new();
         file.read_to_end(&mut buffer)?;
         let decompressed = decompress_size_prepended(&buffer).expect("Failed to decompress model.");
-        let model = bincode::deserialize(&decompressed).expect("Failed to deserialize model.");
+        let (model, _) =
+            bincode::serde::decode_from_slice(&decompressed, bincode::config::standard())
+                .expect("Failed to deserialize model.");
         Ok(model)
     }
 }
