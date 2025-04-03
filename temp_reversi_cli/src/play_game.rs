@@ -41,7 +41,7 @@ pub fn play_game() {
 
     // Create game and loop until game over.
     let mut game = Game::default();
-    while !game.is_game_over() {
+    while !game.is_over() {
         cli_display(&game);
         let current_decider: &mut dyn GamePlayer = if game.current_player() == Player::Black {
             &mut *black_decider

@@ -29,7 +29,7 @@ pub fn run_test_match(num_games: usize, black_model_path: &str, white_model_path
             let mut local_pattern_ai = AiPlayer::new(black_strategy.clone_box());
             let mut local_phase_ai = AiPlayer::new(white_strategy.clone_box());
             let mut random_moves = 5;
-            while !game.is_game_over() {
+            while !game.is_over() {
                 if random_moves > 0 {
                     random_moves -= 1;
                     let valid_moves = game.valid_moves();

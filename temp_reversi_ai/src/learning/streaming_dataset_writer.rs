@@ -48,7 +48,8 @@ impl StreamingDatasetWriter {
         let dataset = GameDataset {
             records: std::mem::take(&mut self.current_records),
         };
-        let encoded: Vec<u8> = bincode::serialize(&dataset).unwrap();
+        let encoded: Vec<u8> =
+            bincode::serde::encode_to_vec(&dataset, bincode::config::standard()).unwrap();
         let compressed = compress_prepend_size(&encoded);
         if let Some(parent) = Path::new(&file_path).parent() {
             if !parent.as_os_str().is_empty() {

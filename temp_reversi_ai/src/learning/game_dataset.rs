@@ -62,7 +62,8 @@ impl GameDataset {
     }
 
     pub fn save_bin(&self, file_path: &str) -> std::io::Result<()> {
-        let encoded: Vec<u8> = bincode::serialize(self).unwrap();
+        let encoded: Vec<u8> =
+            bincode::serde::encode_to_vec(self, bincode::config::standard()).unwrap();
         let compressed = compress_prepend_size(&encoded);
         fs::write(file_path, compressed)
     }
@@ -70,7 +71,8 @@ impl GameDataset {
     pub fn load_bin(file_path: &str) -> std::io::Result<Self> {
         let data = fs::read(file_path)?;
         let decompressed = decompress_size_prepended(&data).expect("Failed to decompress dataset.");
-        let dataset: Self = bincode::deserialize(&decompressed).unwrap();
+        let (dataset, _): (Self, usize) =
+            bincode::serde::decode_from_slice(&decompressed, bincode::config::standard()).unwrap();
         Ok(dataset)
     }
 

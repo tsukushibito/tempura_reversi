@@ -14,7 +14,7 @@ fn main() {
 
     let start = std::time::Instant::now();
     let mut visitied_nodes = 0;
-    while !game.is_game_over() {
+    while !game.is_over() {
         let best_move = strategy.select_move(&game.board_state(), game.current_player());
         game.apply_move(best_move).unwrap();
         visitied_nodes += strategy.nega_scout.visited_nodes;
@@ -31,7 +31,7 @@ fn main() {
 
     let start = std::time::Instant::now();
     let mut visitied_nodes = 0;
-    while !game.is_game_over() {
+    while !game.is_over() {
         let best_move = strategy.select_move(&game.board_state(), game.current_player());
         game.apply_move(best_move).unwrap();
         visitied_nodes += strategy.nega_alpha_tt.visited_nodes;

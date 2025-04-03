@@ -3,17 +3,17 @@ use temp_reversi_ai::ReversiState;
 use crate::{
     feature::{extract_feature, Feature},
     feature_offsets::FEATURE_OFFSETS,
-    model::Model,
     patterns::PATTERNS,
+    runtime_model::RuntimeModel,
 };
 
 pub struct Evaluator {
-    model: Model,
+    model: RuntimeModel,
     features: [Feature; 64],
 }
 
 impl Evaluator {
-    pub fn new(model: Model) -> Self {
+    pub fn new(model: RuntimeModel) -> Self {
         let mut features: [Feature; 64] = std::array::from_fn(|_| Feature::default());
         Self { model, features }
     }
@@ -30,8 +30,8 @@ impl Evaluator {
         let weights = &self.model.weights[phase];
 
         let mut value = 0.0;
-        for i in 0..feature.vector.len() {
-            let index = feature.vector[i] + FEATURE_OFFSETS[i];
+        for i in 0..feature.indices.len() {
+            let index = feature.indices[i] + FEATURE_OFFSETS[i];
             value += weights[index as usize];
         }
 

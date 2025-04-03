@@ -1,7 +1,7 @@
 use temp_reversi_core::{Game, Player};
 
 pub fn cli_display(game: &Game) {
-    if game.is_game_over() {
+    if game.is_over() {
         println!("Game over!");
         println!("Board:\n{}", game.board_state());
         let (final_black_score, final_white_score) = game.current_score();

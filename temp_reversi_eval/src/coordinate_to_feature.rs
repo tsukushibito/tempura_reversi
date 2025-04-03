@@ -2,6 +2,7 @@ use crate::patterns::PATTERNS;
 
 use super::coordinate::*;
 
+/// Get the number of patterns that include the specified position.
 pub const fn c2f_count(coord: u8) -> usize {
     let mut pattern_index = 0;
     let mut count = 0;
@@ -18,15 +19,21 @@ pub const fn c2f_count(coord: u8) -> usize {
     count
 }
 
-/// Coordinate to feature index
-///
-/// This struct is used to convert a coordinate to a feature index.
+/// The `CoordToFeatureIndex` struct represents a mapping from a coordinate to a feature index.
+/// It contains the pattern index and the trit place value for that coordinate.
 #[derive(Debug, Clone, Copy)]
 pub struct CoordToFeatureIndex {
+    /// The index of the pattern in the `PATTERNS` array.
+    /// This index is used to identify which pattern the coordinate belongs to.
     pub pattern_index: u8,
+
+    /// The trit place value for the coordinate.
+    /// This value is used to calculate the feature value for the coordinate.
     pub trit_place_value: u16,
 }
 
+/// Creates a list of `CoordToFeatureIndex` structs for a given target coordinate and count.
+/// The list contains all the coordinates that map to the target coordinate in the `PATTERNS` array.
 pub const fn make_c2f_list<const TARGET: u8, const COUNT: usize>() -> [CoordToFeatureIndex; COUNT] {
     let mut list: [CoordToFeatureIndex; COUNT] = [CoordToFeatureIndex {
         pattern_index: 0,

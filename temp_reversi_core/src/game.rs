@@ -99,7 +99,7 @@ impl Game {
     ///
     /// # Returns
     /// `true` if the game is over, otherwise `false`.
-    pub fn is_game_over(&self) -> bool {
+    pub fn is_over(&self) -> bool {
         self.board.is_game_over()
     }
 
@@ -110,7 +110,7 @@ impl Game {
     /// - `Ok(None)` if the game is a draw.
     /// - `Err(&str)` if the game is not yet over.
     pub fn winner(&self) -> Result<Option<Player>, &'static str> {
-        if !self.is_game_over() {
+        if !self.is_over() {
             return Err("Game is not over yet");
         }
 
@@ -205,7 +205,7 @@ mod tests {
         );
 
         // Verify if the game is over.
-        assert!(game.is_game_over());
+        assert!(game.is_over());
 
         // Check the winner.
         match game.winner() {

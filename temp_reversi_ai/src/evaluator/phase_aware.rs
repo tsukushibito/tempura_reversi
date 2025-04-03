@@ -176,7 +176,7 @@ mod tests {
                 let mut black_ai = AiPlayer::new(strategy1.clone_box());
                 let mut white_ai = AiPlayer::new(strategy2.clone_box());
 
-                while !game.is_game_over() {
+                while !game.is_over() {
                     let current_ai = if game.current_player() == Player::Black {
                         &mut black_ai
                     } else {

@@ -1,12 +1,17 @@
 [package]
-name = "temp_reversi_eval"
+name = "temp_reversi_eval_train"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+burn = { version = "0.16.0", features = ["train"] }
 bincode = { workspace = true }
 serde = { workspace = true }
-lz4_flex = "0.11.3"
 temp_reversi_core = { path = "../temp_reversi_core" }
 temp_reversi_ai = { path = "../temp_reversi_ai" }
+temp_reversi_eval = { path = "../temp_reversi_eval" }
 rayon = "1.10.0"
+regex = "1.11.1"
+
+[dev-dependencies]
+indicatif = "0.17.11"

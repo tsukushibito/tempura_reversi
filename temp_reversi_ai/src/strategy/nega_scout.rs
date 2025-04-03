@@ -120,7 +120,7 @@ mod tests {
             NegaScoutStrategy::new(evaluator, PhaseAwareEvaluator::default(), depth as usize);
 
         let start = std::time::Instant::now();
-        while !game.is_game_over() {
+        while !game.is_over() {
             let best_move = strategy1.select_move(&game.board_state(), game.current_player());
             game.apply_move(best_move).unwrap();
         }

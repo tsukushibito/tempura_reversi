@@ -33,7 +33,7 @@ pub fn generate_game_dataset(
             let mut ai = AiPlayer::new(strategy.clone_box());
             let mut random_moves = init_random_moves;
 
-            while !game.is_game_over() {
+            while !game.is_over() {
                 if random_moves > 0 {
                     random_moves -= 1;
                     let valid_moves = game.valid_moves();

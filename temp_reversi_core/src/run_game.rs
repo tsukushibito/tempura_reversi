@@ -33,7 +33,7 @@ where
         }
 
         // Check if the game is over
-        if game.is_game_over() {
+        if game.is_over() {
             display(&game);
             break;
         }
