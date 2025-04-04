@@ -38,7 +38,7 @@ pub struct ReversiBatcher<B: Backend> {
 #[derive(Debug, Clone)]
 pub struct ReversiBatch<B: Backend> {
     pub inputs: Tensor<B, 2>,
-    pub targets: Tensor<B, 1>,
+    pub targets: Tensor<B, 2>,
     pub phases: Vec<u8>,
 }
 
@@ -61,6 +61,7 @@ impl<B: Backend> Batcher<ReversiSample, ReversiBatch<B>> for ReversiBatcher<B> {
             .map(|s| stone_diff_to_tensor(s.stone_diff, &self.device))
             .collect();
         let targets = Tensor::cat(targets, 0);
+        let targets = targets.unsqueeze_dim(1);
 
         let phases = samples.iter().map(|s| s.feature.phase).collect::<Vec<_>>();
         ReversiBatch {
