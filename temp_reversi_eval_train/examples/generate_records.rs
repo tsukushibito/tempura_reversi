@@ -11,7 +11,12 @@ struct CliProgressReporter {
 impl CliProgressReporter {
     fn new(total: usize) -> Self {
         let pb = ProgressBar::new(total as u64);
-        pb.set_style(indicatif::ProgressStyle::default_bar());
+        pb.set_style(
+            indicatif::ProgressStyle::default_bar()
+                .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({percent}%) {msg}")
+                .unwrap()
+                .progress_chars("█▓▒░ ")
+        );
         Self { pb }
     }
 }
@@ -19,6 +24,12 @@ impl CliProgressReporter {
 impl ProgressReporter for CliProgressReporter {
     fn increment(&self, delta: u64) {
         self.pb.inc(delta);
+        if self.pb.position() % 100 == 0 {
+            self.pb.set_message(format!(
+                "Generating... {} items remaining",
+                self.pb.length().unwrap() - self.pb.position()
+            ));
+        }
     }
 
     fn finish(&self) {
