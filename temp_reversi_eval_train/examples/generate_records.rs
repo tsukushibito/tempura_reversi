@@ -13,7 +13,7 @@ impl CliProgressReporter {
         let pb = ProgressBar::new(total as u64);
         pb.set_style(
             indicatif::ProgressStyle::default_bar()
-                .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({percent}%) {msg}")
+                .template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {pos}/{len} ({percent}%) {msg}")
                 .unwrap()
                 .progress_chars("█▓▒░ ")
         );
@@ -39,7 +39,7 @@ impl ProgressReporter for CliProgressReporter {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = GameRecordGeneratorConfig {
-        num_records: 10000,
+        num_records: 100,
         search_depth: 5,
         evaluator: EvaluatorType::PhaseAware,
         order_evaluator: EvaluatorType::PhaseAware,
