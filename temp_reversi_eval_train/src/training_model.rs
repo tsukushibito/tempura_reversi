@@ -11,6 +11,7 @@ use burn::{
     tensor::{backend::AutodiffBackend, Int, Tensor},
     train::{RegressionOutput, TrainOutput, TrainStep, ValidStep},
 };
+use temp_reversi_eval::feature::PHASE_MAX;
 
 use crate::{dataset::ReversiBatch, feature_packer::FEATURE_PACKER};
 
@@ -25,7 +26,7 @@ pub struct ReversiModelConfig {}
 impl ReversiModelConfig {
     pub fn init<B: Backend>(&self, device: &B::Device) -> ReversiModel<B> {
         let mut linears = Vec::new();
-        for i in 0..64 {
+        for _ in 0..PHASE_MAX {
             let linear = LinearConfig::new(FEATURE_PACKER.packed_feature_size, 1).init(device);
             linears.push(linear);
         }

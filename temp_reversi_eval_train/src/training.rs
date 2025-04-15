@@ -6,15 +6,17 @@ use burn::{
     tensor::backend::AutodiffBackend,
     train::{metric::LossMetric, LearnerBuilder},
 };
+use rayon::prelude::*;
 
 use crate::{
     dataset::{ReversiBatcher, ReversiDataset},
+    game_record::GameRecord,
     training_model::ReversiModelConfig,
 };
 
 #[derive(Config)]
 pub struct TrainingConfig {
-    #[config(default = 100)]
+    #[config(default = 2)]
     pub num_epochs: usize,
 
     #[config(default = 2)]
@@ -25,7 +27,7 @@ pub struct TrainingConfig {
 
     pub optimizer: AdamConfig,
 
-    #[config(default = 256)]
+    #[config(default = 15360)] // 256 * 60
     pub batch_size: usize,
 }
 
@@ -35,7 +37,12 @@ fn create_artifact_dir(artifact_dir: &str) {
     std::fs::create_dir_all(artifact_dir).ok();
 }
 
-pub fn run<B: AutodiffBackend>(artifact_dir: &str, device: B::Device) {
+pub fn run<B: AutodiffBackend>(
+    artifact_dir: &str,
+    records_dir: &str,
+    records_name: &str,
+    device: B::Device,
+) -> Result<(), Box<dyn std::error::Error>> {
     create_artifact_dir(artifact_dir);
 
     // Config
@@ -45,8 +52,15 @@ pub fn run<B: AutodiffBackend>(artifact_dir: &str, device: B::Device) {
     B::seed(config.seed);
 
     // Define train/valid datasets and dataloaders
-    let train_dataset = ReversiDataset::new(vec![]);
-    let valid_dataset = ReversiDataset::new(vec![]);
+    let records = GameRecord::load_records(records_dir, records_name)?;
+    let samples = records
+        .par_iter()
+        .flat_map(|record| record.to_samples())
+        .collect::<Vec<_>>();
+    // 80% train, 20% valid
+    let (train_samples, valid_samples) = samples.split_at(samples.len() * 4 / 5);
+    let train_dataset = ReversiDataset::new(train_samples.to_vec());
+    let valid_dataset = ReversiDataset::new(valid_samples.to_vec());
 
     println!("Train Dataset Size: {}", train_dataset.len());
     println!("Valid Dataset Size: {}", valid_dataset.len());
@@ -79,14 +93,25 @@ pub fn run<B: AutodiffBackend>(artifact_dir: &str, device: B::Device) {
 
     let model_trained = learner.fit(dataloader_train, dataloader_test);
 
-    config
-        .save(format!("{artifact_dir}/config.json").as_str())
-        .unwrap();
+    config.save(format!("{artifact_dir}/config.json").as_str())?;
 
-    model_trained
-        .save_file(
-            format!("{artifact_dir}/model"),
-            &NoStdTrainingRecorder::new(),
-        )
-        .expect("Failed to save trained model");
+    model_trained.save_file(
+        format!("{artifact_dir}/model"),
+        &NoStdTrainingRecorder::new(),
+    )?;
+
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use burn::backend::{ndarray::NdArrayDevice, Autodiff, NdArray};
+
+    use super::*;
+
+    #[test]
+    fn test_training() {
+        let device = NdArrayDevice::Cpu;
+        _ = run::<Autodiff<NdArray>>("work/artifacts", "work/dataset", "records", device);
+    }
 }

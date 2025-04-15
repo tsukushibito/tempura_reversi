@@ -122,7 +122,7 @@ impl GameRecord {
         base_file_name: &str,
     ) -> Result<Vec<std::path::PathBuf>, Box<dyn std::error::Error>> {
         let dir = std::path::Path::new(dir);
-        if (!dir.exists()) {
+        if !dir.exists() || !dir.is_dir() {
             return Ok(Default::default());
         }
 

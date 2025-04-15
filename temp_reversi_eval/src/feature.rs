@@ -4,6 +4,8 @@ use crate::patterns::get_symmetric_pattern_indices;
 
 use super::{coordinate_to_feature::C2F_LISTS, patterns::PATTERNS};
 
+pub const PHASE_MAX: u8 = 65;
+
 /// The `Feature` struct represents the feature vector for a given board state.
 /// It contains the indices for each pattern and the phase of the game.
 #[derive(Debug, Clone)]
