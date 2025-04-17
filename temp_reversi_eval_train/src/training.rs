@@ -16,7 +16,7 @@ use crate::{
 
 #[derive(Config)]
 pub struct TrainingConfig {
-    #[config(default = 20)]
+    #[config(default = 8)]
     pub num_epochs: usize,
 
     #[config(default = 2)]

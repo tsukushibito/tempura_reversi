@@ -1,4 +1,5 @@
 use burn::config::Config;
+use rand::prelude::*;
 use rayon::prelude::*;
 use temp_reversi_ai::{
     ai_player::AiPlayer, evaluator::PhaseAwareEvaluator, strategy::NegaScoutStrategy,
@@ -21,6 +22,9 @@ pub enum StrategyType {
 pub struct GameRecordGeneratorConfig {
     #[config(default = 100)]
     pub num_records: usize,
+
+    #[config(default = 10)]
+    pub num_random_moves: usize,
 
     #[config(default = 5)]
     pub search_depth: usize,
@@ -82,7 +86,12 @@ impl GameRecordGenerator {
                 let mut game = Game::default();
                 let mut moves = Vec::new();
                 while !game.is_over() {
-                    let mv = player.select_move(&game);
+                    let mv = if moves.len() < self.config.num_random_moves {
+                        let valid_moves = game.valid_moves();
+                        *valid_moves.choose(&mut rand::rng()).unwrap()
+                    } else {
+                        player.select_move(&game)
+                    };
                     moves.push(mv.to_u8());
                     let _ = game.apply_move(mv);
                 }
@@ -127,6 +136,7 @@ mod tests {
 
         let config = GameRecordGeneratorConfig {
             num_records: 10,
+            num_random_moves: 10,
             search_depth: 5,
             evaluator: EvaluatorType::PhaseAware,
             order_evaluator: EvaluatorType::PhaseAware,

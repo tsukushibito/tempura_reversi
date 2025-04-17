@@ -12,6 +12,7 @@ temp_reversi_ai = { path = "../temp_reversi_ai" }
 temp_reversi_eval = { path = "../temp_reversi_eval" }
 rayon = "1.10.0"
 regex = "1.11.1"
+rand = "0.9.1"
 
 [dev-dependencies]
 indicatif = "0.17.11"

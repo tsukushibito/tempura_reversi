@@ -39,7 +39,8 @@ impl ProgressReporter for CliProgressReporter {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = GameRecordGeneratorConfig {
-        num_records: 100,
+        num_records: 10000,
+        num_random_moves: 10,
         search_depth: 5,
         evaluator: EvaluatorType::PhaseAware,
         order_evaluator: EvaluatorType::PhaseAware,
