@@ -3,6 +3,7 @@ use burn::{
     prelude::*,
 };
 use rayon::prelude::*;
+use serde::de::value;
 use temp_reversi_eval::feature::Feature;
 
 use crate::feature_packer::FEATURE_PACKER;
@@ -40,9 +41,10 @@ pub struct ReversiBatcher<B: Backend> {
 
 #[derive(Debug, Clone)]
 pub struct ReversiBatch<B: Backend> {
-    pub inputs: Tensor<B, 2>,
+    pub indices: Tensor<B, 2, Int>,
+    pub values: Tensor<B, 2>,
+    pub phases: Tensor<B, 1, Int>,
     pub targets: Tensor<B, 2>,
-    pub phases: Vec<u8>,
 }
 
 impl<B: Backend> ReversiBatcher<B> {
@@ -53,38 +55,40 @@ impl<B: Backend> ReversiBatcher<B> {
 
 impl<B: Backend> Batcher<ReversiSample, ReversiBatch<B>> for ReversiBatcher<B> {
     fn batch(&self, samples: Vec<ReversiSample>) -> ReversiBatch<B> {
-        let (input_tensors, target_tensors_and_phases): (Vec<_>, Vec<(_, _)>) = samples
-            .par_iter()
-            .map(|s| {
-                (
-                    feature_to_tensor(&s.packed_feature, &self.device),
-                    (
-                        stone_diff_to_tensor(s.stone_diff, &self.device),
-                        s.packed_feature.phase,
-                    ),
-                )
-            })
-            .unzip();
-        let (target_tensors, phases): (Vec<_>, Vec<_>) =
-            target_tensors_and_phases.into_iter().unzip();
+        let mut indices = Vec::new();
+        let mut values = Vec::new();
+        let mut phases = Vec::new();
+        let mut targets = Vec::new();
+        for s in samples {
+            let (idxs, vals) = FEATURE_PACKER.packed_feature_to_sparse_vector(&s.packed_feature);
+            let index_tensor: Tensor<B, 1, Int> = Tensor::from_ints(idxs.as_slice(), &self.device);
+            let index_tensor: Tensor<B, 2, Int> = index_tensor.unsqueeze();
+            indices.push(index_tensor);
 
-        let inputs = Tensor::cat(input_tensors, 0);
-        let targets = Tensor::cat(target_tensors, 0).unsqueeze_dim(1);
+            let value_tensor: Tensor<B, 1> = Tensor::from_floats(vals.as_slice(), &self.device);
+            let value_tensor: Tensor<B, 2> = value_tensor.unsqueeze();
+            values.push(value_tensor);
+
+            let phase_tensor: Tensor<B, 1, Int> =
+                Tensor::from_ints([s.packed_feature.phase as i32], &self.device);
+            phases.push(phase_tensor);
+
+            let target_tensor: Tensor<B, 1> =
+                Tensor::from_floats([s.stone_diff as f32], &self.device);
+            let target_tensor: Tensor<B, 2> = target_tensor.unsqueeze();
+            targets.push(target_tensor);
+        }
+
+        let indices = Tensor::cat(indices, 0);
+        let values = Tensor::cat(values, 0);
+        let phases = Tensor::cat(phases, 0);
+        let targets = Tensor::cat(targets, 0);
 
         ReversiBatch {
-            inputs,
-            targets,
+            indices,
+            values,
             phases,
+            targets,
         }
     }
-}
-
-fn feature_to_tensor<B: Backend>(feature: &Feature, device: &Device<B>) -> Tensor<B, 2> {
-    let feature_vector = FEATURE_PACKER.packed_feature_to_vector(feature);
-    let feature_vector: Vec<f32> = feature_vector.iter().map(|&x| x as f32).collect();
-    Tensor::<B, 1>::from_floats(feature_vector.as_slice(), device).unsqueeze()
-}
-
-fn stone_diff_to_tensor<B: Backend>(stone_diff: i8, device: &Device<B>) -> Tensor<B, 1> {
-    Tensor::<B, 1>::from_floats([stone_diff as f32], device)
 }

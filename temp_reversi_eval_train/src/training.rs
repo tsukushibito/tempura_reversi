@@ -11,12 +11,12 @@ use rayon::prelude::*;
 use crate::{
     dataset::{ReversiBatcher, ReversiDataset},
     game_record::GameRecord,
-    training_model::ReversiModelConfig,
+    model::ReversiModelConfig,
 };
 
 #[derive(Config)]
 pub struct TrainingConfig {
-    #[config(default = 2)]
+    #[config(default = 20)]
     pub num_epochs: usize,
 
     #[config(default = 2)]

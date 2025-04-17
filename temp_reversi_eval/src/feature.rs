@@ -4,7 +4,9 @@ use crate::patterns::get_symmetric_pattern_indices;
 
 use super::{coordinate_to_feature::C2F_LISTS, patterns::PATTERNS};
 
-pub const PHASE_MAX: u8 = 65;
+/// The number of phases in the game, which is the sum of black and white stones on the board.
+/// 0 to 64 is used to represent the phase of the game.
+pub const PHASE_COUNT: u8 = 65;
 
 /// The `Feature` struct represents the feature vector for a given board state.
 /// It contains the indices for each pattern and the phase of the game.

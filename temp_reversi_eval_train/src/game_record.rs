@@ -1,18 +1,11 @@
-use std::{
-    collections::HashMap,
-    fs::File,
-    io::{BufReader, Write},
-};
+use std::{fs::File, io::BufReader};
 
-use burn::backend::autodiff::checkpoint::base;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use temp_reversi_core::{Game, Position};
 use temp_reversi_eval::feature::extract_feature;
 
 use crate::{dataset::ReversiSample, feature_packer::FEATURE_PACKER};
-
-use rayon::prelude::*;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct GameRecord {

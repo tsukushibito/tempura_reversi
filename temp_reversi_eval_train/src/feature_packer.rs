@@ -83,14 +83,24 @@ impl FeaturePacker {
             .copied()
     }
 
-    pub fn packed_feature_to_vector(&self, packed_feature: &Feature) -> Vec<u8> {
-        let mut packed_vector = vec![0; self.packed_feature_size];
+    pub fn packed_feature_to_sparse_vector(
+        &self,
+        packed_feature: &Feature,
+    ) -> (Vec<i32>, Vec<f32>) {
+        let mut indices = Vec::new();
+        let mut values = Vec::new();
         for (i, &index) in packed_feature.indices.iter().enumerate() {
-            let absolute_index = self.index_offsets[i / 4] as usize + index as usize;
-            packed_vector[absolute_index] += 1;
+            let base_pattern_index = i / 4;
+            let index_offset = self.index_offsets[base_pattern_index] as usize;
+            let absolute_index = index_offset + index as usize;
+            if absolute_index >= self.packed_feature_size {
+                panic!("Packed feature index out of bounds.");
+            }
+            indices.push(absolute_index as i32);
+            values.push(1.0);
         }
 
-        packed_vector
+        (indices, values)
     }
 }
 
@@ -98,7 +108,6 @@ pub static FEATURE_PACKER: LazyLock<FeaturePacker> = LazyLock::new(FeaturePacker
 
 #[cfg(test)]
 mod tests {
-    use burn::backend::autodiff::checkpoint::base;
     use temp_reversi_core::Bitboard;
     use temp_reversi_eval::feature::extract_feature;
 
@@ -210,7 +219,7 @@ mod tests {
     }
 
     #[test]
-    fn test_pack_to_vector() {
+    fn test_pack_to_sparse_vector() {
         let black = 0;
         let white = 0;
         let bitboard = Bitboard::new(black, white);
@@ -219,21 +228,17 @@ mod tests {
 
         let feature_packer = FeaturePacker::new();
         let packed_feature = feature_packer.pack(&feature);
-        let packed_vector = feature_packer.packed_feature_to_vector(&packed_feature);
+        let packed_vector = feature_packer.packed_feature_to_sparse_vector(&packed_feature);
 
-        assert_eq!(packed_vector.len(), feature_packer.packed_feature_size);
+        assert_eq!(packed_vector.0.len(), packed_feature.indices.len());
+        assert_eq!(packed_vector.1.len(), packed_feature.indices.len());
+        assert!(packed_vector.1.iter().all(|&v| v == 1.0));
 
-        for (pattern_index, &index) in feature.indices.iter().enumerate() {
-            let base_pattern_index = pattern_index / 4;
-            let absolute_index =
-                feature_packer.index_offsets[base_pattern_index] as usize + index as usize;
+        packed_vector.0.iter().enumerate().for_each(|(i, &index)| {
+            let base_pattern_index = i / 4;
             let index_offset = feature_packer.index_offsets[base_pattern_index] as usize;
-            let expected = if index as i64 == index_offset as i64 - 1 {
-                4
-            } else {
-                0
-            };
-            assert_eq!(packed_vector[absolute_index], expected);
-        }
+            let local_index = index as usize - index_offset;
+            assert_eq!(local_index, packed_feature.indices[i] as usize);
+        });
     }
 }
