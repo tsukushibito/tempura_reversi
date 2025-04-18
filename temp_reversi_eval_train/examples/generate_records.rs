@@ -24,16 +24,15 @@ impl CliProgressReporter {
 impl ProgressReporter for CliProgressReporter {
     fn increment(&self, delta: u64) {
         self.pb.inc(delta);
-        if self.pb.position() % 100 == 0 {
-            self.pb.set_message(format!(
-                "Generating... {} items remaining",
-                self.pb.length().unwrap() - self.pb.position()
-            ));
-        }
+        if self.pb.position() % 100 == 0 {}
     }
 
     fn finish(&self) {
         self.pb.finish();
+    }
+
+    fn set_message(&self, message: &str) {
+        self.pb.set_message(message.to_string());
     }
 }
 
@@ -47,6 +46,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         strategy: StrategyType::NegaScount,
         output_dir: String::from("work/dataset"),
         output_name: String::from("records"),
+        split_name: String::from("train"),
     };
     let generator = config.init();
     let progress = CliProgressReporter::new(config.num_records);

@@ -2,16 +2,34 @@ use burn::{
     data::{dataloader::batcher::Batcher, dataset::Dataset},
     prelude::*,
 };
-use rayon::prelude::*;
-use serde::de::value;
-use temp_reversi_eval::feature::Feature;
+use serde::{Deserialize, Serialize};
 
 use crate::feature_packer::FEATURE_PACKER;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ReversiSample {
-    pub packed_feature: Feature,
+    pub indices: Vec<u16>,
+    pub phase: u8,
     pub stone_diff: i8,
+}
+
+impl ReversiSample {
+    pub fn feature_vector(&self) -> (Vec<i32>, Vec<f32>) {
+        let mut indices = Vec::new();
+        let mut values = Vec::new();
+        for (i, &index) in self.indices.iter().enumerate() {
+            let base_pattern_index = i / 4;
+            let index_offset = FEATURE_PACKER.index_offsets[base_pattern_index] as usize;
+            let absolute_index = index_offset + index as usize;
+            if absolute_index >= FEATURE_PACKER.packed_feature_size {
+                panic!("Packed feature index out of bounds.");
+            }
+            indices.push(absolute_index as i32);
+            values.push(1.0);
+        }
+
+        (indices, values)
+    }
 }
 
 pub struct ReversiDataset {
@@ -60,7 +78,7 @@ impl<B: Backend> Batcher<ReversiSample, ReversiBatch<B>> for ReversiBatcher<B> {
         let mut phases = Vec::new();
         let mut targets = Vec::new();
         for s in samples {
-            let (idxs, vals) = FEATURE_PACKER.packed_feature_to_sparse_vector(&s.packed_feature);
+            let (idxs, vals) = s.feature_vector();
             let index_tensor: Tensor<B, 1, Int> = Tensor::from_ints(idxs.as_slice(), &self.device);
             let index_tensor: Tensor<B, 2, Int> = index_tensor.unsqueeze();
             indices.push(index_tensor);
@@ -69,8 +87,7 @@ impl<B: Backend> Batcher<ReversiSample, ReversiBatch<B>> for ReversiBatcher<B> {
             let value_tensor: Tensor<B, 2> = value_tensor.unsqueeze();
             values.push(value_tensor);
 
-            let phase_tensor: Tensor<B, 1, Int> =
-                Tensor::from_ints([s.packed_feature.phase as i32], &self.device);
+            let phase_tensor: Tensor<B, 1, Int> = Tensor::from_ints([s.phase as i32], &self.device);
             phases.push(phase_tensor);
 
             let target_tensor: Tensor<B, 1> =

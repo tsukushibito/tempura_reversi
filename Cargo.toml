@@ -10,8 +10,8 @@ members = [
 ]
 
 [workspace.dependencies]
-bincode = { version = "=2.0.0-rc.3", features = ["serde", "std"] }
-bincode_derive = "=2.0.0-rc.3"
+bincode = { version = "2.0.1", features = ["serde", "std"] }
+bincode_derive = "2.0.1"
 serde = { version = "1.0.219", features = ["derive"] }
 
 [profile.release]

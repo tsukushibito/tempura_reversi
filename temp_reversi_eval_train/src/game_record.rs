@@ -101,7 +101,8 @@ impl GameRecord {
             let packed_feature = FEATURE_PACKER.pack(&feature);
             let label = self.final_score.0 as i8 - self.final_score.1 as i8;
             let sample = ReversiSample {
-                packed_feature,
+                indices: packed_feature.indices.to_vec(),
+                phase: packed_feature.phase,
                 stone_diff: label,
             };
             samples.push(sample);
