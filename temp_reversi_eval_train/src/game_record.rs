@@ -3,9 +3,8 @@ use std::{fs::File, io::BufReader};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use temp_reversi_core::{Game, Position};
-use temp_reversi_eval::feature::extract_feature;
 
-use crate::{dataset::ReversiSample, feature_packer::FEATURE_PACKER};
+use crate::dataset::ReversiSample;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct GameRecord {
@@ -97,13 +96,19 @@ impl GameRecord {
             let pos = Position::from_u8(*m);
             let _ = game.apply_move(pos);
             let board = game.board_state();
-            let feature = extract_feature(board);
-            let packed_feature = FEATURE_PACKER.pack(&feature);
-            let label = self.final_score.0 as i8 - self.final_score.1 as i8;
+            // let feature = extract_feature(board);
+            // let packed_feature = FEATURE_PACKER.pack(&feature);
+            let stone_diff = self.final_score.0 as i8 - self.final_score.1 as i8;
+            // let sample = ReversiSample {
+            //     indices: packed_feature.indices.to_vec(),
+            //     phase: packed_feature.phase,
+            //     stone_diff: label,
+            // };
+            let (black_bits, white_bits) = board.bits();
             let sample = ReversiSample {
-                indices: packed_feature.indices.to_vec(),
-                phase: packed_feature.phase,
-                stone_diff: label,
+                black_bits,
+                white_bits,
+                stone_diff,
             };
             samples.push(sample);
         }

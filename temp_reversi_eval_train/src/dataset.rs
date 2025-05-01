@@ -3,21 +3,27 @@ use burn::{
     prelude::*,
 };
 use serde::{Deserialize, Serialize};
+use temp_reversi_core::Bitboard;
+use temp_reversi_eval::feature::extract_feature;
 
 use crate::feature_packer::FEATURE_PACKER;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ReversiSample {
-    pub indices: Vec<u16>,
-    pub phase: u8,
+    pub black_bits: u64,
+    pub white_bits: u64,
     pub stone_diff: i8,
 }
 
 impl ReversiSample {
     pub fn feature_vector(&self) -> (Vec<i32>, Vec<f32>) {
+        let board = Bitboard::new(self.black_bits, self.white_bits);
+        let feature = extract_feature(&board);
+        let packed_feature = FEATURE_PACKER.pack(&feature);
+
         let mut indices = Vec::new();
         let mut values = Vec::new();
-        for (i, &index) in self.indices.iter().enumerate() {
+        for (i, &index) in packed_feature.indices.iter().enumerate() {
             let base_pattern_index = i / 4;
             let index_offset = FEATURE_PACKER.index_offsets[base_pattern_index] as usize;
             let absolute_index = index_offset + index as usize;
@@ -87,7 +93,10 @@ impl<B: Backend> Batcher<ReversiSample, ReversiBatch<B>> for ReversiBatcher<B> {
             let value_tensor: Tensor<B, 2> = value_tensor.unsqueeze();
             values.push(value_tensor);
 
-            let phase_tensor: Tensor<B, 1, Int> = Tensor::from_ints([s.phase as i32], &self.device);
+            let board = Bitboard::new(s.black_bits, s.white_bits);
+            let (black, white) = board.count_stones();
+            let phase = (black + white) as i32;
+            let phase_tensor: Tensor<B, 1, Int> = Tensor::from_ints([phase], &self.device);
             phases.push(phase_tensor);
 
             let target_tensor: Tensor<B, 1> =
