@@ -52,7 +52,9 @@ pub fn run<B: AutodiffBackend>(
     B::seed(config.seed);
 
     // Define train/valid datasets and dataloaders
-    let records = GameRecord::load_records(records_dir, records_name)?;
+    // let records = GameRecord::load_records(records_dir, records_name)?;
+    let records: [GameRecord; 0] = [];
+    todo!("Use SqliteDatasetStorage to load records");
     let samples = records
         .par_iter()
         .flat_map(|record| record.to_samples())

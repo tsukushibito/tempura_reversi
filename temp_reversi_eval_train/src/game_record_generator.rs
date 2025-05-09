@@ -1,4 +1,14 @@
-use burn::{config::Config, data::dataset::SqliteDatasetStorage};
+use std::{
+    fs::{remove_file, File},
+    io::copy,
+    path::Path,
+};
+
+use burn::{
+    config::Config,
+    data::dataset::{SqliteDatasetStorage, SqliteDatasetWriter},
+};
+use flate2::{write::GzEncoder, Compression};
 use rayon::prelude::*;
 use temp_reversi_ai::{
     ai_player::AiPlayer,
@@ -8,6 +18,8 @@ use temp_reversi_ai::{
 use temp_reversi_core::{Game, GamePlayer};
 
 use crate::{dataset::ReversiSample, game_record::GameRecord};
+
+type BoxError = Box<dyn std::error::Error>;
 
 #[derive(Config)]
 pub enum EvaluatorType {
@@ -68,79 +80,117 @@ pub trait ProgressReporter: Clone + Send + Sync {
 }
 
 impl GameRecordGenerator {
-    pub fn generate_records(
-        &self,
-        progress: &impl ProgressReporter,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        let storage = SqliteDatasetStorage::from_file(self.config.output_name.clone())
-            .with_base_dir(self.config.output_dir.clone());
+    pub fn generate_records(&self, progress: &impl ProgressReporter) -> Result<(), BoxError> {
+        let mut writer = self.open_writer()?;
 
-        let mut writer = storage.writer::<ReversiSample>(true)?;
-
-        const BATCH_SIZE: usize = 1000;
-
-        for batch_start in (0..self.config.num_records).step_by(BATCH_SIZE) {
-            let batch_end = (batch_start + BATCH_SIZE).min(self.config.num_records);
-            let batch_size = batch_end - batch_start;
-
-            let batch_records: Vec<GameRecord> = (0..batch_size)
-                .into_par_iter()
-                .map_with(progress.clone(), |p, _| {
-                    let evaluator = match self.config.evaluator {
-                        EvaluatorType::PhaseAware => PhaseAwareEvaluator::default(),
-                    };
-                    let order_evaluator = match self.config.order_evaluator {
-                        EvaluatorType::PhaseAware => PhaseAwareEvaluator::default(),
-                    };
-                    let strategy = match self.config.strategy {
-                        StrategyType::NegaScount => NegaScoutStrategy::new(
-                            evaluator,
-                            order_evaluator,
-                            self.config.search_depth,
-                        ),
-                    };
-                    let mut player = AiPlayer::new(Box::new(strategy));
-
-                    let randam_strategy = RandomStrategy;
-                    let mut random_player = AiPlayer::new(Box::new(randam_strategy));
-
-                    let mut game = Game::default();
-                    let mut moves = Vec::new();
-                    while !game.is_over() {
-                        let mv = if moves.len() < self.config.num_random_moves {
-                            random_player.select_move(&game)
-                        } else {
-                            player.select_move(&game)
-                        };
-                        moves.push(mv.to_u8());
-                        let _ = game.apply_move(mv);
-                    }
-                    let final_score = game.current_score();
-                    let final_score = (final_score.0 as u8, final_score.1 as u8);
-
-                    p.increment(1);
-
-                    GameRecord { moves, final_score }
-                })
-                .collect();
-
-            for record in &batch_records {
-                let samples = record.to_samples();
-                for sample in samples {
-                    writer.write(&self.config.split_name, &sample)?;
-                }
-            }
-
-            progress.set_message(&format!(
-                "Batch {}-{} completed and saved to SQLite",
-                batch_start,
-                batch_end - 1
-            ));
+        for (start, end) in self.batch_ranges() {
+            let records = self.generate_batch(start, end, progress);
+            self.write_batch(&writer, &records)?;
+            progress.set_message(&format!("Batch {}-{} completed", start, end - 1));
         }
 
         writer.set_completed()?;
 
+        progress.set_message("Compressing output...");
+        self.compress_output()?;
+
         progress.finish();
+
+        Ok(())
+    }
+
+    const BATCH_SIZE: usize = 1000;
+
+    fn open_writer(&self) -> Result<SqliteDatasetWriter<ReversiSample>, BoxError> {
+        let storage = SqliteDatasetStorage::from_file(self.config.output_name.clone())
+            .with_base_dir(self.config.output_dir.clone());
+        let writer = storage.writer::<ReversiSample>(true)?;
+        Ok(writer)
+    }
+
+    fn compress_output(&self) -> Result<(), BoxError> {
+        let db_path = Path::new(&self.config.output_dir).join(&self.config.output_name);
+        let gz_path = db_path.with_extension("gz");
+        let mut input = File::open(&db_path)?;
+        let output = File::create(&gz_path)?;
+        let mut encoder = GzEncoder::new(output, Compression::default());
+        copy(&mut input, &mut encoder)?;
+        encoder.finish()?;
+
+        remove_file(db_path)?;
+
+        Ok(())
+    }
+
+    fn batch_ranges(&self) -> impl Iterator<Item = (usize, usize)> + use<'_> {
+        (0..self.config.num_records)
+            .step_by(Self::BATCH_SIZE)
+            .map(move |start| {
+                let end = (start + Self::BATCH_SIZE).min(self.config.num_records);
+                (start, end)
+            })
+    }
+
+    fn generate_batch(
+        &self,
+        _start: usize,
+        end: usize,
+        progress: &impl ProgressReporter,
+    ) -> Vec<GameRecord> {
+        let batch_size = end - _start;
+        (0..batch_size)
+            .into_par_iter()
+            .map_with(progress.clone(), |p, _| {
+                p.increment(1);
+                self.play_game()
+            })
+            .collect()
+    }
+
+    fn play_game(&self) -> GameRecord {
+        let evaluator = match self.config.evaluator {
+            EvaluatorType::PhaseAware => PhaseAwareEvaluator::default(),
+        };
+        let order_evaluator = match self.config.order_evaluator {
+            EvaluatorType::PhaseAware => PhaseAwareEvaluator::default(),
+        };
+        let strategy = match self.config.strategy {
+            StrategyType::NegaScount => {
+                NegaScoutStrategy::new(evaluator, order_evaluator, self.config.search_depth)
+            }
+        };
+        let mut player = AiPlayer::new(Box::new(strategy));
+
+        let randam_strategy = RandomStrategy;
+        let mut random_player = AiPlayer::new(Box::new(randam_strategy));
+
+        let mut game = Game::default();
+        let mut moves = Vec::new();
+        while !game.is_over() {
+            let mv = if moves.len() < self.config.num_random_moves {
+                random_player.select_move(&game)
+            } else {
+                player.select_move(&game)
+            };
+            moves.push(mv.to_u8());
+            let _ = game.apply_move(mv);
+        }
+        let final_score = game.current_score();
+        let final_score = (final_score.0 as u8, final_score.1 as u8);
+
+        GameRecord { moves, final_score }
+    }
+
+    fn write_batch(
+        &self,
+        writer: &SqliteDatasetWriter<ReversiSample>,
+        records: &[GameRecord],
+    ) -> Result<(), BoxError> {
+        for record in records {
+            for sample in record.to_samples() {
+                writer.write(&self.config.split_name, &sample)?;
+            }
+        }
         Ok(())
     }
 }
@@ -168,29 +218,6 @@ mod tests {
 
     #[test]
     fn test_game_record_generator() {
-        let dir = "test_game_record_generator/dataset";
-        let _ = std::fs::remove_dir_all(dir); // Clean up before test
-
-        let config = GameRecordGeneratorConfig {
-            num_records: 10,
-            num_random_moves: 10,
-            search_depth: 5,
-            evaluator: EvaluatorType::PhaseAware,
-            order_evaluator: EvaluatorType::PhaseAware,
-            strategy: StrategyType::NegaScount,
-            output_dir: String::from(dir),
-            output_name: String::from("records"),
-            split_name: String::from("train"),
-        };
-        let generator = config.init();
-        let progress = MockProgressReporter {};
-        generator.generate_records(&progress).unwrap();
-
-        let records = GameRecord::load_records(dir, "records").unwrap();
-        assert!(!records.is_empty(), "Records should not be empty");
-
-        assert_eq!(records.len(), 10, "Should generate 10 records");
-
-        let _ = std::fs::remove_dir_all(dir); // Clean up after test
+        todo!()
     }
 }
