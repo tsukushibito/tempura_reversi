@@ -21,47 +21,63 @@ use crate::{dataset::ReversiSample, game_record::GameRecord};
 
 type BoxError = Box<dyn std::error::Error>;
 
+/// Types of evaluators that can be used for position assessment
 #[derive(Config)]
 pub enum EvaluatorType {
+    /// Phase-aware evaluator that adjusts evaluation based on game phase
     PhaseAware,
 }
 
+/// Types of search strategies that can be used for move selection
 #[derive(Config)]
 pub enum StrategyType {
+    /// NegaScout search algorithm for move selection
     NegaScount,
 }
 
+/// Configuration for the dataset generation process
 #[derive(Config)]
 pub struct DatasetGeneratorConfig {
+    /// Number of game records to generate for training
     #[config(default = 100)]
-    pub num_records: usize,
+    pub train_records: usize,
 
+    /// Number of game records to generate for validation
+    #[config(default = 20)]
+    pub valid_records: usize,
+
+    /// Number of random moves to play at the beginning of each game
+    /// to ensure position diversity
     #[config(default = 10)]
     pub num_random_moves: usize,
 
+    /// Maximum search depth for the AI player's search algorithm
     #[config(default = 5)]
     pub search_depth: usize,
 
+    /// Evaluator to use for position assessment
     #[config(default = "EvaluatorType::PhaseAware")]
     pub evaluator: EvaluatorType,
 
+    /// Evaluator to use for move ordering in search
     #[config(default = "EvaluatorType::PhaseAware")]
     pub order_evaluator: EvaluatorType,
 
+    /// Search strategy to use for move selection
     #[config(default = "StrategyType::NegaScount")]
     pub strategy: StrategyType,
 
+    /// Directory to store the generated dataset
     #[config(default = "String::from(\"work/dataset\")")]
     pub output_dir: String,
 
+    /// Base filename for the generated dataset (without extension)
     #[config(default = "String::from(\"records\")")]
     pub output_name: String,
-
-    #[config(default = "String::from(\"train\")")]
-    pub split_name: String,
 }
 
 impl DatasetGeneratorConfig {
+    /// Initializes a new DatasetGenerator instance from this configuration
     pub fn init(&self) -> DatasetGenerator {
         DatasetGenerator {
             config: self.clone(),
@@ -73,20 +89,47 @@ pub struct DatasetGenerator {
     config: DatasetGeneratorConfig,
 }
 
+/// Progress reporting interface for tracking dataset generation progress
 pub trait ProgressReporter: Clone + Send + Sync {
+    /// Increments the progress counter by the specified amount
     fn increment(&self, delta: u64);
+
+    /// Signals that the operation is complete
     fn finish(&self);
+
+    /// Sets a status message for the current operation
     fn set_message(&self, message: &str);
 }
 
 impl DatasetGenerator {
+    /// Generates a dataset consisting of training and validation data
+    ///
+    /// This function generates game records for both training and validation splits
+    /// according to the configuration. The data is stored in a SQLite database and
+    /// compressed as a .gz file.
+    ///
+    /// # Arguments
+    ///
+    /// * `progress` - A progress reporter implementation to track generation progress
+    ///
+    /// # Returns
+    ///
+    /// A result that is Ok if the dataset was successfully generated
     pub fn generate_dataset(&self, progress: &impl ProgressReporter) -> Result<(), BoxError> {
         let mut writer = self.open_writer()?;
 
-        for (start, end) in self.batch_ranges() {
+        progress.set_message("Generating training data...");
+        for (start, end) in self.batch_ranges(0, self.config.train_records) {
             let records = self.generate_batch(start, end, progress);
-            self.write_batch(&writer, &records)?;
-            progress.set_message(&format!("Batch {}-{} completed", start, end - 1));
+            self.write_batch(&writer, &records, "train")?;
+            progress.set_message(&format!("Training batch {}-{} completed", start, end - 1));
+        }
+
+        progress.set_message("Generating validation data...");
+        for (start, end) in self.batch_ranges(0, self.config.valid_records) {
+            let records = self.generate_batch(start, end, progress);
+            self.write_batch(&writer, &records, "valid")?;
+            progress.set_message(&format!("Validation batch {}-{} completed", start, end - 1));
         }
 
         writer.set_completed()?;
@@ -122,13 +165,16 @@ impl DatasetGenerator {
         Ok(())
     }
 
-    fn batch_ranges(&self) -> impl Iterator<Item = (usize, usize)> + use<'_> {
-        (0..self.config.num_records)
-            .step_by(Self::BATCH_SIZE)
-            .map(move |start| {
-                let end = (start + Self::BATCH_SIZE).min(self.config.num_records);
-                (start, end)
-            })
+    fn batch_ranges(
+        &self,
+        start_offset: usize,
+        count: usize,
+    ) -> impl Iterator<Item = (usize, usize)> + '_ {
+        (0..count).step_by(Self::BATCH_SIZE).map(move |start| {
+            let batch_start = start_offset + start;
+            let batch_end = (batch_start + Self::BATCH_SIZE).min(start_offset + count);
+            (batch_start, batch_end)
+        })
     }
 
     fn generate_batch(
@@ -185,10 +231,11 @@ impl DatasetGenerator {
         &self,
         writer: &SqliteDatasetWriter<ReversiSample>,
         records: &[GameRecord],
+        split_name: &str,
     ) -> Result<(), BoxError> {
         for record in records {
             for sample in record.to_samples() {
-                writer.write(&self.config.split_name, &sample)?;
+                writer.write(split_name, &sample)?;
             }
         }
         Ok(())

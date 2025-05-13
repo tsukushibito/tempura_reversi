@@ -38,7 +38,8 @@ impl ProgressReporter for CliProgressReporter {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = DatasetGeneratorConfig {
-        num_records: 10000,
+        train_records: 8000,
+        valid_records: 2000,
         num_random_moves: 10,
         search_depth: 5,
         evaluator: EvaluatorType::PhaseAware,
@@ -46,10 +47,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         strategy: StrategyType::NegaScount,
         output_dir: String::from("work/dataset"),
         output_name: String::from("records"),
-        split_name: String::from("train"),
     };
     let generator = config.init();
-    let progress = CliProgressReporter::new(config.num_records);
+    let progress = CliProgressReporter::new(config.train_records + config.valid_records);
     generator.generate_dataset(&progress)?;
     Ok(())
 }
