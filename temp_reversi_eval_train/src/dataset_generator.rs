@@ -32,7 +32,7 @@ pub enum StrategyType {
 }
 
 #[derive(Config)]
-pub struct GameRecordGeneratorConfig {
+pub struct DatasetGeneratorConfig {
     #[config(default = 100)]
     pub num_records: usize,
 
@@ -61,16 +61,16 @@ pub struct GameRecordGeneratorConfig {
     pub split_name: String,
 }
 
-impl GameRecordGeneratorConfig {
-    pub fn init(&self) -> GameRecordGenerator {
-        GameRecordGenerator {
+impl DatasetGeneratorConfig {
+    pub fn init(&self) -> DatasetGenerator {
+        DatasetGenerator {
             config: self.clone(),
         }
     }
 }
 
-pub struct GameRecordGenerator {
-    config: GameRecordGeneratorConfig,
+pub struct DatasetGenerator {
+    config: DatasetGeneratorConfig,
 }
 
 pub trait ProgressReporter: Clone + Send + Sync {
@@ -79,8 +79,8 @@ pub trait ProgressReporter: Clone + Send + Sync {
     fn set_message(&self, message: &str);
 }
 
-impl GameRecordGenerator {
-    pub fn generate_records(&self, progress: &impl ProgressReporter) -> Result<(), BoxError> {
+impl DatasetGenerator {
+    pub fn generate_dataset(&self, progress: &impl ProgressReporter) -> Result<(), BoxError> {
         let mut writer = self.open_writer()?;
 
         for (start, end) in self.batch_ranges() {

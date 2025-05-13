@@ -1,6 +1,6 @@
 use indicatif::ProgressBar;
-use temp_reversi_eval_train::game_record_generator::{
-    EvaluatorType, GameRecordGeneratorConfig, ProgressReporter, StrategyType,
+use temp_reversi_eval_train::dataset_generator::{
+    DatasetGeneratorConfig, EvaluatorType, ProgressReporter, StrategyType,
 };
 
 #[derive(Clone)]
@@ -37,7 +37,7 @@ impl ProgressReporter for CliProgressReporter {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let config = GameRecordGeneratorConfig {
+    let config = DatasetGeneratorConfig {
         num_records: 10000,
         num_random_moves: 10,
         search_depth: 5,
@@ -50,6 +50,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     let generator = config.init();
     let progress = CliProgressReporter::new(config.num_records);
-    generator.generate_records(&progress)?;
+    generator.generate_dataset(&progress)?;
     Ok(())
 }
