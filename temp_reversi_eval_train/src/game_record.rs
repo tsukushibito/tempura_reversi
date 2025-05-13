@@ -1,6 +1,3 @@
-use std::{fs::File, io::BufReader};
-
-use regex::Regex;
 use serde::{Deserialize, Serialize};
 use temp_reversi_core::{Game, Position};
 
@@ -13,9 +10,6 @@ pub struct GameRecord {
     /// Final score of the game, represented as (black, white).
     pub final_score: (u8, u8),
 }
-
-// Define the maximum number of records per file
-const MAX_RECORDS_PER_FILE: usize = 100_000;
 
 impl GameRecord {
     pub fn to_samples(&self) -> Vec<ReversiSample> {
@@ -48,6 +42,4 @@ impl GameRecord {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-}
+mod tests {}
