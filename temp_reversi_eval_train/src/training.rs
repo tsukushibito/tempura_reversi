@@ -6,13 +6,8 @@ use burn::{
     tensor::backend::AutodiffBackend,
     train::{metric::LossMetric, LearnerBuilder},
 };
-use rayon::prelude::*;
 
-use crate::{
-    dataset::{ReversiBatcher, ReversiDataset},
-    game_record::GameRecord,
-    model::ReversiModelConfig,
-};
+use crate::{dataset::ReversiBatcher, dataset_loader::DatasetLoader, model::ReversiModelConfig};
 
 #[derive(Config)]
 pub struct TrainingConfig {
@@ -51,18 +46,10 @@ pub fn run<B: AutodiffBackend>(
     let model = ReversiModelConfig::new().init(&device);
     B::seed(config.seed);
 
-    // Define train/valid datasets and dataloaders
-    // let records = GameRecord::load_records(records_dir, records_name)?;
-    let records: [GameRecord; 0] = [];
-    todo!("Use SqliteDatasetStorage to load records");
-    let samples = records
-        .par_iter()
-        .flat_map(|record| record.to_samples())
-        .collect::<Vec<_>>();
-    // 80% train, 20% valid
-    let (train_samples, valid_samples) = samples.split_at(samples.len() * 4 / 5);
-    let train_dataset = ReversiDataset::new(train_samples.to_vec());
-    let valid_dataset = ReversiDataset::new(valid_samples.to_vec());
+    // Load datasets from compressed SQLite file
+    let loader = DatasetLoader::load_from_compressed(records_dir, records_name)?;
+    let train_dataset = loader.train_dataset;
+    let valid_dataset = loader.valid_dataset;
 
     println!("Train Dataset Size: {}", train_dataset.len());
     println!("Valid Dataset Size: {}", valid_dataset.len());

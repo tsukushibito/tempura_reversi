@@ -1,5 +1,6 @@
 pub mod dataset;
 pub mod dataset_generator;
+pub mod dataset_loader;
 pub mod feature_packer;
 pub mod game_record;
 pub mod model;
