@@ -145,8 +145,9 @@ impl DatasetGenerator {
     const BATCH_SIZE: usize = 1000;
 
     fn open_writer(&self) -> Result<SqliteDatasetWriter<ReversiSample>, BoxError> {
-        let storage = SqliteDatasetStorage::from_file(self.config.output_name.clone())
-            .with_base_dir(self.config.output_dir.clone());
+        let output_dir = Path::new(&self.config.output_dir);
+        let db_file_path = output_dir.join(&self.config.output_name);
+        let storage = SqliteDatasetStorage::from_file(db_file_path);
         let writer = storage.writer::<ReversiSample>(true)?;
         Ok(writer)
     }
@@ -157,7 +158,7 @@ impl DatasetGenerator {
         if !db_path.exists() {
             let gz_path = db_path.with_extension("gz");
             let outpu = File::create(&gz_path)?;
-            let mut encoder = GzEncoder::new(outpu, Compression::default());
+            let encoder = GzEncoder::new(outpu, Compression::default());
             encoder.finish()?;
             return Ok(());
         }
@@ -255,7 +256,49 @@ impl DatasetGenerator {
 mod tests {
     use super::*;
     use std::fs;
+    use std::path::PathBuf;
     use std::sync::{Arc, Mutex};
+
+    // Test cleanup helper using RAII pattern
+    struct TestCleanup {
+        files: Vec<PathBuf>,
+        dirs: Vec<PathBuf>,
+    }
+
+    impl TestCleanup {
+        fn new() -> Self {
+            Self {
+                files: Vec::new(),
+                dirs: Vec::new(),
+            }
+        }
+
+        fn add_file<P: Into<PathBuf>>(&mut self, path: P) {
+            self.files.push(path.into());
+        }
+
+        fn add_dir<P: Into<PathBuf>>(&mut self, path: P) {
+            self.dirs.push(path.into());
+        }
+    }
+
+    impl Drop for TestCleanup {
+        fn drop(&mut self) {
+            // Clean up files first
+            for file_path in &self.files {
+                if file_path.exists() {
+                    let _ = fs::remove_file(file_path);
+                }
+            }
+
+            // Then clean up directories
+            for dir_path in &self.dirs {
+                if dir_path.exists() {
+                    let _ = fs::remove_dir_all(dir_path);
+                }
+            }
+        }
+    }
 
     #[derive(Clone)]
     struct MockProgressReporter {
@@ -304,6 +347,12 @@ mod tests {
     fn test_generate_dataset_success() {
         let temp_dir = std::env::temp_dir().join("reversi_test");
         let _ = fs::create_dir_all(&temp_dir);
+
+        // Setup cleanup - automatically handles cleanup on drop
+        let mut cleanup = TestCleanup::new();
+        cleanup.add_file(temp_dir.join("test_dataset.gz"));
+        cleanup.add_file(temp_dir.join("test_dataset"));
+        cleanup.add_dir(&temp_dir);
 
         let config = DatasetGeneratorConfig {
             train_records: 2,
@@ -365,15 +414,19 @@ mod tests {
             "Original database file should be removed after compression"
         );
 
-        // Cleanup
-        let _ = fs::remove_file(expected_file);
-        let _ = fs::remove_dir_all(temp_dir);
+        // Cleanup happens automatically when `cleanup` goes out of scope
     }
 
     #[test]
     fn test_generate_dataset_empty_records() {
         let temp_dir = std::env::temp_dir().join("reversi_test_empty");
         let _ = fs::create_dir_all(&temp_dir);
+
+        // Setup cleanup
+        let mut cleanup = TestCleanup::new();
+        cleanup.add_file(temp_dir.join("empty_dataset.gz"));
+        cleanup.add_file(temp_dir.join("empty_dataset"));
+        cleanup.add_dir(&temp_dir);
 
         let config = DatasetGeneratorConfig {
             train_records: 0,
@@ -404,12 +457,14 @@ mod tests {
             "Should report 0 increments for empty dataset"
         );
 
-        // Cleanup
+        // Verify that output file was created (even if empty)
         let output_file = temp_dir.join("empty_dataset.gz");
-        if output_file.exists() {
-            let _ = fs::remove_file(output_file);
-        }
-        let _ = fs::remove_dir_all(temp_dir);
+        assert!(
+            output_file.exists(),
+            "Empty compressed file should still be created"
+        );
+
+        // Cleanup happens automatically
     }
 
     #[test]
