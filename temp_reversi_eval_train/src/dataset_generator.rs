@@ -153,6 +153,15 @@ impl DatasetGenerator {
 
     fn compress_output(&self) -> Result<(), BoxError> {
         let db_path = Path::new(&self.config.output_dir).join(&self.config.output_name);
+
+        if !db_path.exists() {
+            let gz_path = db_path.with_extension("gz");
+            let outpu = File::create(&gz_path)?;
+            let mut encoder = GzEncoder::new(outpu, Compression::default());
+            encoder.finish()?;
+            return Ok(());
+        }
+
         let gz_path = db_path.with_extension("gz");
         let mut input = File::open(&db_path)?;
         let output = File::create(&gz_path)?;
@@ -245,26 +254,245 @@ impl DatasetGenerator {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
+    use std::sync::{Arc, Mutex};
 
     #[derive(Clone)]
-    struct MockProgressReporter {}
+    struct MockProgressReporter {
+        increments: Arc<Mutex<Vec<u64>>>,
+        messages: Arc<Mutex<Vec<String>>>,
+        finished: Arc<Mutex<bool>>,
+    }
+
+    impl MockProgressReporter {
+        fn new() -> Self {
+            Self {
+                increments: Arc::new(Mutex::new(Vec::new())),
+                messages: Arc::new(Mutex::new(Vec::new())),
+                finished: Arc::new(Mutex::new(false)),
+            }
+        }
+
+        fn get_total_increments(&self) -> u64 {
+            self.increments.lock().unwrap().iter().sum()
+        }
+
+        fn get_messages(&self) -> Vec<String> {
+            self.messages.lock().unwrap().clone()
+        }
+
+        fn is_finished(&self) -> bool {
+            *self.finished.lock().unwrap()
+        }
+    }
 
     impl ProgressReporter for MockProgressReporter {
-        fn increment(&self, _: u64) {
-            // Mock implementation
+        fn increment(&self, delta: u64) {
+            self.increments.lock().unwrap().push(delta);
         }
 
         fn finish(&self) {
-            // Mock implementation
+            *self.finished.lock().unwrap() = true;
         }
 
-        fn set_message(&self, _message: &str) {
-            // Mock implementation
+        fn set_message(&self, message: &str) {
+            self.messages.lock().unwrap().push(message.to_string());
         }
     }
 
     #[test]
+    fn test_generate_dataset_success() {
+        let temp_dir = std::env::temp_dir().join("reversi_test");
+        let _ = fs::create_dir_all(&temp_dir);
+
+        let config = DatasetGeneratorConfig {
+            train_records: 2,
+            valid_records: 1,
+            num_random_moves: 2,
+            search_depth: 1,
+            evaluator: EvaluatorType::PhaseAware,
+            order_evaluator: EvaluatorType::PhaseAware,
+            strategy: StrategyType::NegaScount,
+            output_dir: temp_dir.to_string_lossy().to_string(),
+            output_name: "test_dataset".to_string(),
+        };
+
+        let generator = config.init();
+        let progress = MockProgressReporter::new();
+
+        // Execute dataset generation
+        let result = generator.generate_dataset(&progress);
+
+        // Verify successful completion
+        assert!(result.is_ok(), "Dataset generation should succeed");
+
+        // Verify progress reporting
+        assert!(
+            progress.is_finished(),
+            "Progress should be marked as finished"
+        );
+        assert_eq!(
+            progress.get_total_increments(),
+            3, // 2 train + 1 valid
+            "Should report correct number of increments"
+        );
+
+        let messages = progress.get_messages();
+        assert!(
+            messages.iter().any(|m| m.contains("training")),
+            "Should report training progress"
+        );
+        assert!(
+            messages.iter().any(|m| m.contains("validation")),
+            "Should report validation progress"
+        );
+        assert!(
+            messages.iter().any(|m| m.contains("Compressing")),
+            "Should report compression progress"
+        );
+
+        // Verify output file exists (compressed)
+        let expected_file = temp_dir.join("test_dataset.gz");
+        assert!(
+            expected_file.exists(),
+            "Compressed output file should exist"
+        );
+
+        // Verify original database file is removed
+        let db_file = temp_dir.join("test_dataset");
+        assert!(
+            !db_file.exists(),
+            "Original database file should be removed after compression"
+        );
+
+        // Cleanup
+        let _ = fs::remove_file(expected_file);
+        let _ = fs::remove_dir_all(temp_dir);
+    }
+
+    #[test]
+    fn test_generate_dataset_empty_records() {
+        let temp_dir = std::env::temp_dir().join("reversi_test_empty");
+        let _ = fs::create_dir_all(&temp_dir);
+
+        let config = DatasetGeneratorConfig {
+            train_records: 0,
+            valid_records: 0,
+            num_random_moves: 2,
+            search_depth: 1,
+            evaluator: EvaluatorType::PhaseAware,
+            order_evaluator: EvaluatorType::PhaseAware,
+            strategy: StrategyType::NegaScount,
+            output_dir: temp_dir.to_string_lossy().to_string(),
+            output_name: "empty_dataset".to_string(),
+        };
+
+        let generator = config.init();
+        let progress = MockProgressReporter::new();
+
+        let result = generator.generate_dataset(&progress);
+
+        // Should still succeed even with 0 records
+        assert!(result.is_ok(), "Should handle empty dataset generation");
+        assert!(
+            progress.is_finished(),
+            "Should finish even with empty dataset"
+        );
+        assert_eq!(
+            progress.get_total_increments(),
+            0,
+            "Should report 0 increments for empty dataset"
+        );
+
+        // Cleanup
+        let output_file = temp_dir.join("empty_dataset.gz");
+        if output_file.exists() {
+            let _ = fs::remove_file(output_file);
+        }
+        let _ = fs::remove_dir_all(temp_dir);
+    }
+
+    #[test]
+    fn test_batch_ranges() {
+        let config = DatasetGeneratorConfig {
+            train_records: 5,
+            valid_records: 2,
+            num_random_moves: 3,
+            search_depth: 2,
+            evaluator: EvaluatorType::PhaseAware,
+            order_evaluator: EvaluatorType::PhaseAware,
+            strategy: StrategyType::NegaScount,
+            output_dir: "test_output".to_string(),
+            output_name: "test_records".to_string(),
+        };
+
+        let generator = config.init();
+
+        // Test batch ranges calculation
+        let ranges: Vec<_> = generator.batch_ranges(0, 2500).collect();
+        assert!(!ranges.is_empty(), "Should generate batch ranges");
+        assert_eq!(ranges[0], (0, 1000), "First batch should be 0-1000");
+        assert_eq!(ranges[1], (1000, 2000), "Second batch should be 1000-2000");
+        assert_eq!(
+            ranges[2],
+            (2000, 2500),
+            "Last batch should handle remainder"
+        );
+
+        // Test small batch
+        let small_ranges: Vec<_> = generator.batch_ranges(10, 50).collect();
+        assert_eq!(small_ranges.len(), 1, "Small batch should be single range");
+        assert_eq!(small_ranges[0], (10, 60), "Should handle offset correctly");
+    }
+
+    #[test]
     fn test_game_record_generator() {
-        todo!()
+        let config = DatasetGeneratorConfig {
+            train_records: 5,
+            valid_records: 2,
+            num_random_moves: 3,
+            search_depth: 2,
+            evaluator: EvaluatorType::PhaseAware,
+            order_evaluator: EvaluatorType::PhaseAware,
+            strategy: StrategyType::NegaScount,
+            output_dir: "test_output".to_string(),
+            output_name: "test_records".to_string(),
+        };
+
+        let generator = config.init();
+        let progress = MockProgressReporter::new();
+
+        // Test individual game generation
+        let game_record = generator.play_game();
+
+        // Verify game record structure
+        assert!(!game_record.moves.is_empty(), "Game should have moves");
+        assert!(
+            game_record.moves.len() >= config.num_random_moves,
+            "Game should have at least the minimum random moves"
+        );
+
+        // Verify final score is valid (sum should be <= 64 for reversi)
+        let total_pieces = game_record.final_score.0 as usize + game_record.final_score.1 as usize;
+        assert!(total_pieces <= 64, "Total pieces should not exceed 64");
+        assert!(total_pieces > 0, "Game should have some pieces");
+
+        // Test batch generation
+        let batch_records = generator.generate_batch(0, 3, &progress);
+        assert_eq!(
+            batch_records.len(),
+            3,
+            "Batch should contain exactly 3 records"
+        );
+
+        // Verify all records in batch are valid
+        for record in &batch_records {
+            assert!(!record.moves.is_empty(), "Each record should have moves");
+            let total = record.final_score.0 as usize + record.final_score.1 as usize;
+            assert!(
+                total <= 64 && total > 0,
+                "Each record should have valid final score"
+            );
+        }
     }
 }
