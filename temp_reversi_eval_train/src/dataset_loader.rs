@@ -83,13 +83,138 @@ impl DatasetLoader {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::dataset_generator::{DatasetGeneratorConfig, EvaluatorType, StrategyType};
+    use std::{fs, path::PathBuf};
+
+    // Test cleanup helper using RAII pattern
+    struct TestCleanup {
+        files: Vec<PathBuf>,
+        dirs: Vec<PathBuf>,
+    }
+
+    impl TestCleanup {
+        fn new() -> Self {
+            Self {
+                files: Vec::new(),
+                dirs: Vec::new(),
+            }
+        }
+
+        fn add_file<P: Into<PathBuf>>(&mut self, path: P) {
+            self.files.push(path.into());
+        }
+
+        fn add_dir<P: Into<PathBuf>>(&mut self, path: P) {
+            self.dirs.push(path.into());
+        }
+    }
+
+    impl Drop for TestCleanup {
+        fn drop(&mut self) {
+            // Clean up files first
+            for file_path in &self.files {
+                if file_path.exists() {
+                    let _ = fs::remove_file(file_path);
+                }
+            }
+
+            // Then clean up directories
+            for dir_path in &self.dirs {
+                if dir_path.exists() {
+                    let _ = fs::remove_dir_all(dir_path);
+                }
+            }
+        }
+    }
+
+    #[derive(Clone)]
+    struct MockProgressReporter;
+
+    impl crate::dataset_generator::ProgressReporter for MockProgressReporter {
+        fn increment(&self, _delta: u64) {}
+        fn finish(&self) {}
+        fn set_message(&self, _message: &str) {}
+    }
 
     #[test]
-    fn test_dataset_loader() {
-        // This test would require an actual compressed dataset file
-        // For now, we'll skip the implementation
-        // let loader = DatasetLoader::load_from_compressed("work/dataset", "records").unwrap();
-        // assert!(loader.train_dataset.len() > 0);
-        // assert!(loader.valid_dataset.len() > 0);
+    fn test_load_generated_dataset_integration() {
+        let temp_dir = std::env::temp_dir().join("reversi_loader_test");
+        let _ = fs::create_dir_all(&temp_dir);
+
+        // Setup cleanup
+        let mut cleanup = TestCleanup::new();
+        cleanup.add_file(temp_dir.join("test_dataset.gz"));
+        cleanup.add_file(temp_dir.join("test_dataset"));
+        cleanup.add_dir(&temp_dir);
+
+        // Generate a small dataset
+        let config = DatasetGeneratorConfig {
+            train_records: 2,
+            valid_records: 1,
+            num_random_moves: 2,
+            search_depth: 1,
+            evaluator: EvaluatorType::PhaseAware,
+            order_evaluator: EvaluatorType::PhaseAware,
+            strategy: StrategyType::NegaScount,
+            output_dir: temp_dir.to_string_lossy().to_string(),
+            output_name: "test_dataset".to_string(),
+        };
+
+        let generator = config.init();
+        let progress = MockProgressReporter;
+
+        // Generate dataset
+        let gen_result = generator.generate_dataset(&progress);
+        assert!(gen_result.is_ok(), "Dataset generation should succeed");
+
+        // Verify compressed file exists
+        let gz_file = temp_dir.join("test_dataset.gz");
+        assert!(gz_file.exists(), "Compressed dataset should exist");
+
+        // Load the dataset
+        let loader_result =
+            DatasetLoader::load_from_compressed(&temp_dir.to_string_lossy(), "test_dataset");
+
+        assert!(loader_result.is_ok(), "Dataset loading should succeed");
+
+        let loader = loader_result.unwrap();
+
+        // Verify datasets are not empty
+        assert!(
+            loader.train_dataset.len() > 0,
+            "Training dataset should not be empty"
+        );
+        assert!(
+            loader.valid_dataset.len() > 0,
+            "Validation dataset should not be empty"
+        );
+
+        // Verify we can access samples
+        let train_sample = loader.train_dataset.get(0);
+        assert!(
+            train_sample.is_some(),
+            "Should be able to get training sample"
+        );
+
+        let valid_sample = loader.valid_dataset.get(0);
+        assert!(
+            valid_sample.is_some(),
+            "Should be able to get validation sample"
+        );
+
+        // Verify sample structure
+        if let Some(sample) = train_sample {
+            // ReversiSample has black_bits, white_bits, and stone_diff fields
+            assert!(
+                sample.black_bits != 0 || sample.white_bits != 0,
+                "Sample should have some stones on the board"
+            );
+            assert!(
+                sample.stone_diff >= -64 && sample.stone_diff <= 64,
+                "Stone difference should be within valid range"
+            );
+        }
+
+        // Cleanup happens automatically
     }
 }
