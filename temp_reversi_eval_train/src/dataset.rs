@@ -36,6 +36,12 @@ impl ReversiSample {
 
         (indices, values)
     }
+
+    pub fn phase(&self) -> i32 {
+        let board = Bitboard::new(self.black_bits, self.white_bits);
+        let (black, white) = board.count_stones();
+        (black + white) as i32
+    }
 }
 
 pub struct ReversiDataset {
@@ -65,9 +71,16 @@ pub struct ReversiBatcher<B: Backend> {
 
 #[derive(Debug, Clone)]
 pub struct ReversiBatch<B: Backend> {
+    /// Indices of the features in the packed feature vector.
+    /// The indices are structured as follows:
+    /// Phase 0: [feature0, feature1, feature2, ..., featureN]
+    /// Phase 1: [feature0, feature1, feature2, ..., featureN]
+    /// Phase 2: [feature0, feature1, feature2, ..., featureN]
+    /// where features are arranged for each phase,
+    /// and the index represents the position when flattened into a one-dimensional array.
+    /// Index = phase * FEATURE_PACKER.packed_feature_size + feature_index
     pub indices: Tensor<B, 2, Int>,
     pub values: Tensor<B, 2>,
-    pub phases: Tensor<B, 1, Int>,
     pub targets: Tensor<B, 2>,
 }
 
@@ -81,23 +94,22 @@ impl<B: Backend> Batcher<ReversiSample, ReversiBatch<B>> for ReversiBatcher<B> {
     fn batch(&self, samples: Vec<ReversiSample>) -> ReversiBatch<B> {
         let mut indices = Vec::new();
         let mut values = Vec::new();
-        let mut phases = Vec::new();
         let mut targets = Vec::new();
         for s in samples {
             let (idxs, vals) = s.feature_vector();
-            let index_tensor: Tensor<B, 1, Int> = Tensor::from_ints(idxs.as_slice(), &self.device);
+            let phase = s.phase();
+            let combined_idxs: Vec<i32> = idxs
+                .iter()
+                .map(|&i| phase * FEATURE_PACKER.packed_feature_size as i32 + i)
+                .collect();
+            let index_tensor: Tensor<B, 1, Int> =
+                Tensor::from_ints(combined_idxs.as_slice(), &self.device);
             let index_tensor: Tensor<B, 2, Int> = index_tensor.unsqueeze();
             indices.push(index_tensor);
 
             let value_tensor: Tensor<B, 1> = Tensor::from_floats(vals.as_slice(), &self.device);
             let value_tensor: Tensor<B, 2> = value_tensor.unsqueeze();
             values.push(value_tensor);
-
-            let board = Bitboard::new(s.black_bits, s.white_bits);
-            let (black, white) = board.count_stones();
-            let phase = (black + white) as i32;
-            let phase_tensor: Tensor<B, 1, Int> = Tensor::from_ints([phase], &self.device);
-            phases.push(phase_tensor);
 
             let target_tensor: Tensor<B, 1> =
                 Tensor::from_floats([s.stone_diff as f32], &self.device);
@@ -107,13 +119,11 @@ impl<B: Backend> Batcher<ReversiSample, ReversiBatch<B>> for ReversiBatcher<B> {
 
         let indices = Tensor::cat(indices, 0);
         let values = Tensor::cat(values, 0);
-        let phases = Tensor::cat(phases, 0);
         let targets = Tensor::cat(targets, 0);
 
         ReversiBatch {
             indices,
             values,
-            phases,
             targets,
         }
     }
