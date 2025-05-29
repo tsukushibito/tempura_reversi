@@ -83,58 +83,11 @@ impl DatasetLoader {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dataset_generator::{DatasetGeneratorConfig, EvaluatorType, StrategyType};
-    use std::{fs, path::PathBuf};
-
-    // Test cleanup helper using RAII pattern
-    struct TestCleanup {
-        files: Vec<PathBuf>,
-        dirs: Vec<PathBuf>,
-    }
-
-    impl TestCleanup {
-        fn new() -> Self {
-            Self {
-                files: Vec::new(),
-                dirs: Vec::new(),
-            }
-        }
-
-        fn add_file<P: Into<PathBuf>>(&mut self, path: P) {
-            self.files.push(path.into());
-        }
-
-        fn add_dir<P: Into<PathBuf>>(&mut self, path: P) {
-            self.dirs.push(path.into());
-        }
-    }
-
-    impl Drop for TestCleanup {
-        fn drop(&mut self) {
-            // Clean up files first
-            for file_path in &self.files {
-                if file_path.exists() {
-                    let _ = fs::remove_file(file_path);
-                }
-            }
-
-            // Then clean up directories
-            for dir_path in &self.dirs {
-                if dir_path.exists() {
-                    let _ = fs::remove_dir_all(dir_path);
-                }
-            }
-        }
-    }
-
-    #[derive(Clone)]
-    struct MockProgressReporter;
-
-    impl crate::dataset_generator::ProgressReporter for MockProgressReporter {
-        fn increment(&self, _delta: u64) {}
-        fn finish(&self) {}
-        fn set_message(&self, _message: &str) {}
-    }
+    use crate::{
+        dataset_generator::{DatasetGeneratorConfig, EvaluatorType, StrategyType},
+        test_utils::{MockProgressReporter, TestCleanup},
+    };
+    use std::fs;
 
     #[test]
     fn test_load_generated_dataset_integration() {

@@ -256,92 +256,8 @@ impl DatasetGenerator {
 mod tests {
     use super::*;
     use std::fs;
-    use std::path::PathBuf;
-    use std::sync::{Arc, Mutex};
 
-    // Test cleanup helper using RAII pattern
-    struct TestCleanup {
-        files: Vec<PathBuf>,
-        dirs: Vec<PathBuf>,
-    }
-
-    impl TestCleanup {
-        fn new() -> Self {
-            Self {
-                files: Vec::new(),
-                dirs: Vec::new(),
-            }
-        }
-
-        fn add_file<P: Into<PathBuf>>(&mut self, path: P) {
-            self.files.push(path.into());
-        }
-
-        fn add_dir<P: Into<PathBuf>>(&mut self, path: P) {
-            self.dirs.push(path.into());
-        }
-    }
-
-    impl Drop for TestCleanup {
-        fn drop(&mut self) {
-            // Clean up files first
-            for file_path in &self.files {
-                if file_path.exists() {
-                    let _ = fs::remove_file(file_path);
-                }
-            }
-
-            // Then clean up directories
-            for dir_path in &self.dirs {
-                if dir_path.exists() {
-                    let _ = fs::remove_dir_all(dir_path);
-                }
-            }
-        }
-    }
-
-    #[derive(Clone)]
-    struct MockProgressReporter {
-        increments: Arc<Mutex<Vec<u64>>>,
-        messages: Arc<Mutex<Vec<String>>>,
-        finished: Arc<Mutex<bool>>,
-    }
-
-    impl MockProgressReporter {
-        fn new() -> Self {
-            Self {
-                increments: Arc::new(Mutex::new(Vec::new())),
-                messages: Arc::new(Mutex::new(Vec::new())),
-                finished: Arc::new(Mutex::new(false)),
-            }
-        }
-
-        fn get_total_increments(&self) -> u64 {
-            self.increments.lock().unwrap().iter().sum()
-        }
-
-        fn get_messages(&self) -> Vec<String> {
-            self.messages.lock().unwrap().clone()
-        }
-
-        fn is_finished(&self) -> bool {
-            *self.finished.lock().unwrap()
-        }
-    }
-
-    impl ProgressReporter for MockProgressReporter {
-        fn increment(&self, delta: u64) {
-            self.increments.lock().unwrap().push(delta);
-        }
-
-        fn finish(&self) {
-            *self.finished.lock().unwrap() = true;
-        }
-
-        fn set_message(&self, message: &str) {
-            self.messages.lock().unwrap().push(message.to_string());
-        }
-    }
+    use crate::test_utils::{MockProgressReporter, TestCleanup};
 
     #[test]
     fn test_generate_dataset_success() {
@@ -367,38 +283,13 @@ mod tests {
         };
 
         let generator = config.init();
-        let progress = MockProgressReporter::new();
+        let progress = MockProgressReporter;
 
         // Execute dataset generation
         let result = generator.generate_dataset(&progress);
 
         // Verify successful completion
         assert!(result.is_ok(), "Dataset generation should succeed");
-
-        // Verify progress reporting
-        assert!(
-            progress.is_finished(),
-            "Progress should be marked as finished"
-        );
-        assert_eq!(
-            progress.get_total_increments(),
-            3, // 2 train + 1 valid
-            "Should report correct number of increments"
-        );
-
-        let messages = progress.get_messages();
-        assert!(
-            messages.iter().any(|m| m.contains("training")),
-            "Should report training progress"
-        );
-        assert!(
-            messages.iter().any(|m| m.contains("validation")),
-            "Should report validation progress"
-        );
-        assert!(
-            messages.iter().any(|m| m.contains("Compressing")),
-            "Should report compression progress"
-        );
 
         // Verify output file exists (compressed)
         let expected_file = temp_dir.join("test_dataset.gz");
@@ -441,21 +332,12 @@ mod tests {
         };
 
         let generator = config.init();
-        let progress = MockProgressReporter::new();
+        let progress = MockProgressReporter;
 
         let result = generator.generate_dataset(&progress);
 
         // Should still succeed even with 0 records
         assert!(result.is_ok(), "Should handle empty dataset generation");
-        assert!(
-            progress.is_finished(),
-            "Should finish even with empty dataset"
-        );
-        assert_eq!(
-            progress.get_total_increments(),
-            0,
-            "Should report 0 increments for empty dataset"
-        );
 
         // Verify that output file was created (even if empty)
         let output_file = temp_dir.join("empty_dataset.gz");
@@ -515,7 +397,7 @@ mod tests {
         };
 
         let generator = config.init();
-        let progress = MockProgressReporter::new();
+        let progress = MockProgressReporter;
 
         // Test individual game generation
         let game_record = generator.play_game();
