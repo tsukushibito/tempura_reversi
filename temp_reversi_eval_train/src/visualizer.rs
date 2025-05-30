@@ -2,11 +2,10 @@ use plotters::prelude::*;
 use std::fs;
 
 pub fn generate_loss_plot(artifact_dir: &str) -> Result<(), Box<dyn std::error::Error>> {
+    // TODO: epoch ディレクトリの場所を修正
     let mut train_losses = Vec::new();
-    let mut valid_losses = Vec::new();
     let mut epochs = Vec::new();
 
-    // エポックディレクトリを順番に読み込み
     let mut epoch = 1;
     loop {
         let epoch_dir = format!("{}/epoch-{}", artifact_dir, epoch);
@@ -16,15 +15,10 @@ pub fn generate_loss_plot(artifact_dir: &str) -> Result<(), Box<dyn std::error::
             break;
         }
 
-        // 訓練損失を読み込み
         if let Ok(avg_loss) = read_loss_from_file(&train_loss_file) {
             train_losses.push(avg_loss);
             epochs.push(epoch as f32);
         }
-
-        // バリデーション損失を読み込み（存在する場合）
-        // 注意：実際のディレクトリ構造によって調整が必要
-        // バリデーション用の別ディレクトリまたはファイルがある可能性
 
         epoch += 1;
     }
@@ -35,7 +29,6 @@ pub fn generate_loss_plot(artifact_dir: &str) -> Result<(), Box<dyn std::error::
         return Ok(());
     }
 
-    // グラフ生成
     let plot_path = format!("{}/loss_plot.png", artifact_dir);
     let root = BitMapBackend::new(&plot_path, (1024, 768)).into_drawing_area();
     root.fill(&WHITE)?;
@@ -57,7 +50,6 @@ pub fn generate_loss_plot(artifact_dir: &str) -> Result<(), Box<dyn std::error::
         .y_desc("Loss")
         .draw()?;
 
-    // 訓練損失をプロット
     chart
         .draw_series(LineSeries::new(
             epochs
@@ -69,27 +61,12 @@ pub fn generate_loss_plot(artifact_dir: &str) -> Result<(), Box<dyn std::error::
         .label("Training Loss")
         .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 10, y)], &BLUE));
 
-    // バリデーション損失をプロット（データがある場合）
-    if !valid_losses.is_empty() && valid_losses.len() == train_losses.len() {
-        chart
-            .draw_series(LineSeries::new(
-                epochs
-                    .iter()
-                    .zip(valid_losses.iter())
-                    .map(|(&x, &y)| (x, y)),
-                &RED,
-            ))?
-            .label("Validation Loss")
-            .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 10, y)], &RED));
-    }
-
     chart.configure_series_labels().draw()?;
     root.present()?;
 
     println!("📈 Loss plot saved to: {}", plot_path);
     println!("📊 Processed {} epochs", epochs.len());
 
-    // 損失値の統計情報を表示
     if !train_losses.is_empty() {
         let initial_loss = train_losses[0];
         let final_loss = train_losses[train_losses.len() - 1];
@@ -103,7 +80,6 @@ pub fn generate_loss_plot(artifact_dir: &str) -> Result<(), Box<dyn std::error::
     Ok(())
 }
 
-/// Loss.logファイルから平均損失値を読み込む
 fn read_loss_from_file(file_path: &str) -> Result<f32, Box<dyn std::error::Error>> {
     let content = fs::read_to_string(file_path)?;
     let mut total_weighted_loss = 0.0f64;
@@ -117,7 +93,6 @@ fn read_loss_from_file(file_path: &str) -> Result<f32, Box<dyn std::error::Error
         let parts: Vec<&str> = line.split(',').collect();
         if parts.len() >= 2 {
             if let (Ok(loss), Ok(count)) = (parts[0].parse::<f64>(), parts[1].parse::<usize>()) {
-                // 要素数による重み付き平均を計算
                 total_weighted_loss += loss * count as f64;
                 total_samples += count;
             }
@@ -129,25 +104,4 @@ fn read_loss_from_file(file_path: &str) -> Result<f32, Box<dyn std::error::Error
     } else {
         Err("No valid loss data found in file".into())
     }
-}
-
-/// バリデーション損失の読み込み（将来の拡張用）
-#[allow(dead_code)]
-fn read_validation_losses(artifact_dir: &str, max_epoch: usize) -> Vec<f32> {
-    let mut valid_losses = Vec::new();
-
-    for epoch in 1..=max_epoch {
-        // バリデーション用のファイルパスを確認
-        // 実際の構造に応じて調整が必要
-        let valid_loss_file = format!("{}/epoch-{}/ValidationLoss.log", artifact_dir, epoch);
-
-        if let Ok(avg_loss) = read_loss_from_file(&valid_loss_file) {
-            valid_losses.push(avg_loss);
-        } else {
-            // バリデーションデータがない場合はスキップ
-            break;
-        }
-    }
-
-    valid_losses
 }

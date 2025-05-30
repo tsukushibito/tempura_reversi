@@ -4,7 +4,7 @@ use burn::{
     prelude::*,
     record::{CompactRecorder, NoStdTrainingRecorder},
     tensor::backend::AutodiffBackend,
-    train::{logger::FileMetricLogger, metric::LossMetric, LearnerBuilder},
+    train::{metric::LossMetric, LearnerBuilder},
 };
 
 use crate::{
