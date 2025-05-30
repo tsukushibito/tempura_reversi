@@ -45,8 +45,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         evaluator: EvaluatorType::PhaseAware,
         order_evaluator: EvaluatorType::PhaseAware,
         strategy: StrategyType::NegaScount,
-        output_dir: String::from("work/dataset"),
-        output_name: String::from("records"),
+        output_dir: String::from("datasets"),
+        output_name: String::from("dataset"),
     };
     let generator = config.init();
     let progress = CliProgressReporter::new(config.train_records + config.valid_records);
