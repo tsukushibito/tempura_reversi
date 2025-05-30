@@ -2,7 +2,7 @@ use plotters::prelude::*;
 use std::fs;
 
 pub fn generate_loss_plot(artifact_dir: &str) -> Result<(), Box<dyn std::error::Error>> {
-    // TODO: epoch ディレクトリの場所を修正
+    // TODO: Fix the location of epoch directories
     let mut train_losses = Vec::new();
     let mut epochs = Vec::new();
 
