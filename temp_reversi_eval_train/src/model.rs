@@ -9,6 +9,7 @@ use burn::{
     tensor::{backend::AutodiffBackend, Int, Tensor},
     train::{RegressionOutput, TrainOutput, TrainStep, ValidStep},
 };
+use temp_reversi_eval::feature::PHASE_COUNT;
 
 use crate::{dataset::ReversiBatch, feature_packer::FEATURE_PACKER};
 
@@ -23,7 +24,8 @@ pub struct ReversiModelConfig {}
 impl ReversiModelConfig {
     pub fn init<B: Backend>(&self, device: &B::Device) -> ReversiModel<B> {
         let num_features = FEATURE_PACKER.packed_feature_size;
-        let feature_weights = EmbeddingConfig::new(num_features * num_features, 1).init(device);
+        let feature_weights =
+            EmbeddingConfig::new(PHASE_COUNT as usize * num_features, 1).init(device);
 
         ReversiModel { feature_weights }
     }

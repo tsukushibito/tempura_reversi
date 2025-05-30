@@ -45,7 +45,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         evaluator: EvaluatorType::PhaseAware,
         order_evaluator: EvaluatorType::PhaseAware,
         strategy: StrategyType::NegaScount,
-        output_dir: String::from("datasets"),
+        output_dir: String::from("work/datasets"),
         output_name: String::from("dataset"),
     };
     let generator = config.init();

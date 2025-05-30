@@ -4,10 +4,13 @@ use burn::{
     prelude::*,
     record::{CompactRecorder, NoStdTrainingRecorder},
     tensor::backend::AutodiffBackend,
-    train::{metric::LossMetric, LearnerBuilder},
+    train::{logger::FileMetricLogger, metric::LossMetric, LearnerBuilder},
 };
 
-use crate::{dataset::ReversiBatcher, dataset_loader::DatasetLoader, model::ReversiModelConfig};
+use crate::{
+    dataset::ReversiBatcher, dataset_loader::DatasetLoader, model::ReversiModelConfig,
+    visualizer::generate_loss_plot,
+};
 
 #[derive(Config)]
 pub struct TrainingConfig {
@@ -33,6 +36,7 @@ fn create_artifact_dir(artifact_dir: &str) {
 }
 
 pub fn run<B: AutodiffBackend>(
+    config: TrainingConfig,
     artifact_dir: &str,
     records_dir: &str,
     records_name: &str,
@@ -41,8 +45,6 @@ pub fn run<B: AutodiffBackend>(
     create_artifact_dir(artifact_dir);
 
     // Config
-    let optimizer = AdamConfig::new();
-    let config = TrainingConfig::new(optimizer);
     let model = ReversiModelConfig::new().init(&device);
     B::seed(config.seed);
 
@@ -89,18 +91,11 @@ pub fn run<B: AutodiffBackend>(
         &NoStdTrainingRecorder::new(),
     )?;
 
-    Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use burn::backend::{ndarray::NdArrayDevice, Autodiff, NdArray};
-
-    use super::*;
-
-    #[test]
-    fn test_training() {
-        let device = NdArrayDevice::Cpu;
-        _ = run::<Autodiff<NdArray>>("work/artifacts", "work/dataset", "records", device);
+    println!("🎨 Generating loss plot...");
+    match generate_loss_plot(artifact_dir) {
+        Ok(()) => println!("✅ Loss plot generated successfully"),
+        Err(e) => eprintln!("⚠️  Failed to generate loss plot: {}", e),
     }
+
+    Ok(())
 }
