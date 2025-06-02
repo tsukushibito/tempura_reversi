@@ -6,9 +6,16 @@ use burn::{
     tensor::backend::AutodiffBackend,
     train::{metric::LossMetric, LearnerBuilder},
 };
+use temp_reversi_eval::{
+    feature::PHASE_COUNT,
+    runtime_model::{self, RuntimeModel},
+};
 
 use crate::{
-    dataset::ReversiBatcher, dataset_loader::DatasetLoader, model::ReversiModelConfig,
+    dataset::ReversiBatcher,
+    dataset_loader::DatasetLoader,
+    feature_packer::FEATURE_PACKER,
+    model::{ReversiModel, ReversiModelConfig},
     visualizer::generate_loss_plot,
 };
 
@@ -33,6 +40,27 @@ fn create_artifact_dir(artifact_dir: &str) {
     // Remove existing artifacts before to get an accurate learner summary
     std::fs::remove_dir_all(artifact_dir).ok();
     std::fs::create_dir_all(artifact_dir).ok();
+}
+
+/// Extracts weights from ReversiModel and converts to RuntimeModel format
+fn extract_runtime_model<B: Backend>(model: &ReversiModel<B>) -> RuntimeModel {
+    // Get the embedding weights tensor
+    let weights_tensor = model.feature_weights.weight.val();
+
+    // Convert tensor to Vec<f32>
+    let weights_flat: Vec<f32> = weights_tensor.into_data().into_vec().unwrap();
+
+    // Reshape into phase-based structure
+    let num_features = FEATURE_PACKER.packed_feature_size;
+    let mut weights: Vec<Vec<f32>> = Vec::with_capacity(PHASE_COUNT as usize);
+
+    for phase in 0..PHASE_COUNT as usize {
+        let start_idx = phase * num_features;
+        let end_idx = start_idx + num_features;
+        weights.push(weights_flat[start_idx..end_idx].to_vec());
+    }
+
+    RuntimeModel { weights }
 }
 
 pub fn run<B: AutodiffBackend>(
@@ -83,6 +111,7 @@ pub fn run<B: AutodiffBackend>(
         .build(model, config.optimizer.init(), 1e-3);
 
     let model_trained = learner.fit(dataloader_train, dataloader_test);
+    let runtime_model = extract_runtime_model(&model_trained);
 
     config.save(format!("{artifact_dir}/config.json").as_str())?;
 
@@ -91,6 +120,9 @@ pub fn run<B: AutodiffBackend>(
         &NoStdTrainingRecorder::new(),
     )?;
 
+    let runtime_model_path = format!("{artifact_dir}/runtime_model");
+    runtime_model.save(&runtime_model_path)?;
+
     println!("🎨 Generating loss plot...");
     match generate_loss_plot(artifact_dir) {
         Ok(()) => println!("✅ Loss plot generated successfully"),
@@ -98,4 +130,88 @@ pub fn run<B: AutodiffBackend>(
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use burn::backend::NdArray;
+
+    type TestBackend = NdArray;
+
+    #[test]
+    fn test_extract_runtime_model() {
+        // Create a test device
+        let device = Default::default();
+
+        // Initialize a model
+        let model = ReversiModelConfig::new().init::<TestBackend>(&device);
+
+        // Extract runtime model
+        let runtime_model = extract_runtime_model(&model);
+
+        // Verify structure
+        assert_eq!(runtime_model.weights.len(), PHASE_COUNT as usize);
+
+        for phase_weights in &runtime_model.weights {
+            assert_eq!(phase_weights.len(), FEATURE_PACKER.packed_feature_size);
+        }
+
+        // Verify total number of weights matches model
+        let total_weights: usize = runtime_model.weights.iter().map(|w| w.len()).sum();
+        let expected_total = PHASE_COUNT as usize * FEATURE_PACKER.packed_feature_size;
+        assert_eq!(total_weights, expected_total);
+    }
+
+    #[test]
+    fn test_extract_runtime_model_weights_consistency() {
+        let device = Default::default();
+        let model = ReversiModelConfig::new().init::<TestBackend>(&device);
+
+        // Get original weights
+        let original_weights = model.feature_weights.weight.val();
+        let original_flat: Vec<f32> = original_weights.into_data().into_vec().unwrap();
+
+        // Extract runtime model
+        let runtime_model = extract_runtime_model(&model);
+
+        // Flatten runtime model weights
+        let runtime_flat: Vec<f32> = runtime_model.weights.into_iter().flatten().collect();
+
+        // Verify weights are identical
+        assert_eq!(original_flat.len(), runtime_flat.len());
+        for (original, runtime) in original_flat.iter().zip(runtime_flat.iter()) {
+            assert!(
+                (original - runtime).abs() < 1e-6,
+                "Weight mismatch: original={}, runtime={}",
+                original,
+                runtime
+            );
+        }
+    }
+
+    #[test]
+    fn test_extract_runtime_model_phase_structure() {
+        let device = Default::default();
+        let model = ReversiModelConfig::new().init::<TestBackend>(&device);
+
+        let runtime_model = extract_runtime_model(&model);
+
+        // Verify each phase has correct number of features
+        for (phase_idx, phase_weights) in runtime_model.weights.iter().enumerate() {
+            assert_eq!(
+                phase_weights.len(),
+                FEATURE_PACKER.packed_feature_size,
+                "Phase {} has incorrect number of features",
+                phase_idx
+            );
+        }
+
+        // Verify we have the right number of phases
+        assert_eq!(
+            runtime_model.weights.len(),
+            PHASE_COUNT as usize,
+            "Incorrect number of phases"
+        );
+    }
 }

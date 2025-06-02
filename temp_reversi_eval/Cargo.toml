@@ -7,6 +7,7 @@ edition = "2021"
 bincode = { workspace = true }
 serde = { workspace = true }
 lz4_flex = "0.11.3"
+flate2 = "1.1.1"
 temp_reversi_core = { path = "../temp_reversi_core" }
 temp_reversi_ai = { path = "../temp_reversi_ai" }
 rayon = "1.10.0"

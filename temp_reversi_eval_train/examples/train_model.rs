@@ -1,5 +1,5 @@
 use burn::{
-    backend::{ndarray::NdArrayDevice, wgpu::WgpuDevice, Autodiff, NdArray, Wgpu},
+    backend::{ndarray::NdArrayDevice, Autodiff, NdArray},
     optim::AdamConfig,
 };
 use indicatif::ProgressBar;

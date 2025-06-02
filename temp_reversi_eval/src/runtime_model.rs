@@ -3,7 +3,10 @@ use std::{
     io::{Read, Write},
 };
 
-use lz4_flex::{compress_prepend_size, decompress_size_prepended};
+use flate2::{
+    write::{GzDecoder, GzEncoder},
+    Compression,
+};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -19,21 +22,23 @@ impl RuntimeModel {
     pub fn save(&self, path: &str) -> std::io::Result<()> {
         let serialized = bincode::serde::encode_to_vec(self, bincode::config::standard())
             .expect("Failed to serialize model.");
-        let compressed = compress_prepend_size(&serialized);
-        let mut file = File::create(path)?;
-        file.write_all(&compressed)?;
+
+        let file = File::create(path)?;
+        let mut encoder = GzEncoder::new(file, Compression::default());
+        encoder.write_all(&serialized)?;
+        encoder.finish()?;
         Ok(())
     }
 
     /// Loads the model from a file
     pub fn load(path: &str) -> std::io::Result<Self> {
-        let mut file = File::open(path)?;
+        let file = File::open(path)?;
+        let mut decoder = GzDecoder::new(file);
         let mut buffer = Vec::new();
-        file.read_to_end(&mut buffer)?;
-        let decompressed = decompress_size_prepended(&buffer).expect("Failed to decompress model.");
-        let (model, _) =
-            bincode::serde::decode_from_slice(&decompressed, bincode::config::standard())
-                .expect("Failed to deserialize model.");
+        decoder.read_to_end(&mut buffer)?;
+
+        let (model, _) = bincode::serde::decode_from_slice(&buffer, bincode::config::standard())
+            .expect("Failed to deserialize model.");
         Ok(model)
     }
 
