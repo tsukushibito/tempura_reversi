@@ -1,5 +1,5 @@
 use burn::{
-    backend::{ndarray::NdArrayDevice, Autodiff, NdArray},
+    backend::{ndarray::NdArrayDevice, wgpu::WgpuDevice, Autodiff, NdArray, Wgpu},
     optim::AdamConfig,
 };
 use indicatif::ProgressBar;
@@ -87,16 +87,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Start training
     println!("🚀 Starting model training...");
     let device = NdArrayDevice::Cpu;
+    // let device = WgpuDevice::DefaultDevice;
 
     let config = training::TrainingConfig {
-        num_epochs: 8,
-        num_workers: 4,
+        num_epochs: 10,
+        num_workers: 8,
         seed: 1337,
         optimizer: AdamConfig::new(),
         batch_size: 15360, // 256 * 60
     };
 
     training::run::<Autodiff<NdArray>>(
+        // training::run::<Autodiff<Wgpu>>(
         config,
         "work/artifacts",
         "work/datasets",

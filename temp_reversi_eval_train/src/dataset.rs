@@ -90,8 +90,8 @@ impl<B: Backend> ReversiBatcher<B> {
     }
 }
 
-impl<B: Backend> Batcher<ReversiSample, ReversiBatch<B>> for ReversiBatcher<B> {
-    fn batch(&self, samples: Vec<ReversiSample>) -> ReversiBatch<B> {
+impl<B: Backend> Batcher<B, ReversiSample, ReversiBatch<B>> for ReversiBatcher<B> {
+    fn batch(&self, samples: Vec<ReversiSample>, _device: &B::Device) -> ReversiBatch<B> {
         let mut indices = Vec::new();
         let mut values = Vec::new();
         let mut targets = Vec::new();

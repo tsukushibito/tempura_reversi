@@ -4,7 +4,6 @@ pub mod dataset_loader;
 pub mod feature_packer;
 pub mod game_record;
 pub mod model;
-pub mod sparse_linear;
 pub mod training;
 pub mod visualizer;
 

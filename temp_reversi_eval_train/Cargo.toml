@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-burn = { version = "0.16.1", features = ["train", "ndarray"] }
+burn = { version = "0.17.0", features = ["train", "ndarray", "wgpu"] }
 bincode = { workspace = true }
 serde = { workspace = true }
 temp_reversi_core = { path = "../temp_reversi_core" }
