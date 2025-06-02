@@ -90,7 +90,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // let device = WgpuDevice::DefaultDevice;
 
     let config = training::TrainingConfig {
-        num_epochs: 10,
+        num_epochs: 16,
         num_workers: 8,
         seed: 1337,
         optimizer: AdamConfig::new(),
