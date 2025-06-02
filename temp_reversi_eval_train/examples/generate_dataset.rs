@@ -38,8 +38,8 @@ impl ProgressReporter for CliProgressReporter {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = DatasetGeneratorConfig {
-        train_records: 8000,
-        valid_records: 2000,
+        train_records: 45000,
+        valid_records: 5000,
         num_random_moves: 10,
         search_depth: 5,
         evaluator: EvaluatorType::PhaseAware,
