@@ -101,8 +101,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // training::run::<Autodiff<Wgpu>>(
         config,
         "work/artifacts",
-        "work/datasets",
-        "dataset",
+        "work/datasets/dataset.gz",
+        "work/test_runtime_model.bin",
         device,
     )?;
 

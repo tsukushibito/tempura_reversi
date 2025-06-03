@@ -19,15 +19,20 @@ impl DatasetLoader {
     ///
     /// # Arguments
     ///
-    /// * `dataset_dir` - Directory containing the compressed dataset file
-    /// * `dataset_name` - Name of the dataset file (without .gz extension)
+    /// * `records_path` - Full path to the compressed dataset file (with or without .gz extension)
     ///
     /// # Returns
     ///
     /// A DatasetLoader containing both training and validation datasets
-    pub fn load_from_compressed(dataset_dir: &str, dataset_name: &str) -> Result<Self, BoxError> {
+    pub fn load_from_compressed(records_path: &str) -> Result<Self, BoxError> {
+        let dataset_path = if records_path.ends_with(".gz") {
+            records_path.to_string()
+        } else {
+            format!("{}.gz", records_path)
+        };
+
         // Decompress the .gz file to a temporary file
-        let temp_db = Self::decompress_dataset(dataset_dir, dataset_name)?;
+        let temp_db = Self::decompress_dataset(&dataset_path)?;
 
         // Load samples from the decompressed database
         let (train_samples, valid_samples) = Self::load_samples_from_db(temp_db.path())?;
@@ -43,12 +48,8 @@ impl DatasetLoader {
     }
 
     /// Decompresses a .gz dataset file to a temporary file
-    fn decompress_dataset(
-        dataset_dir: &str,
-        dataset_name: &str,
-    ) -> Result<NamedTempFile, BoxError> {
-        let gz_path = Path::new(dataset_dir).join(format!("{}.gz", dataset_name));
-        let gz_file = File::open(&gz_path)?;
+    fn decompress_dataset(dataset_path: &str) -> Result<NamedTempFile, BoxError> {
+        let gz_file = File::open(dataset_path)?;
         let mut decoder = GzDecoder::new(gz_file);
 
         let temp_file = NamedTempFile::new()?;
@@ -125,8 +126,8 @@ mod tests {
         assert!(gz_file.exists(), "Compressed dataset should exist");
 
         // Load the dataset
-        let loader_result =
-            DatasetLoader::load_from_compressed(&temp_dir.to_string_lossy(), "test_dataset");
+        let gz_path = temp_dir.join("test_dataset.gz");
+        let loader_result = DatasetLoader::load_from_compressed(&gz_path.to_string_lossy());
 
         assert!(loader_result.is_ok(), "Dataset loading should succeed");
 

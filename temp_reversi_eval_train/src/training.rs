@@ -6,10 +6,7 @@ use burn::{
     tensor::backend::AutodiffBackend,
     train::{metric::LossMetric, LearnerBuilder},
 };
-use temp_reversi_eval::{
-    feature::PHASE_COUNT,
-    runtime_model::{self, RuntimeModel},
-};
+use temp_reversi_eval::{feature::PHASE_COUNT, runtime_model::RuntimeModel};
 
 use crate::{
     dataset::ReversiBatcher,
@@ -66,8 +63,8 @@ fn extract_runtime_model<B: Backend>(model: &ReversiModel<B>) -> RuntimeModel {
 pub fn run<B: AutodiffBackend>(
     config: TrainingConfig,
     artifact_dir: &str,
-    records_dir: &str,
-    records_name: &str,
+    records_path: &str,
+    runtime_model_path: &str,
     device: B::Device,
 ) -> Result<(), Box<dyn std::error::Error>> {
     create_artifact_dir(artifact_dir);
@@ -77,7 +74,7 @@ pub fn run<B: AutodiffBackend>(
     B::seed(config.seed);
 
     // Load datasets from compressed SQLite file
-    let loader = DatasetLoader::load_from_compressed(records_dir, records_name)?;
+    let loader = DatasetLoader::load_from_compressed(records_path)?;
     let train_dataset = loader.train_dataset;
     let valid_dataset = loader.valid_dataset;
 
@@ -120,8 +117,7 @@ pub fn run<B: AutodiffBackend>(
         &NoStdTrainingRecorder::new(),
     )?;
 
-    let runtime_model_path = format!("{artifact_dir}/runtime_model");
-    runtime_model.save(&runtime_model_path)?;
+    runtime_model.save(runtime_model_path)?;
 
     println!("🎨 Generating loss plot...");
     match generate_loss_plot(artifact_dir) {
