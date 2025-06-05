@@ -117,7 +117,8 @@ pub fn run<B: AutodiffBackend>(
         &NoStdTrainingRecorder::new(),
     )?;
 
-    runtime_model.save(runtime_model_path)?;
+    // runtime_model.save(runtime_model_path)?;
+    runtime_model.save_uncompressed(runtime_model_path)?;
 
     println!("🎨 Generating loss plot...");
     match generate_loss_plot(artifact_dir) {

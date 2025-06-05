@@ -102,7 +102,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         config,
         "work/artifacts",
         "work/datasets/dataset.gz",
-        "work/test_runtime_model.gz",
+        "work/artifacts/test_runtime_model.gz",
         device,
     )?;
 
